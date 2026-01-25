@@ -1,0 +1,28 @@
+:root {
+  --christmas-red: #d42426;
+  --christmas-green: #2f5a28;
+  --spring-red: #ea2c2c; /* Brighter red for CNY */
+  --spring-gold: #f1c40f;
+  
+  --bg-color: #f8f9fa;
+  --text-color: #333;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  overflow: hidden; /* App feel */
+}
+
+/* Animations */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
