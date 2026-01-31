@@ -8,9 +8,7 @@ import christmasBg from '../assets/christmas-bg.jpg';
 import springBg from '../assets/spring-bg.jpg';
 
 import SantaSticker from '../components/SantaSticker';
-
-// Simple Sticker Component
-// Sticker component moved to FestiveDecorPage
+import ChineseHorseSticker from '../components/ChineseHorseSticker';
 
 const HomePage: React.FC = () => {
     const { theme } = useTheme(); // Global theme switcher
@@ -55,8 +53,7 @@ const HomePage: React.FC = () => {
                 </h1>
 
                 {theme === 'christmas' && <SantaSticker />}
-
-                {/* Messages Scattering moved to FestiveDecorPage */}
+                {theme === 'spring' && <ChineseHorseSticker />}
 
                 {/* Ad Popup */}
                 {showAd && ad && (

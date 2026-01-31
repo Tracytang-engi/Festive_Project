@@ -76,6 +76,9 @@ router.post('/request-code',
     }
 );
 
+// Dev-only bypass codes so registration works without checking server console
+const DEV_BYPASS_CODES = ['123456', '654321'];
+
 // POST /api/auth/verify-code
 router.post('/verify-code',
     ipLimiterMiddleware,
@@ -88,23 +91,29 @@ router.post('/verify-code',
 
             const encryptedPhone = encryptPhone(phoneNumber);
 
-            // Find valid code
-            // Sort by createdAt desc to get latest
-            const record = await VerificationCode.findOne({ encryptedPhone })
-                .sort({ createdAt: -1 });
+            // In development, accept bypass codes so testing works without server console
+            const isDevBypass = process.env.NODE_ENV !== 'production' &&
+                DEV_BYPASS_CODES.includes(String(code).trim());
 
-            if (!record) {
-                return res.status(400).json({ error: "INVALID_CODE", message: "Code not found or expired" });
+            if (!isDevBypass) {
+                // Find valid code
+                // Sort by createdAt desc to get latest
+                const record = await VerificationCode.findOne({ encryptedPhone })
+                    .sort({ createdAt: -1 });
+
+                if (!record) {
+                    return res.status(400).json({ error: "INVALID_CODE", message: "Code not found or expired" });
+                }
+
+                // Check if match
+                const isValid = await compareCode(code, record.codeHash);
+                if (!isValid) {
+                    return res.status(400).json({ error: "INVALID_CODE", message: "Incorrect code" });
+                }
+
+                // Cleanup codes
+                await VerificationCode.deleteMany({ encryptedPhone });
             }
-
-            // Check if match
-            const isValid = await compareCode(code, record.codeHash);
-            if (!isValid) {
-                return res.status(400).json({ error: "INVALID_CODE", message: "Incorrect code" });
-            }
-
-            // Cleanup codes
-            await VerificationCode.deleteMany({ encryptedPhone });
 
             // Find or Create User
             let user = await User.findOne({ encryptedPhone });

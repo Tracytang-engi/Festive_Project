@@ -26,3 +26,15 @@ body {
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
+
+/* Gentle drift for horse sticker – small range so it stays within central 50% */
+@keyframes float-drift {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(3px, -4px); }
+  50% { transform: translate(-2px, -6px); }
+  75% { transform: translate(3px, -3px); }
+}
+
+.animate-float-drift {
+  animation: float-drift 4s ease-in-out infinite;
+}
