@@ -100,7 +100,7 @@ const FestiveDecorPage: React.FC = () => {
                                         borderRadius: '8px',
                                     }}
                                 >
-                                    <span style={{ fontSize: '28px' }}>{msg.stickerType}</span>
+                                    <span className="icon-lg">{msg.stickerType}</span>
                                     <span style={{ fontSize: '12px', marginTop: '4px' }}>
                                         From: {typeof msg.sender === 'object' ? msg.sender?.nickname : 'Friend'}
                                     </span>

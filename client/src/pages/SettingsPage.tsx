@@ -1,20 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
+import Sidebar from '../components/Layout/Sidebar';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { themeConfig } from '../constants/theme';
 
 const SettingsPage: React.FC = () => {
-    const { user } = useAuth(); // We might need to refresh user data or update context manually
+    const { user } = useAuth();
     const { theme } = useTheme();
     const navigate = useNavigate();
     const [file, setFile] = useState<File | null>(null);
-    const serverUrl = 'http://localhost:3000';
+    const serverUrl = 'http://127.0.0.1:3000';
     const initialPreview = user?.backgroundImage ? `${serverUrl}${user.backgroundImage}` : null;
     const [preview, setPreview] = useState<string | null>(initialPreview);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<boolean>(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -35,25 +38,12 @@ const SettingsPage: React.FC = () => {
         formData.append('image', file);
 
         try {
-            // Note: client.ts sets Content-Type: application/json by default.
-            // Axios allows overriding it.
-            // But we need to make sure the interceptor doesn't break signatures if they are used.
-            // Since we found signatureMiddleware is likely unused or we'll bypass signature for now if complex.
-            // Actually, if we use 'api', the interceptor runs.
-            // Let's assume signature logic handles empty body fine (since formData isn't in config.data in a simple way for interceptors to read usually).
-
             const response = await api.post('/users/background', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             if (response.data.success) {
                 setSuccess(true);
-                // We might need to reload the page or update the user context to see the background applied globally immediately
-                // For now, we rely on ThemeContext updating if we refreshed user.
-                // But AuthContext user is state. Login refreshes it?
-                // We should ideally reload the window or have a fetchUser logic.
                 window.location.reload();
             }
         } catch (err: any) {
@@ -64,52 +54,123 @@ const SettingsPage: React.FC = () => {
         }
     };
 
+    const mainBg = themeConfig[theme].mainBg;
+
     return (
-        <div className="min-h-screen p-8 animate-fade-in relative z-10" style={{ color: theme === 'christmas' ? '#d42426' : '#c0392b' }}>
-            <div className="max-w-md mx-auto bg-white/90 backdrop-blur-md p-6 rounded-xl shadow-xl border-2 border-current">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold font-display">Settings</h2>
-                    <button onClick={() => navigate('/')} className="hover:bg-black/5 p-2 rounded-full transition-colors">
-                        ✕
+        <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+            <Sidebar />
+            <div style={{
+                flex: 1,
+                padding: '32px 40px',
+                overflowY: 'auto',
+                background: mainBg,
+                color: 'white',
+                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+            }}>
+                <header style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '28px'
+                }}>
+                    <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>
+                        ⚙️ Settings
+                    </h1>
+                    <button
+                        className="ios-btn tap-scale"
+                        onClick={() => navigate('/')}
+                        style={{ background: 'rgba(255,255,255,0.2)', color: 'white', padding: '10px 16px' }}
+                    >
+                        Done
                     </button>
-                </div>
+                </header>
 
-                <div className="space-y-6">
-                    <div>
-                        <label className="block font-semibold mb-2">Custom Background</label>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer relative"
-                            style={{ minHeight: '150px' }}>
-
-                            {preview ? (
-                                <div className="absolute inset-0 w-full h-full">
-                                    <img src={preview} alt="Preview" className="w-full h-full object-cover rounded-lg opacity-50" />
-                                </div>
-                            ) : null}
-
-                            <div className="relative z-10 flex flex-col items-center justify-center h-full">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleFileChange}
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                />
-                                <span className="bg-white/80 px-4 py-2 rounded-full shadow-sm text-sm font-medium">
-                                    {file ? file.name : "Choose an image"}
-                                </span>
-                            </div>
+                <div className="ios-card" style={{
+                    maxWidth: '500px',
+                    padding: '24px',
+                    background: 'rgba(255,255,255,0.95)',
+                    color: '#333'
+                }}>
+                    <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, marginBottom: '12px' }}>
+                        Custom Background
+                    </label>
+                    <div
+                        style={{
+                            border: '2px dashed rgba(60,60,67,0.2)',
+                            borderRadius: '12px',
+                            padding: '24px',
+                            textAlign: 'center',
+                            minHeight: '150px',
+                            position: 'relative',
+                            cursor: 'pointer',
+                            background: preview ? 'transparent' : '#f2f2f7',
+                            transition: 'background 0.2s'
+                        }}
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            style={{ display: 'none' }}
+                        />
+                        {preview && (
+                            <img
+                                src={preview}
+                                alt="Preview"
+                                style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    borderRadius: '10px',
+                                    opacity: 0.5
+                                }}
+                            />
+                        )}
+                        <div style={{ position: 'relative', zIndex: 1, padding: '20px' }}>
+                            <span style={{
+                                background: 'white',
+                                padding: '10px 20px',
+                                borderRadius: '20px',
+                                fontSize: '15px',
+                                fontWeight: 500,
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}>
+                                {file ? file.name : "Choose an image"}
+                            </span>
                         </div>
                     </div>
 
-                    {error && <p className="text-red-500 text-sm bg-red-50 p-2 rounded">{error}</p>}
-                    {success && <p className="text-green-600 text-sm bg-green-50 p-2 rounded">Background updated!</p>}
+                    {error && (
+                        <div className="ios-info-banner" style={{ marginTop: '16px', background: 'rgba(255,59,48,0.15)', borderColor: 'rgba(255,59,48,0.3)', color: '#c0392b' }}>
+                            {error}
+                        </div>
+                    )}
+                    {success && (
+                        <div className="ios-info-banner" style={{ marginTop: '16px', background: 'rgba(52,199,89,0.15)', borderColor: 'rgba(52,199,89,0.3)', color: '#27ae60' }}>
+                            Background updated!
+                        </div>
+                    )}
 
                     <button
+                        className="ios-btn tap-scale"
                         onClick={handleUpload}
                         disabled={!file || uploading}
-                        className={`w-full py-3 rounded-lg font-bold text-white shadow-lg transform transition-all 
-                            ${(!file || uploading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}
-                        `}
-                        style={{ backgroundColor: theme === 'christmas' ? '#2f5a28' : '#f1c40f', color: theme === 'spring' ? '#c0392b' : 'white' }}
+                        style={{
+                            width: '100%',
+                            marginTop: '20px',
+                            padding: '14px',
+                            background: (!file || uploading) ? '#ccc' : themeConfig[theme].primary,
+                            color: theme === 'spring' ? '#c0392b' : 'white',
+                            border: 'none',
+                            borderRadius: '10px',
+                            fontSize: '16px',
+                            fontWeight: 600,
+                            cursor: (!file || uploading) ? 'not-allowed' : 'pointer'
+                        }}
                     >
                         {uploading ? 'Uploading...' : 'Save Changes'}
                     </button>

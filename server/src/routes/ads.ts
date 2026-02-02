@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
         if (!ad) {
             // Default Fallback
             return res.json({
-                imageUrl: "https://via.placeholder.com/300x500?text=SuperCamEngi+WeChat", // Placeholder as per plan
+                imageUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='500' viewBox='0 0 300 500'%3E%3Crect width='300' height='500' fill='%23e0e0e0'/%3E%3Ctext x='150' y='250' text-anchor='middle' fill='%23999' font-size='16' font-family='sans-serif'%3ESuperCamEngi WeChat%3C/text%3E%3C/svg%3E",
                 linkUrl: "#",
                 text: "Add SuperCamEngi on WeChat!"
             });

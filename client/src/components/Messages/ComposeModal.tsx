@@ -20,14 +20,15 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
     useEffect(() => {
         if (isOpen) {
             loadFriends();
+            setSeason(initialSeason);
         }
-    }, [isOpen]);
+    }, [isOpen, initialSeason]);
 
     const loadFriends = async () => {
         try {
             const list = await getFriends();
             setFriends(list);
-            if (list.length > 0) setSelectedFriend(list[0]._id);
+            setSelectedFriend(list.length > 0 ? list[0]._id : '');
         } catch (err) {
             console.error("Failed to load friends", err);
         }
@@ -64,27 +65,28 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
     return (
         <div style={styles.overlay}>
             <div style={styles.modal}>
-                <h3>Send a Festive Greeting</h3>
+                <h3 style={styles.title}>Send a Festive Greeting</h3>
 
-                <label>To:</label>
-                <select value={selectedFriend} onChange={e => setSelectedFriend(e.target.value)} style={styles.input}>
+                <label style={styles.label}>To</label>
+                <select value={selectedFriend} onChange={e => setSelectedFriend(e.target.value)} className="ios-input" style={styles.input}>
                     {friends.map(f => (
-                        <option key={f._id} value={f._id}>{f.nickname} ({f.region})</option>
+                        <option key={f._id} value={f._id}>{f.nickname} ({f.region ?? '未设置地区'})</option>
                     ))}
                 </select>
 
-                <label>Season:</label>
-                <div style={styles.toggles}>
-                    <button style={season === 'christmas' ? styles.activeTab : styles.tab} onClick={() => setSeason('christmas')}>Christmas</button>
-                    <button style={season === 'spring' ? styles.activeTab : styles.tab} onClick={() => setSeason('spring')}>Spring Festival</button>
+                <label style={styles.label}>Season</label>
+                <div className="ios-segmented" style={styles.toggles}>
+                    <button className={season === 'christmas' ? 'active' : ''} onClick={() => setSeason('christmas')}>Christmas</button>
+                    <button className={season === 'spring' ? 'active' : ''} onClick={() => setSeason('spring')}>Spring Festival</button>
                 </div>
 
-                <label>Choose a Sticker:</label>
-                <div style={styles.stickers}>
+                <label style={styles.label}>Choose a Sticker</label>
+                <div className="icon-lg" style={styles.stickers}>
                     {stickers.map(s => (
                         <span
                             key={s}
-                            style={{ ...styles.sticker, border: sticker === s ? '2px solid gold' : 'none' }}
+                            className="tap-scale"
+                            style={{ ...styles.sticker, border: sticker === s ? '2px solid #007AFF' : 'none', background: sticker === s ? 'rgba(0,122,255,0.08)' : 'transparent' }}
                             onClick={() => setSticker(s)}
                         >
                             {s}
@@ -92,6 +94,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                     ))}
                 </div>
 
+                <label style={styles.label}>Message</label>
                 <textarea
                     placeholder="Write your warm wishes..."
                     value={content}
@@ -100,8 +103,8 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                 />
 
                 <div style={styles.actions}>
-                    <button onClick={onClose} style={styles.cancelBtn}>Cancel</button>
-                    <button onClick={handleSend} disabled={loading} style={styles.sendBtn}>
+                    <button className="ios-btn tap-scale" onClick={onClose} style={styles.cancelBtn}>Cancel</button>
+                    <button className="ios-btn tap-scale" onClick={handleSend} disabled={loading} style={styles.sendBtn}>
                         {loading ? 'Sending...' : 'Send Wishes'}
                     </button>
                 </div>
@@ -113,22 +116,24 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
 const styles: { [key: string]: React.CSSProperties } = {
     overlay: {
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
     },
     modal: {
-        backgroundColor: 'white', padding: '20px', borderRadius: '15px', width: '90%', maxWidth: '500px',
-        display: 'flex', flexDirection: 'column', gap: '10px', color: '#333'
+        backgroundColor: 'white', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '500px',
+        display: 'flex', flexDirection: 'column', gap: '16px', color: '#333',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
     },
-    input: { padding: '8px', borderRadius: '5px', border: '1px solid #ccc' },
-    toggles: { display: 'flex', gap: '10px' },
-    tab: { padding: '5px 10px', border: '1px solid #ccc', background: '#eee', borderRadius: '5px', cursor: 'pointer' },
-    activeTab: { padding: '5px 10px', border: '1px solid #2f5a28', background: '#2f5a28', color: 'white', borderRadius: '5px', cursor: 'pointer' },
-    stickers: { display: 'flex', gap: '10px', fontSize: '24px', padding: '10px 0' },
-    sticker: { cursor: 'pointer', padding: '5px', borderRadius: '5px' },
-    textarea: { padding: '10px', borderRadius: '5px', border: '1px solid #ccc', minHeight: '100px' },
-    actions: { display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' },
-    cancelBtn: { padding: '8px 15px', background: 'transparent', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer' },
-    sendBtn: { padding: '8px 15px', background: '#d42426', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }
+    title: { margin: 0, fontSize: '20px', fontWeight: 600 },
+    label: { fontSize: '13px', color: '#8e8e93', fontWeight: 500 },
+    input: { padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(60,60,67,0.12)', fontSize: '16px', width: '100%', boxSizing: 'border-box' as const },
+    toggles: { display: 'flex', gap: '8px' },
+    stickers: { display: 'flex', gap: '10px', padding: '10px 0' },
+    sticker: { cursor: 'pointer', padding: '8px', borderRadius: '10px', transition: 'background 0.2s' },
+    textarea: { padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(60,60,67,0.12)', minHeight: '100px', fontSize: '16px', fontFamily: 'inherit' },
+    actions: { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' },
+    cancelBtn: { padding: '10px 18px', background: '#f2f2f7', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '15px', fontWeight: 500 },
+    sendBtn: { padding: '10px 18px', background: '#FF3B30', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '15px', fontWeight: 500, transition: 'opacity 0.2s' }
 };
 
 export default ComposeModal;

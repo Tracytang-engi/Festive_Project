@@ -109,7 +109,7 @@ router.get('/requests', async (req: AuthRequest, res) => {
         const requests = await Friend.find({
             recipient: userId,
             status: 'pending'
-        }).populate('requester', 'nickname profile');
+        }).populate('requester', 'nickname region');
 
         res.json(requests);
     } catch (err) {
@@ -126,8 +126,8 @@ router.get('/', async (req: AuthRequest, res) => {
                 { requester: userId, status: 'accepted' },
                 { recipient: userId, status: 'accepted' }
             ]
-        }).populate('requester', 'nickname profile')
-            .populate('recipient', 'nickname profile');
+        }).populate('requester', 'nickname region')
+            .populate('recipient', 'nickname region');
 
         // Transform to return the *other* user
         const result = friends.map(f => {

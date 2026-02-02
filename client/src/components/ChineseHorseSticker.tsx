@@ -49,9 +49,8 @@ const ChineseHorseSticker: React.FC = () => {
 
             {/* Horse sticker with glowing edge – mirroring Santa layout */}
             <div
-                className="animate-float"
+                className="animate-float icon-xxl"
                 style={{
-                    fontSize: '79px',
                     lineHeight: 1,
                     filter: horseGlowFilter,
                     textShadow: '0 0 20px rgba(241, 196, 15, 0.8), 0 0 30px rgba(230, 126, 34, 0.5)',

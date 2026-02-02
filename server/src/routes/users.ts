@@ -19,16 +19,21 @@ router.get('/me', async (req: AuthRequest, res) => {
 });
 
 // GET /api/users/search?nickname=...
+// nickname 为空或 "*" 时返回所有用户（排除自己），方便浏览添加好友
 router.get('/search', async (req: AuthRequest, res) => {
     try {
         const { nickname } = req.query;
-        if (!nickname) return res.json([]);
+        const filter: any = { _id: { $ne: req.user?.id } }; // Exclude self
 
-        // Partial match, case insensitive
-        const users = await User.find({
-            nickname: { $regex: nickname, $options: 'i' },
-            _id: { $ne: req.user?.id } // Exclude self
-        }).select('nickname region selectedScene'); // Public info only
+        if (nickname && String(nickname).trim() && String(nickname) !== '*') {
+            // Partial match, case insensitive
+            filter.nickname = { $regex: String(nickname).trim(), $options: 'i' };
+        }
+        // else: empty or "*" = browse all users
+
+        const users = await User.find(filter)
+            .select('nickname region selectedScene')
+            .limit(100);
 
         res.json(users);
     } catch (err) {

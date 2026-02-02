@@ -1,54 +1,139 @@
 import React, { useState } from 'react';
 import api from '../api/client';
 import Sidebar from '../components/Layout/Sidebar';
+import { useTheme } from '../context/ThemeContext';
+import { themeConfig } from '../constants/theme';
 
 const DiscoverPage: React.FC = () => {
+    const { theme } = useTheme();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const handleSearch = async () => {
-        const res = await api.get(`/users/search?nickname=${query}`);
-        setResults(res.data);
+    const handleSearch = async (searchQuery?: string) => {
+        const q = searchQuery !== undefined ? searchQuery : query;
+        setLoading(true);
+        setError('');
+        try {
+            const res = await api.get(`/users/search?nickname=${encodeURIComponent(q.trim() || '*')}`);
+            setResults(res.data);
+        } catch (err: any) {
+            setError(err?.response?.data?.message || '搜索失败，请检查网络');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const sendRequest = async (targetId: string) => {
         try {
             await api.post('/friends/request', { targetUserId: targetId });
-            alert("Request sent!");
-        } catch (err) {
-            alert("Failed to send request (or already sent)");
+            alert("好友请求已发送！");
+        } catch (err: any) {
+            const msg = err?.response?.data?.error || err?.message;
+            alert(msg === "Request already exists or connected" ? "已发送过请求或已是好友" : "发送失败：" + (msg || "请重试"));
         }
     };
 
+    const mainBg = themeConfig[theme].mainBg;
+
     return (
-        <div style={{ display: 'flex' }}>
+        <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
             <Sidebar />
-            <div style={{ flex: 1, padding: '40px' }}>
-                <h1>Discover Friends</h1>
-                <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{
+                flex: 1,
+                padding: '32px 40px',
+                overflowY: 'auto',
+                background: mainBg,
+                color: 'white',
+                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+            }}>
+                <header style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '28px'
+                }}>
+                    <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>
+                        👋 Discover Friends
+                    </h1>
+                </header>
+
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '24px' }}>
                     <input
                         type="text"
+                        className="ios-input"
                         value={query}
                         onChange={e => setQuery(e.target.value)}
-                        placeholder="Search nickname..."
-                        style={{ padding: '10px', width: '300px' }}
+                        onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                        placeholder="输入昵称搜索，留空可浏览全部用户"
+                        style={{ width: '300px', maxWidth: '100%' }}
                     />
-                    <button onClick={handleSearch} style={{ padding: '10px 20px' }}>Search</button>
+                    <button
+                        className="ios-btn ios-btn-primary tap-scale"
+                        onClick={() => handleSearch()}
+                        disabled={loading}
+                        style={{ background: 'var(--ios-blue)', color: 'white', padding: '12px 24px' }}
+                    >
+                        {loading ? '搜索中...' : '搜索'}
+                    </button>
+                    <button
+                        className="ios-btn tap-scale"
+                        onClick={() => handleSearch('')}
+                        disabled={loading}
+                        style={{ background: 'rgba(255,255,255,0.2)', color: 'white', padding: '12px 24px' }}
+                    >
+                        浏览全部
+                    </button>
                 </div>
 
-                <div style={{ marginTop: '20px' }}>
-                    {results.map(u => (
-                        <div key={u._id} style={{
-                            padding: '15px',
-                            borderBottom: '1px solid #eee',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                        }}>
+                {error && (
+                    <div className="ios-info-banner" style={{ marginBottom: '24px', background: 'rgba(255,59,48,0.2)', borderColor: 'rgba(255,59,48,0.3)', color: '#fff' }}>
+                        {error}
+                    </div>
+                )}
+
+                <div className="ios-card" style={{
+                    background: 'rgba(255,255,255,0.95)',
+                    color: '#333',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+                }}>
+                    {loading && (
+                        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--ios-gray)' }}>加载中...</div>
+                    )}
+                    {!loading && results.length === 0 && (
+                        <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--ios-gray)', fontSize: '16px', lineHeight: 1.5 }}>
+                            暂无其他用户。请用<strong>另一个手机号</strong>注册新账号，然后在此搜索其昵称添加好友。
+                        </div>
+                    )}
+                    {!loading && results.map(u => (
+                        <div
+                            key={u._id}
+                            className="discover-item tap-scale"
+                            style={{
+                                padding: '18px 24px',
+                                borderBottom: '1px solid rgba(60,60,67,0.08)',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                transition: 'background 0.2s'
+                            }}
+                        >
                             <div>
-                                <strong>{u.nickname}</strong> ({u.region})
+                                <strong style={{ fontSize: '17px', fontWeight: 600 }}>{u.nickname || '未设置昵称'}</strong>
+                                <span style={{ fontSize: '15px', color: 'var(--ios-gray)', marginLeft: '8px' }}>
+                                    {u.region || '未设置地区'}
+                                </span>
                             </div>
-                            <button onClick={() => sendRequest(u._id)}>Add Friend</button>
+                            <button
+                                className="ios-btn ios-btn-pill tap-scale"
+                                onClick={() => sendRequest(u._id)}
+                                style={{ background: 'var(--ios-blue)', color: 'white', padding: '10px 20px' }}
+                            >
+                                添加好友
+                            </button>
                         </div>
                     ))}
                 </div>

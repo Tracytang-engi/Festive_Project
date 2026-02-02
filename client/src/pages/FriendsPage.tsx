@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
+import { themeConfig } from '../constants/theme';
 import { getFriends, getFriendRequests, respondToFriendRequest } from '../api/friends';
 import type { User } from '../types';
 
@@ -45,12 +46,11 @@ const FriendsPage: React.FC = () => {
             <Sidebar />
             <div style={{
                 flex: 1,
-                padding: '40px',
-                background: theme === 'christmas'
-                    ? 'linear-gradient(to bottom, #1a2a6c, #b21f1f, #fdbb2d)'
-                    : 'linear-gradient(to bottom, #aa076b, #61045f)',
+                padding: '32px 40px',
+                background: themeConfig[theme].mainBg,
                 color: 'white',
-                overflowY: 'auto'
+                overflowY: 'auto',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
             }}>
                 <h1>My Inner Circle 👥</h1>
 
@@ -68,8 +68,8 @@ const FriendsPage: React.FC = () => {
                                         <div style={{ fontSize: '12px', opacity: 0.8 }}>{req.requester.region}</div>
                                     </div>
                                     <div style={{ marginTop: '10px', display: 'flex', gap: '5px' }}>
-                                        <button onClick={() => handleRespond(req._id, 'accept')} style={styles.acceptBtn}>Accept</button>
-                                        <button onClick={() => handleRespond(req._id, 'reject')} style={styles.rejectBtn}>Ignore</button>
+                                        <button className="ios-btn tap-scale" onClick={() => handleRespond(req._id, 'accept')} style={styles.acceptBtn}>Accept</button>
+                                        <button className="ios-btn tap-scale" onClick={() => handleRespond(req._id, 'reject')} style={styles.rejectBtn}>Ignore</button>
                                     </div>
                                 </div>
                             ))}
@@ -83,8 +83,8 @@ const FriendsPage: React.FC = () => {
                     <div style={styles.grid}>
                         {friends.length === 0 ? <p>No friends yet. Go to Discover to find some!</p> : (
                             friends.map(friend => (
-                                <div key={friend._id} style={styles.card}>
-                                    <div style={{ fontSize: '30px', marginBottom: '10px' }}>👤</div>
+                                <div key={friend._id} className="tap-scale" style={styles.card}>
+                                    <div className="icon-lg" style={{ marginBottom: '10px' }}>👤</div>
                                     <div>
                                         <strong>{friend.nickname}</strong>
                                         <div style={{ fontSize: '12px', opacity: 0.8 }}>{friend.region}</div>
@@ -100,10 +100,10 @@ const FriendsPage: React.FC = () => {
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
-    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' },
-    card: { background: 'white', color: '#333', padding: '15px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' },
-    acceptBtn: { background: '#2f5a28', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '5px', cursor: 'pointer' },
-    rejectBtn: { background: '#d42426', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '5px', cursor: 'pointer' }
+    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' },
+    card: { background: 'rgba(255,255,255,0.95)', color: '#333', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', transition: 'box-shadow 0.2s ease' },
+    acceptBtn: { background: '#34C759', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, transition: 'opacity 0.2s' },
+    rejectBtn: { background: '#FF3B30', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, transition: 'opacity 0.2s' }
 };
 
 export default FriendsPage;

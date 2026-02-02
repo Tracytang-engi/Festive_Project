@@ -40,31 +40,32 @@ const HomePage: React.FC = () => {
                 backgroundSize: 'cover',
                 backgroundPosition: 'center'
             }}>
-                <button
-                    onClick={() => navigate('/settings')}
-                    style={{ position: 'absolute', top: '20px', right: '20px', fontSize: '24px', cursor: 'pointer', background: 'none', border: 'none', zIndex: 100 }}
-                    title="Settings"
-                >
-                    ⚙️
-                </button>
                 {/* Scene Content */}
-                <h1 style={{ color: 'white', textAlign: 'center', marginTop: '20px' }}>
+                <h1 style={{ color: 'white', textAlign: 'center', marginTop: '20px', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 600 }}>
                     {theme === 'christmas' ? 'Christmas Wonderland' : 'Spring Festival Celebration'}
                 </h1>
 
                 {theme === 'christmas' && <SantaSticker />}
                 {theme === 'spring' && <ChineseHorseSticker />}
 
-                {/* Ad Popup */}
+                {/* Ad Popup - 随页面成比例缩放 */}
                 {showAd && ad && (
-                    <div style={{
-                        position: 'absolute', bottom: '20px', right: '20px',
-                        width: '300px', padding: '10px', background: 'white',
-                        borderRadius: '8px', boxShadow: '0 0 20px rgba(0,0,0,0.3)'
-                    }}>
-                        <button onClick={() => setShowAd(false)} style={{ float: 'right', border: 'none', background: 'none', cursor: 'pointer' }}>✕</button>
-                        <img src={ad.imageUrl} alt="Ad" style={{ width: '100%', borderRadius: '4px' }} />
-                        <p style={{ textAlign: 'center', margin: '5px 0' }}>{ad.linkUrl ? <a href={ad.linkUrl}>Learn More</a> : "Sponsored"}</p>
+                    <div
+                        className="ad-responsive tap-scale"
+                        style={{
+                            position: 'absolute',
+                            bottom: 'var(--ad-gap)',
+                            right: 'var(--ad-gap)',
+                            background: 'rgba(255,255,255,0.95)',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+                            backdropFilter: 'blur(10px)',
+                            fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+                        }}
+                    >
+                        <button className="tap-scale" onClick={() => setShowAd(false)} style={{ float: 'right', border: 'none', background: 'none', cursor: 'pointer', fontSize: 'clamp(14px, 1.5vw, 18px)', opacity: 0.6 }}>✕</button>
+                        <img src={ad.imageUrl} alt="Ad" />
+                        <p style={{ textAlign: 'center' }}>{ad.linkUrl ? <a href={ad.linkUrl}>Learn More</a> : "Sponsored"}</p>
                     </div>
                 )}
             </div>

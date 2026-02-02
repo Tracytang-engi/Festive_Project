@@ -1,14 +1,14 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { generateSignature } from '../utils/security';
 
 const api = axios.create({
-    baseURL: 'http://localhost:3000/api', // Point to Backend
+    baseURL: 'http://127.0.0.1:3000/api', // Point to Backend (use 127.0.0.1 to avoid ERR_NAME_NOT_RESOLVED on some Windows)
     headers: {
         'Content-Type': 'application/json'
     }
 });
 
-api.interceptors.request.use((config) => {
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     // Add Auth Token
     const token = localStorage.getItem('token');
     if (token) {

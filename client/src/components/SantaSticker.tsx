@@ -37,8 +37,7 @@ const SantaSticker: React.FC = () => {
             </div>
 
             {/* Santa Sticker */}
-            <div className="animate-float" style={{
-                fontSize: '100px',
+            <div className="animate-float icon-xxl" style={{
                 filter: 'drop-shadow(0 5px 5px rgba(0,0,0,0.2))',
                 animationDelay: '0.5s' // Slight offset from bubble
             }}>

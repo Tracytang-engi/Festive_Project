@@ -1,19 +1,299 @@
 :root {
-  --christmas-red: #d42426;
+  --christmas-red: #c41e3a;
   --christmas-green: #2f5a28;
-  --spring-red: #ea2c2c; /* Brighter red for CNY */
+  --christmas-gold: #e8b923;
+  --spring-purple: #8e24aa;
+  --spring-red: #c2185b;
   --spring-gold: #f1c40f;
+  --spring-orange: #ff6f00;
   
   --bg-color: #f8f9fa;
   --text-color: #333;
+
+  /* iOS 风格设计变量 */
+  --ios-bg: #f2f2f7;
+  --ios-bg-secondary: #ffffff;
+  --ios-card-bg: rgba(255, 255, 255, 0.95);
+  --ios-card-radius: 12px;
+  --ios-radius-sm: 8px;
+  --ios-radius-lg: 16px;
+  --ios-radius-pill: 20px;
+  --ios-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --ios-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --ios-blue: #007AFF;
+  --ios-gray: #8e8e93;
+  --ios-divider: rgba(60, 60, 67, 0.12);
+  --ios-glass: rgba(255, 255, 255, 0.72);
+  --ios-glass-border: rgba(255, 255, 255, 0.5);
+
+  /* 响应式图标尺寸 - 按视觉黄金比例(≈1.12)略微放大 */
+  --icon-sm: clamp(18px, 2vw, 25px);
+  --icon-md: clamp(22px, 2.5vw, 31px);
+  --icon-lg: clamp(31px, 3.4vw, 45px);
+  --icon-xl: clamp(40px, 4.5vw, 63px);
+
+  /* 广告响应式尺寸 - 随视口按比例缩放 */
+  --ad-width: clamp(220px, 22vw, 380px);
+  --ad-padding: clamp(10px, 1.2vw, 18px);
+  --ad-gap: clamp(16px, 2vw, 28px);
+}
+
+/* 广告容器 - 响应式缩放 */
+.ad-responsive {
+  width: var(--ad-width) !important;
+  max-width: 95%;
+  padding: var(--ad-padding) !important;
+}
+.ad-responsive img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+.ad-responsive p {
+  font-size: clamp(12px, 1.2vw, 15px);
+  margin: clamp(4px, 0.5vw, 8px) 0 !important;
+}
+
+/* 主题切换区域 - iOS 风格 */
+.theme-switcher {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 12px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 12px;
+  margin-bottom: 32px;
+}
+.theme-switcher-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  min-width: 56px;
+}
+.theme-switcher-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+.theme-switcher-item .theme-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+.theme-switcher-item .theme-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #333;
+  opacity: 0.7;
+  letter-spacing: 0.3px;
+}
+.theme-switcher-item.active .theme-label {
+  opacity: 1;
+  font-weight: 600;
+  color: #000;
+}
+
+/* 响应式图标 - lucide SVG 继承父级 font-size */
+.icon-responsive {
+  font-size: var(--icon-md);
+}
+.icon-responsive svg {
+  width: 1em !important;
+  height: 1em !important;
+}
+
+/* 侧边栏图标 */
+.sidebar .icon-responsive {
+  font-size: var(--icon-md);
+}
+
+/* 页面内大图标（emoji/贴纸） */
+.icon-lg {
+  font-size: var(--icon-lg) !important;
+}
+.icon-xl {
+  font-size: var(--icon-xl) !important;
+}
+
+/* 超大装饰图标（圣诞老人、马等）- 黄金比例放大 */
+.icon-xxl {
+  font-size: clamp(68px, 9vw, 135px) !important;
+}
+
+/* 响应式标签/按钮文字（含 emoji） */
+.tab-responsive {
+  font-size: clamp(14px, 1.5vw, 18px) !important;
+}
+
+/* 发现页列表项 hover */
+.discover-item:hover {
+  background: rgba(0, 122, 255, 0.06) !important;
+}
+
+/* 通用点击放大效果 - 用于按钮、标签、可点击卡片等 */
+.tap-scale {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+}
+.tap-scale:active {
+  transform: scale(1.06);
+}
+
+/* 主题切换图标 - 未选中微微虚化(0.5)，选中清晰+放大(1.2)，点击时变清晰并放大 */
+.theme-tap {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  cursor: pointer;
+}
+.theme-tap:active {
+  opacity: 1 !important;
+  transform: scale(1.2) !important;
+}
+
+/* 通知图标右上角小红点 */
+.notification-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: #ff3b30;
+  border-radius: 50%;
+  border: 1.5px solid var(--ios-glass, rgba(255,255,255,0.72));
+}
+
+/* 标签按钮点击放大 */
+.tab-responsive {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.tab-responsive:active {
+  transform: scale(1.04) !important;
+}
+
+/* 发现页列表项点击 */
+.discover-item {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.discover-item:active {
+  transform: scale(1.01);
 }
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--bg-color);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  background-color: var(--ios-bg);
   color: var(--text-color);
-  overflow: hidden; /* App feel */
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* iOS 风格卡片 */
+.ios-card {
+  background: var(--ios-card-bg);
+  border-radius: var(--ios-card-radius);
+  box-shadow: var(--ios-shadow);
+  padding: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.ios-card:hover {
+  box-shadow: var(--ios-shadow-lg);
+}
+
+/* iOS 风格按钮 - 点击时微微放大过渡动画 */
+.ios-btn {
+  border: none;
+  border-radius: var(--ios-radius-sm);
+  padding: 10px 18px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+.ios-btn:active {
+  transform: scale(1.04);
+  opacity: 0.95;
+}
+.ios-btn-primary {
+  background: var(--ios-blue);
+  color: white;
+}
+.ios-btn-pill {
+  border-radius: var(--ios-radius-pill);
+}
+
+/* iOS segmented control - 分段控制器 */
+.ios-segmented {
+  display: inline-flex;
+  background: rgba(120, 120, 128, 0.16);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 2px;
+}
+.ios-segmented button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 7px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ios-gray);
+  transition: all 0.2s ease;
+}
+.ios-segmented button.active {
+  background: white;
+  color: #000;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* iOS 信息横幅 */
+.ios-info-banner {
+  padding: 14px 16px;
+  background: rgba(255, 204, 0, 0.15);
+  border-radius: var(--ios-radius-sm);
+  border: 1px solid rgba(255, 204, 0, 0.25);
+  font-size: 15px;
+  color: #8B6914;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* iOS 风格输入框 */
+.ios-input {
+  padding: 12px 16px;
+  border-radius: var(--ios-radius-sm);
+  border: 1px solid var(--ios-divider);
+  background: var(--ios-bg-secondary);
+  font-size: 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.ios-input:focus {
+  outline: none;
+  border-color: var(--ios-blue);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+/* iOS 毛玻璃效果 */
+.ios-glass {
+  background: var(--ios-glass);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* 侧边栏图标交互 - 点击时微微放大 */
+.sidebar .icon-responsive {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+.sidebar .icon-responsive:hover {
+  opacity: 0.85;
+}
+.sidebar .icon-responsive:active {
+  transform: scale(1.08);
+  opacity: 0.9;
 }
 
 /* Animations */

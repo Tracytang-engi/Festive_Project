@@ -4,7 +4,7 @@ echo   Festive Interactive Web App - Launcher
 echo ==========================================
 echo.
 echo Starting Backend Server (with mock login code)...
-start "Festive Backend" cmd /k "cd server && npm install && npm run mock-code && npm run dev"
+start "Festive Backend" cmd /k "cd server && set NODE_ENV=development && npm install && npm run mock-code && npm run dev"
 echo Backend starting and mock code set. Waiting 5 seconds...
 timeout /t 5
 

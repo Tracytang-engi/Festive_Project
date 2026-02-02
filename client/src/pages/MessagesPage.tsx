@@ -2,8 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { getMessages } from '../api/messages';
 import type { Message } from '../types';
 import ComposeModal from '../components/Messages/ComposeModal';
+import Sidebar from '../components/Layout/Sidebar';
+import { useTheme } from '../context/ThemeContext';
+import { themeConfig } from '../constants/theme';
 
 const MessagesPage: React.FC = () => {
+    const { theme } = useTheme();
     const [season, setSeason] = useState<'christmas' | 'spring'>('christmas');
     const [messages, setMessages] = useState<Message[]>([]);
     const [isUnlocked, setIsUnlocked] = useState(false);
@@ -27,49 +31,52 @@ const MessagesPage: React.FC = () => {
         }
     };
 
+    const mainBg = themeConfig[theme].mainBg;
+
     return (
-        <div className="page-container" style={{ padding: '20px' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h1>My Mailbox 📬</h1>
+        <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+            <Sidebar />
+            <div style={{ flex: 1, padding: '32px 40px', overflowY: 'auto', background: mainBg, color: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
+                <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>My Mailbox 📬</h1>
                 <button
+                    className="ios-btn ios-btn-pill tap-scale"
                     onClick={() => setIsComposeOpen(true)}
-                    style={{ padding: '10px 20px', background: '#d42426', color: 'white', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold' }}
+                    style={{ padding: '12px 24px', background: '#FF3B30', color: 'white' }}
                 >
                     Write a Card ✍️
                 </button>
             </header>
 
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-                <button
-                    onClick={() => setSeason('christmas')}
-                    style={{ ...styles.tab, borderBottom: season === 'christmas' ? '3px solid #EF233C' : '3px solid transparent' }}
-                >
+            <div className="ios-segmented" style={{ marginBottom: '24px' }}>
+                <button className={season === 'christmas' ? 'active' : ''} onClick={() => setSeason('christmas')}>
                     Christmas 🎄
                 </button>
-                <button
-                    onClick={() => setSeason('spring')}
-                    style={{ ...styles.tab, borderBottom: season === 'spring' ? '3px solid #D90429' : '3px solid transparent' }}
-                >
+                <button className={season === 'spring' ? 'active' : ''} onClick={() => setSeason('spring')}>
                     Spring Festival 🧧
                 </button>
             </div>
 
             {!isUnlocked && messages.length > 0 && (
-                <div style={{ padding: '15px', background: '#fff3cd', color: '#856404', borderRadius: '8px', marginBottom: '20px' }}>
+                <div className="ios-info-banner" style={{ marginBottom: '24px' }}>
                     🔒 Messages are locked until the festival day! You can see who sent them, but not the content.
                 </div>
             )}
 
-            {loading ? <p>Loading...</p> : (
+            {loading ? (
+                <div style={{ padding: '40px', textAlign: 'center', opacity: 0.9 }}>Loading...</div>
+            ) : (
                 <div style={styles.grid}>
-                    {messages.length === 0 ? <p>No messages yet. Send one to a friend!</p> : (
+                    {messages.length === 0 ? (
+                        <div className="ios-card" style={{ gridColumn: '1 / -1', padding: '48px', textAlign: 'center', color: 'var(--ios-gray)', fontSize: '17px' }}>
+                            No messages yet. Send one to a friend!
+                        </div>
+                    ) : (
                         messages.map(msg => (
-                            <div key={msg._id} style={styles.card}>
-                                <div style={{ fontSize: '40px', marginBottom: '10px' }}>
-                                    {isUnlocked ? msg.stickerType : '🔒'}
-                                </div>
-                                <div style={{ marginBottom: '10px', fontStyle: 'italic' }}>
-                                    From: <strong>{typeof msg.sender === 'object' ? msg.sender.nickname : 'Unknown'}</strong>
+                            <div key={msg._id} className="ios-card tap-scale" style={styles.card}>
+                                <div className="icon-lg" style={{ marginBottom: '12px' }}>{isUnlocked ? msg.stickerType : '🔒'}</div>
+                                <div style={{ marginBottom: '10px', fontSize: '14px', color: 'var(--ios-gray)' }}>
+                                    From: <strong style={{ color: '#333' }}>{typeof msg.sender === 'object' ? msg.sender.nickname : 'Unknown'}</strong>
                                 </div>
                                 <div style={styles.content}>
                                     {isUnlocked ? msg.content : "This message is sealed until " + (season === 'christmas' ? "Christmas" : "Spring Festival") + "!"}
@@ -85,15 +92,15 @@ const MessagesPage: React.FC = () => {
                 onClose={() => { setIsComposeOpen(false); fetchMessages(); }}
                 initialSeason={season}
             />
+            </div>
         </div>
     );
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
-    tab: { background: 'none', border: 'none', color: 'white', fontSize: '18px', padding: '10px', cursor: 'pointer' },
-    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' },
-    card: { background: 'white', color: '#333', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center' },
-    content: { background: '#f8f9fa', padding: '10px', borderRadius: '5px', minHeight: '60px' }
+    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' },
+    card: { background: 'rgba(255,255,255,0.95)', color: '#333', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', textAlign: 'center', transition: 'box-shadow 0.2s ease' },
+    content: { background: '#f2f2f7', padding: '14px', borderRadius: '10px', minHeight: '64px', fontSize: '15px', lineHeight: 1.45, color: '#333' }
 };
 
 export default MessagesPage;

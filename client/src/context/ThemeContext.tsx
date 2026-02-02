@@ -20,11 +20,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
     }, [user]);
 
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+    }, [theme]);
+
     const toggleTheme = (t: Theme) => {
         setTheme(t);
-        // Persist via AuthContext/API if needed, but sidebar switching might be temporary?
-        // Requirement: "Clicking icons switches between two theme scenes". 
-        // We can just keep it local state for the session, or auto-save.
     };
 
     return (

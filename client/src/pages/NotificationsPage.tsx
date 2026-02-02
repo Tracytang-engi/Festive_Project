@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
+import { themeConfig } from '../constants/theme';
 import { getNotifications, markAllAsRead } from '../api/notifications';
 import type { NotificationItem } from '../api/notifications';
 import { useNavigate } from 'react-router-dom';
@@ -48,17 +49,18 @@ const NotificationsPage: React.FC = () => {
     const styles: { [key: string]: React.CSSProperties } = {
         container: { display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' },
         main: {
-            flex: 1, padding: '40px', color: 'white', overflowY: 'auto',
-            background: theme === 'christmas' ? '#2f3542' : '#2c3e50' // Neutral dark, let alerts pop
+            flex: 1, padding: '32px 40px', color: 'white', overflowY: 'auto',
+            background: themeConfig[theme].mainBg,
+            fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
         },
-        list: { display: 'flex', flexDirection: 'column', gap: '15px' },
+        list: { display: 'flex', flexDirection: 'column', gap: '12px' },
         item: {
-            padding: '20px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '15px',
-            cursor: 'pointer', transition: 'background 0.2s'
+            padding: '20px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '16px',
+            cursor: 'pointer', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
         },
-        unread: { background: theme === 'christmas' ? '#ff4757' : '#e056fd', color: 'white' },
-        read: { background: 'rgba(255,255,255,0.1)', color: '#ccc' },
-        icon: { fontSize: '24px' }
+        unread: { background: theme === 'christmas' ? '#FF3B30' : '#AF52DE', color: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' },
+        read: { background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)' },
+        icon: {}
     };
 
     return (
@@ -68,7 +70,7 @@ const NotificationsPage: React.FC = () => {
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                     <h1>🔔 Notifications</h1>
                     {notifications.some(n => !n.isRead) && (
-                        <button onClick={handleMarkRead} style={{ padding: '10px 20px', borderRadius: '20px', border: 'none', background: 'white', color: '#333', cursor: 'pointer' }}>
+                        <button className="ios-btn ios-btn-pill" onClick={handleMarkRead} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.9)', color: '#333' }}>
                             Mark all read
                         </button>
                     )}
@@ -80,10 +82,11 @@ const NotificationsPage: React.FC = () => {
                             notifications.map(note => (
                                 <div
                                     key={note._id}
+                                    className="tap-scale"
                                     style={{ ...styles.item, ...(note.isRead ? styles.read : styles.unread) }}
                                     onClick={() => handleAction(note)}
                                 >
-                                    <div style={styles.icon}>
+                                    <div className="icon-responsive" style={styles.icon}>
                                         {note.type === 'FRIEND_REQUEST' ? '👋' :
                                             note.type === 'NEW_MESSAGE' ? '✉️' : '🤝'}
                                     </div>
