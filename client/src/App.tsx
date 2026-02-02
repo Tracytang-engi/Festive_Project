@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import HomePage from './pages/HomePage';
-import RegisterForm from './components/Auth/RegisterForm';
+import AuthForm from './components/Auth/AuthForm';
 import SceneSelector from './pages/SceneSelectionPage';
 import DiscoverPage from './pages/DiscoverPage';
 import MessagesPage from './pages/MessagesPage';
@@ -17,13 +17,13 @@ import './index.css';
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const token = localStorage.getItem('token');
-  return (isAuthenticated || token) ? <>{children}</> : <Navigate to="/register" />;
+  return (isAuthenticated || token) ? <>{children}</> : <Navigate to="/auth" />;
 };
 
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/register" element={<RegisterForm />} />
+      <Route path="/auth" element={<AuthForm />} />
       <Route path="/select-scene" element={<ProtectedRoute><SceneSelector /></ProtectedRoute>} />
       <Route path="/festive-decor" element={<ProtectedRoute><FestiveDecorPage /></ProtectedRoute>} />
       <Route path="/discover" element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>} />

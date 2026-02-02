@@ -1,18 +1,28 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getMessages } from '../api/messages';
 import type { Message } from '../types';
 import ComposeModal from '../components/Messages/ComposeModal';
+import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
 import { themeConfig } from '../constants/theme';
 
 const MessagesPage: React.FC = () => {
     const { theme } = useTheme();
-    const [season, setSeason] = useState<'christmas' | 'spring'>('christmas');
+    const [searchParams] = useSearchParams();
+    const urlSeason = searchParams.get('season');
+    const initialSeason = (urlSeason === 'spring' || urlSeason === 'christmas') ? urlSeason : 'christmas';
+    const [season, setSeason] = useState<'christmas' | 'spring'>(initialSeason);
+
+    useEffect(() => {
+        setSeason(initialSeason);
+    }, [initialSeason]);
     const [messages, setMessages] = useState<Message[]>([]);
     const [isUnlocked, setIsUnlocked] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [isComposeOpen, setIsComposeOpen] = useState(false);
+    const [detailMessage, setDetailMessage] = useState<Message | null>(null);
 
     useEffect(() => {
         fetchMessages();
@@ -34,7 +44,7 @@ const MessagesPage: React.FC = () => {
     const mainBg = themeConfig[theme].mainBg;
 
     return (
-        <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
             <Sidebar />
             <div style={{ flex: 1, padding: '32px 40px', overflowY: 'auto', background: mainBg, color: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
@@ -73,14 +83,21 @@ const MessagesPage: React.FC = () => {
                         </div>
                     ) : (
                         messages.map(msg => (
-                            <div key={msg._id} className="ios-card tap-scale" style={styles.card}>
-                                <div className="icon-lg" style={{ marginBottom: '12px' }}>{isUnlocked ? msg.stickerType : '🔒'}</div>
-                                <div style={{ marginBottom: '10px', fontSize: '14px', color: 'var(--ios-gray)' }}>
-                                    From: <strong style={{ color: '#333' }}>{typeof msg.sender === 'object' ? msg.sender.nickname : 'Unknown'}</strong>
+                            <div
+                                key={msg._id}
+                                className="ios-card tap-scale"
+                                style={{ ...styles.card, cursor: 'pointer', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '140px' }}
+                                onClick={() => setDetailMessage(msg)}
+                            >
+                                <div className="icon-xxl" style={{ marginBottom: '8px', fontSize: '56px' }}>
+                                    {isUnlocked ? msg.stickerType : '🔒'}
                                 </div>
-                                <div style={styles.content}>
-                                    {isUnlocked ? msg.content : "This message is sealed until " + (season === 'christmas' ? "Christmas" : "Spring Festival") + "!"}
-                                </div>
+                                <span style={{ fontSize: '13px', color: 'var(--ios-gray)' }}>
+                                    From: {typeof msg.sender === 'object' ? msg.sender.nickname : 'Unknown'}
+                                </span>
+                                <span style={{ fontSize: '12px', color: 'var(--ios-gray)', marginTop: '4px' }}>
+                                    {isUnlocked ? 'Tap to view' : 'Sealed'}
+                                </span>
                             </div>
                         ))
                     )}
@@ -92,6 +109,14 @@ const MessagesPage: React.FC = () => {
                 onClose={() => { setIsComposeOpen(false); fetchMessages(); }}
                 initialSeason={season}
             />
+
+            {detailMessage && (
+                <StickerDetailModal
+                    message={detailMessage}
+                    isUnlocked={isUnlocked}
+                    onClose={() => setDetailMessage(null)}
+                />
+            )}
             </div>
         </div>
     );

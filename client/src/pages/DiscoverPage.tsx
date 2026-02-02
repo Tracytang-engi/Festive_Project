@@ -13,10 +13,12 @@ const DiscoverPage: React.FC = () => {
 
     const handleSearch = async (searchQuery?: string) => {
         const q = searchQuery !== undefined ? searchQuery : query;
+        const trimmed = q.trim();
+        if (!trimmed) return;
         setLoading(true);
         setError('');
         try {
-            const res = await api.get(`/users/search?nickname=${encodeURIComponent(q.trim() || '*')}`);
+            const res = await api.get(`/users/search?nickname=${encodeURIComponent(trimmed)}`);
             setResults(res.data);
         } catch (err: any) {
             setError(err?.response?.data?.message || '搜索失败，请检查网络');
@@ -38,7 +40,7 @@ const DiscoverPage: React.FC = () => {
     const mainBg = themeConfig[theme].mainBg;
 
     return (
-        <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
             <Sidebar />
             <div style={{
                 flex: 1,
@@ -66,24 +68,16 @@ const DiscoverPage: React.FC = () => {
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                        placeholder="输入昵称搜索，留空可浏览全部用户"
+                        placeholder="输入昵称搜索"
                         style={{ width: '300px', maxWidth: '100%' }}
                     />
                     <button
                         className="ios-btn ios-btn-primary tap-scale"
                         onClick={() => handleSearch()}
-                        disabled={loading}
+                        disabled={loading || !query.trim()}
                         style={{ background: 'var(--ios-blue)', color: 'white', padding: '12px 24px' }}
                     >
                         {loading ? '搜索中...' : '搜索'}
-                    </button>
-                    <button
-                        className="ios-btn tap-scale"
-                        onClick={() => handleSearch('')}
-                        disabled={loading}
-                        style={{ background: 'rgba(255,255,255,0.2)', color: 'white', padding: '12px 24px' }}
-                    >
-                        浏览全部
                     </button>
                 </div>
 
@@ -105,7 +99,7 @@ const DiscoverPage: React.FC = () => {
                     )}
                     {!loading && results.length === 0 && (
                         <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--ios-gray)', fontSize: '16px', lineHeight: 1.5 }}>
-                            暂无其他用户。请用<strong>另一个手机号</strong>注册新账号，然后在此搜索其昵称添加好友。
+                            暂无其他用户。请寻找已在 Festivities 注册的好友，或邀请好友注册后在此搜索其昵称添加好友。
                         </div>
                     )}
                     {!loading && results.map(u => (

@@ -57,7 +57,7 @@ const SettingsPage: React.FC = () => {
     const mainBg = themeConfig[theme].mainBg;
 
     return (
-        <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
             <Sidebar />
             <div style={{
                 flex: 1,

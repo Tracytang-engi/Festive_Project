@@ -3,8 +3,8 @@ import api from '../api/client';
 
 interface User {
     _id: string;
+    userId?: string;
     nickname?: string;
-    encryptedPhone: string;
     selectedScene?: string;
     themePreference?: 'christmas' | 'spring';
     backgroundImage?: string;
@@ -13,8 +13,8 @@ interface User {
 interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
-    login: (phone: string, code: string) => Promise<void>; // Simple login via verify
-    register: (phone: string, code: string, profile: any) => Promise<void>;
+    login: (userId: string, password: string) => Promise<void>;
+    register: (nickname: string, userId: string, password: string, region?: string) => Promise<void>;
     logout: () => void;
     checkAuth: () => Promise<void>;
     updateUserScene: (sceneId: string, theme: string) => Promise<void>;
@@ -46,16 +46,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const register = async (phoneNumber: string, code: string, profile: any) => {
-        // Step 2 of register flow: verify + profile
-        const res = await api.post('/auth/verify-code', { phoneNumber, code, ...profile });
+    const register = async (nickname: string, userId: string, password: string, region?: string) => {
+        const res = await api.post('/auth/register', { nickname, userId, password, region });
         localStorage.setItem('token', res.data.token);
         await checkAuth();
     };
 
-    const login = async (phoneNumber: string, code: string) => {
-        // Same endpoint used for login in this flow (verify code gets token)
-        const res = await api.post('/auth/verify-code', { phoneNumber, code });
+    const login = async (userId: string, password: string) => {
+        const res = await api.post('/auth/login', { userId, password });
         localStorage.setItem('token', res.data.token);
         await checkAuth();
     };

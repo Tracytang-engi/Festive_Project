@@ -7,6 +7,7 @@ export interface NotificationItem {
     type: 'FRIEND_REQUEST' | 'NEW_MESSAGE' | 'CONNECTION_SUCCESS';
     relatedUser: User;
     relatedEntityId: string;
+    season?: 'christmas' | 'spring';
     isRead: boolean;
     createdAt: string;
 }

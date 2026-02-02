@@ -30,15 +30,18 @@ const HomePage: React.FC = () => {
     };
 
     return (
-        <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto', overflowX: 'hidden' }}>
             <Sidebar />
 
-            <div style={{
+            <div className="page-bg-area" style={{
                 flex: 1,
+                minHeight: '100vh',
                 position: 'relative',
                 backgroundImage: `url(${theme === 'christmas' ? christmasBg : springBg})`,
                 backgroundSize: 'cover',
-                backgroundPosition: 'center'
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                overflow: 'hidden'
             }}>
                 {/* Scene Content */}
                 <h1 style={{ color: 'white', textAlign: 'center', marginTop: '20px', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontWeight: 600 }}>

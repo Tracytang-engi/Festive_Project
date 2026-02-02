@@ -152,6 +152,11 @@
   transform: scale(1.2) !important;
 }
 
+/* Sticker 鼠标靠近时微微放大 */
+.sticker-hover:hover {
+  transform: translate(-50%, -50%) scale(1.08) !important;
+}
+
 /* 通知图标右上角小红点 */
 .notification-badge {
   position: absolute;
@@ -180,14 +185,28 @@
   transform: scale(1.01);
 }
 
+html {
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 100%;
+}
+
 body {
   margin: 0;
+  min-height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', sans-serif;
   background-color: var(--ios-bg);
   color: var(--text-color);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* iOS 风格卡片 */
@@ -296,7 +315,19 @@ body {
   opacity: 0.9;
 }
 
-/* Animations */
+/* 页面背景区域 - 完整铺开、防止缩放重叠 */
+.page-bg-area {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* 侧边栏 - 固定宽度，防止缩放时重叠 */
+.sidebar {
+  flex-shrink: 0;
+}
+
 @keyframes float {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }

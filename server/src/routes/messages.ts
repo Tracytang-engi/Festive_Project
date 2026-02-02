@@ -32,12 +32,13 @@ router.post('/', async (req: AuthRequest, res) => {
             year: year || new Date().getFullYear()
         });
 
-        // Notify
+        // Notify (include season so frontend can open correct mailbox)
         await Notification.create({
             recipient: recipientId,
             type: 'NEW_MESSAGE',
             relatedUser: senderId,
-            relatedEntityId: message._id
+            relatedEntityId: message._id,
+            season: season
         });
 
         res.json({ success: true });

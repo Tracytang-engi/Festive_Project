@@ -57,6 +57,16 @@ export const compareCode = async (code: string, hash: string): Promise<boolean> 
     return await bcrypt.compare(code, hash);
 };
 
+// 密码加密（bcrypt）
+export const hashPassword = async (password: string): Promise<string> => {
+    const saltRounds = 10;
+    return await bcrypt.hash(password, saltRounds);
+};
+
+export const comparePassword = async (password: string, hash: string): Promise<boolean> => {
+    return await bcrypt.compare(password, hash);
+};
+
 // 6. Utility Functions
 export const sendSMS = async (phone: string, code: string): Promise<void> => {
     // Mock implementation

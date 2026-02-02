@@ -1,144 +1,190 @@
-import express, { Request, Response, NextFunction } from 'express';
-import {
-    encryptPhone,
-    generateVerificationCode,
-    hashCode,
-    sendSMS,
-    compareCode,
-    generateJWT
-} from '../utils/security';
-import VerificationCode from '../models/VerificationCode';
+import express, { Request, Response } from 'express';
+import { hashPassword, comparePassword, generateJWT } from '../utils/security';
 import User from '../models/User';
-import { ipLimiterMiddleware, phoneLimiterMiddleware } from '../middleware/rateLimiter';
-import { signatureMiddleware } from '../middleware/requestSignature';
+import { ipLimiterMiddleware } from '../middleware/rateLimiter';
 
 const router = express.Router();
+// 注：auth 路由不使用 signature 验证，避免 JSON 序列化顺序导致签名不匹配
 
-// Apply signature check to all auth routes
-router.use(signatureMiddleware);
+// POST /api/auth/check-id - 检查 ID 是否存在（登录第一步）
+router.post('/check-id', ipLimiterMiddleware, async (req: Request, res: Response) => {
+    try {
+        const { userId } = req.body;
+        if (!userId || typeof userId !== 'string') {
+            return res.status(400).json({ error: "INVALID_INPUT", message: "ID 不能为空" });
+        }
+        const trimmed = userId.trim();
+        if (!trimmed) {
+            return res.status(400).json({ error: "INVALID_INPUT", message: "ID 不能为空" });
+        }
+        if (trimmed.length !== 6) {
+            return res.status(400).json({ error: "INVALID_INPUT", message: "ID 必须为 6 位" });
+        }
+        const user = await User.findOne({ userId: trimmed });
+        res.json({ exists: !!user });
+    } catch (err) {
+        console.error("Check ID Error:", err);
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
 
-// POST /api/auth/request-code
-router.post('/request-code',
-    ipLimiterMiddleware,
-    phoneLimiterMiddleware,
-    async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const { phoneNumber } = req.body;
-            if (!phoneNumber) {
-                return res.status(400).json({ error: "INVALID_PHONE", message: "Phone number is required" });
-            }
-
-            // Encrypt phone
-            const encryptedPhone = encryptPhone(phoneNumber);
-
-            // Generate code & hash
-            const code = generateVerificationCode();
-            const codeHash = await hashCode(code);
-
-            // Access VerificationCode model properly
-            // Store in DB (5 min expiration via schema)
-            await VerificationCode.create({
-                encryptedPhone,
-                codeHash,
-                ipAddress: req.ip || 'unknown',
-                expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+// POST /api/auth/register - 注册
+router.post('/register', ipLimiterMiddleware, async (req: Request, res: Response) => {
+    try {
+        const { nickname, userId, password, region } = req.body;
+        if (!nickname || !userId || !password) {
+            return res.status(400).json({
+                error: "INVALID_INPUT",
+                message: "名称、ID 和密码均为必填"
             });
-
-            // Send SMS (Mock)
-            await sendSMS(phoneNumber, code);
-
-            // DEBUG: Log code for manual testing since it's a mock
-            console.log(`[DEBUG] Code for ${phoneNumber}: ${code}`);
-
-            res.status(200).json({ success: true, message: "Code sent" });
-        } catch (error) {
-            console.error("Request Code Error:", error);
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/a6b28d35-4418-428e-ad64-f26ccc119f12', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionId: 'debug-session',
-                    runId: 'pre-fix',
-                    hypothesisId: 'H4',
-                    location: 'server/src/routes/auth.ts:54',
-                    message: 'Error in /auth/request-code handler',
-                    data: {
-                        errorMessage: (error as any)?.message || 'unknown',
-                        phoneBody: (req.body as any)?.phoneNumber || null
-                    },
-                    timestamp: Date.now()
-                })
-            }).catch(() => { });
-            // #endregion
-            res.status(500).json({ error: "SERVER_ERROR" });
         }
+        if (!region || typeof region !== 'string' || !region.trim()) {
+            return res.status(400).json({
+                error: "INVALID_INPUT",
+                message: "请选择地区"
+            });
+        }
+        const trimmedNickname = String(nickname).trim();
+        const trimmedUserId = String(userId).trim();
+        const trimmedPassword = String(password).trim();
+
+        if (!trimmedNickname || !trimmedUserId || !trimmedPassword) {
+            return res.status(400).json({
+                error: "INVALID_INPUT",
+                message: "名称、ID 和密码不能为空"
+            });
+        }
+
+        if (trimmedUserId.length !== 6) {
+            return res.status(400).json({
+                error: "INVALID_ID",
+                message: "ID 必须为 6 位"
+            });
+        }
+        if (trimmedPassword.length !== 6) {
+            return res.status(400).json({
+                error: "WEAK_PASSWORD",
+                message: "密码必须为 6 位"
+            });
+        }
+
+        // 检查 ID 或名称是否已存在
+        const existingById = await User.findOne({ userId: trimmedUserId });
+        if (existingById) {
+            return res.status(400).json({
+                error: "DUPLICATE",
+                message: "该名称/ID 已经被使用，请重新输入"
+            });
+        }
+        const existingByNickname = await User.findOne({ nickname: trimmedNickname });
+        if (existingByNickname) {
+            return res.status(400).json({
+                error: "DUPLICATE",
+                message: "该名称/ID 已经被使用，请重新输入"
+            });
+        }
+
+        const passwordHash = await hashPassword(trimmedPassword);
+        const user = await User.create({
+            userId: trimmedUserId,
+            nickname: trimmedNickname,
+            passwordHash,
+            region: String(region).trim()
+        });
+
+        const token = generateJWT((user._id as any).toString());
+        res.status(200).json({ success: true, token });
+    } catch (err: any) {
+        console.error("Register Error:", err);
+        const msg = err?.message || "SERVER_ERROR";
+        const isDup = err?.code === 11000; // MongoDB duplicate key
+        res.status(500).json({
+            error: "SERVER_ERROR",
+            message: isDup ? "该名称/ID 已经被使用，请重新输入" : msg
+        });
     }
-);
+});
 
-// Dev-only bypass codes so registration works without checking server console
-const DEV_BYPASS_CODES = ['123456', '654321'];
+// POST /api/auth/login - 登录
+router.post('/login', ipLimiterMiddleware, async (req: Request, res: Response) => {
+    try {
+        const { userId, password } = req.body;
+        if (!userId || !password) {
+            return res.status(400).json({
+                error: "INVALID_INPUT",
+                message: "ID 和密码不能为空"
+            });
+        }
+        const trimmedUserId = String(userId).trim();
+        const trimmedPassword = String(password).trim();
 
-// POST /api/auth/verify-code
-router.post('/verify-code',
-    ipLimiterMiddleware,
-    async (req: Request, res: Response) => {
-        try {
-            const { phoneNumber, code, nickname, gender, age, region } = req.body;
-            if (!phoneNumber || !code) {
-                return res.status(400).json({ error: "INVALID_INPUT", message: "Phone and code required" });
-            }
+        if (trimmedUserId.length !== 6 || trimmedPassword.length !== 6) {
+            return res.status(400).json({
+                error: "INVALID_INPUT",
+                message: "ID 和密码必须均为 6 位"
+            });
+        }
 
-            const encryptedPhone = encryptPhone(phoneNumber);
+        const user = await User.findOne({ userId: trimmedUserId });
+        if (!user) {
+            return res.status(400).json({
+                error: "NOT_FOUND",
+                message: "请先注册账号"
+            });
+        }
 
-            // In development, accept bypass codes so testing works without server console
-            const isDevBypass = process.env.NODE_ENV !== 'production' &&
-                DEV_BYPASS_CODES.includes(String(code).trim());
+        // 检查是否被冻结
+        if (user.lockedUntil && new Date() < user.lockedUntil) {
+            const remaining = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 1000);
+            return res.status(403).json({
+                error: "ACCOUNT_LOCKED",
+                message: `账户已冻结，请 ${Math.ceil(remaining / 60)} 分钟后再试`
+            });
+        }
 
-            if (!isDevBypass) {
-                // Find valid code
-                // Sort by createdAt desc to get latest
-                const record = await VerificationCode.findOne({ encryptedPhone })
-                    .sort({ createdAt: -1 });
+        const isValid = await comparePassword(trimmedPassword, user.passwordHash);
+        if (!isValid) {
+            const attempts = (user.loginAttempts || 0) + 1;
+            user.loginAttempts = attempts;
 
-                if (!record) {
-                    return res.status(400).json({ error: "INVALID_CODE", message: "Code not found or expired" });
-                }
-
-                // Check if match
-                const isValid = await compareCode(code, record.codeHash);
-                if (!isValid) {
-                    return res.status(400).json({ error: "INVALID_CODE", message: "Incorrect code" });
-                }
-
-                // Cleanup codes
-                await VerificationCode.deleteMany({ encryptedPhone });
-            }
-
-            // Find or Create User
-            let user = await User.findOne({ encryptedPhone });
-            if (!user) {
-                user = await User.create({ encryptedPhone });
-            }
-
-            // Update Profile if provided (Registration flow)
-            if (nickname) {
-                user.nickname = nickname;
-                user.gender = gender;
-                user.age = age;
-                user.region = region;
+            if (attempts >= 10) {
+                user.lockedUntil = new Date(Date.now() + 60 * 60 * 1000); // 1 小时
+                user.loginAttempts = 0;
                 await user.save();
+                return res.status(403).json({
+                    error: "ACCOUNT_LOCKED",
+                    message: "密码错误次数过多，账户已冻结 1 小时"
+                });
+            }
+            if (attempts >= 5) {
+                user.lockedUntil = new Date(Date.now() + 60 * 1000); // 1 分钟
+                user.loginAttempts = 0;
+                await user.save();
+                return res.status(403).json({
+                    error: "ACCOUNT_LOCKED",
+                    message: "密码错误次数过多，账户已冻结 1 分钟"
+                });
             }
 
-            // Generate Token
-            const token = generateJWT((user._id as any).toString());
-
-            res.status(200).json({ success: true, token });
-        } catch (error) {
-            console.error("Verify Code Error:", error);
-            res.status(500).json({ error: "SERVER_ERROR" });
+            await user.save();
+            const remaining = 5 - attempts;
+            return res.status(400).json({
+                error: "INVALID_PASSWORD",
+                message: remaining > 0 ? `密码错误，还可尝试 ${remaining} 次` : "密码错误"
+            });
         }
+
+        // 登录成功，重置失败次数
+        user.loginAttempts = 0;
+        user.lockedUntil = undefined;
+        await user.save();
+
+        const token = generateJWT((user._id as any).toString());
+        res.status(200).json({ success: true, token });
+    } catch (err) {
+        console.error("Login Error:", err);
+        res.status(500).json({ error: "SERVER_ERROR" });
     }
-);
+});
 
 export default router;

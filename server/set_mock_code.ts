@@ -1,36 +1,32 @@
-
 import mongoose from 'mongoose';
-import VerificationCode from './src/models/VerificationCode';
-import { encryptPhone, hashCode } from './src/utils/security';
+import User from './src/models/User';
+import { hashPassword } from './src/utils/security';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load env vars
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
-async function setMockCode() {
+async function setMockUser() {
     try {
         await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/festive-app');
         console.log('Connected to DB');
 
-        const phoneNumber = '12345678';
-        const mockCode = '123456';
+        const userId = 'test12';
+        const nickname = '测试用户';
+        const password = '123456';
 
-        const encryptedPhone = encryptPhone(phoneNumber);
-        const codeHash = await hashCode(mockCode);
-
-        // Remove existing codes for this phone
-        await VerificationCode.deleteMany({ encryptedPhone });
-
-        // Create new valid code
-        await VerificationCode.create({
-            encryptedPhone,
-            codeHash,
-            ipAddress: '127.0.0.1',
-            expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 mins for manual testing
-        });
-
-        console.log(`SUCCESS: Set code '${mockCode}' for phone '${phoneNumber}'`);
+        const existing = await User.findOne({ userId });
+        if (existing) {
+            console.log(`User '${userId}' already exists. Skipping.`);
+        } else {
+            const passwordHash = await hashPassword(password);
+            await User.create({
+                userId,
+                nickname,
+                passwordHash
+            });
+            console.log(`SUCCESS: Created test user - ID: ${userId}, Password: ${password}`);
+        }
 
         await mongoose.disconnect();
     } catch (err) {
@@ -39,4 +35,4 @@ async function setMockCode() {
     }
 }
 
-setMockCode();
+setMockUser();

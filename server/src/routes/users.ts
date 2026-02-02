@@ -32,7 +32,7 @@ router.get('/search', async (req: AuthRequest, res) => {
         // else: empty or "*" = browse all users
 
         const users = await User.find(filter)
-            .select('nickname region selectedScene')
+            .select('nickname userId region selectedScene')
             .limit(100);
 
         res.json(users);

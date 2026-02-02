@@ -15,22 +15,36 @@ const Sidebar: React.FC = () => {
 
     const isActive = (route: string) => path === route;
 
+    const loadNotifications = React.useCallback(async () => {
+        try {
+            const list = await getNotifications();
+            setHasUnread(list.some(n => !n.isRead && n.type === 'NEW_MESSAGE'));
+        } catch {
+            // ignore
+        }
+    }, []);
+
     useEffect(() => {
-        const load = async () => {
-            try {
-                const list = await getNotifications();
-                setHasUnread(list.some(n => !n.isRead && n.type === 'NEW_MESSAGE'));
-            } catch {
-                // ignore
-            }
-        };
-        load();
-    }, [path]);
+        loadNotifications();
+    }, [path, loadNotifications]);
+
+    // 定期轮询以检测新消息，修复收到消息后小红点不显示的问题
+    useEffect(() => {
+        const interval = setInterval(loadNotifications, 8000);
+        return () => clearInterval(interval);
+    }, [loadNotifications]);
+
+    // 监听通知已读事件，立即刷新小红点
+    useEffect(() => {
+        const handler = () => loadNotifications();
+        window.addEventListener('notifications-updated', handler);
+        return () => window.removeEventListener('notifications-updated', handler);
+    }, [loadNotifications]);
 
     return (
         <div className="sidebar ios-glass" style={{
             width: '80px',
-            height: '100vh',
+            minHeight: '100vh',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -55,7 +69,7 @@ const Sidebar: React.FC = () => {
                 </div>
                 <div
                     className={`theme-switcher-item theme-tap ${theme === 'spring' ? 'active' : ''}`}
-                    onClick={() => toggleTheme('spring')}
+                    onClick={() => { toggleTheme('spring'); navigate('/'); }}
                     style={{
                         opacity: theme === 'spring' ? 1 : 0.5,
                         transform: theme === 'spring' ? 'scale(1.1)' : 'scale(1)'

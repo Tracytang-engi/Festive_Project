@@ -13,10 +13,17 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
     const [theme, setTheme] = useState<Theme>('christmas');
+    const hasInitialized = React.useRef(false);
 
+    // 仅在首次加载用户时应用 themePreference，避免后续 checkAuth 覆盖用户手动切换的主题
     useEffect(() => {
-        if (user?.themePreference) {
+        if (!user) {
+            hasInitialized.current = false;
+            return;
+        }
+        if (user.themePreference && !hasInitialized.current) {
             setTheme(user.themePreference as Theme);
+            hasInitialized.current = true;
         }
     }, [user]);
 

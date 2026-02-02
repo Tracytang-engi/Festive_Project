@@ -32,7 +32,7 @@ const SceneSelector: React.FC = () => {
     };
 
     return (
-        <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
+        <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
             <Sidebar />
             <div style={{ flex: 1, padding: '40px', textAlign: 'center' }}>
                 <h1>Choose Your Festive Scene</h1>

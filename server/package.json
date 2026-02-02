@@ -7,7 +7,9 @@
     "start": "node dist/app.js",
     "dev": "nodemon src/app.ts",
     "build": "tsc",
-    "mock-code": "ts-node set_mock_code.ts"
+    "mock-code": "ts-node set_mock_code.ts",
+    "clear-db": "ts-node clear_db.ts",
+    "drop-old-indexes": "ts-node drop_old_indexes.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

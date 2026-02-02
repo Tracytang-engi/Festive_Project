@@ -7,13 +7,22 @@ import type { NotificationItem } from '../api/notifications';
 import { useNavigate } from 'react-router-dom';
 
 const NotificationsPage: React.FC = () => {
-    const { theme } = useTheme();
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        loadData();
+        const init = async () => {
+            try {
+                await markAllAsRead();
+                window.dispatchEvent(new CustomEvent('notifications-updated'));
+            } catch {
+                // ignore
+            }
+            await loadData();
+        };
+        init();
     }, []);
 
     const loadData = async () => {
@@ -31,8 +40,8 @@ const NotificationsPage: React.FC = () => {
     const handleMarkRead = async () => {
         try {
             await markAllAsRead();
-            // Optimistically update local state
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+            window.dispatchEvent(new CustomEvent('notifications-updated'));
         } catch (err) {
             console.error(err);
         }
@@ -42,12 +51,14 @@ const NotificationsPage: React.FC = () => {
         if (note.type === 'FRIEND_REQUEST' || note.type === 'CONNECTION_SUCCESS') {
             navigate('/friends');
         } else if (note.type === 'NEW_MESSAGE') {
-            navigate('/messages');
+            const season = note.season || 'christmas';
+            toggleTheme(season);  // 切换到 sticker 对应的主题
+            navigate(`/messages?season=${season}`);
         }
     };
 
     const styles: { [key: string]: React.CSSProperties } = {
-        container: { display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' },
+        container: { display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' },
         main: {
             flex: 1, padding: '32px 40px', color: 'white', overflowY: 'auto',
             background: themeConfig[theme].mainBg,
