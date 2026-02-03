@@ -4,6 +4,8 @@ import { useTheme } from '../context/ThemeContext';
 import { themeConfig } from '../constants/theme';
 import { getHistoryList, getHistoryDetail, archiveSeason } from '../api/history';
 import type { HistoryItem, HistorySceneData } from '../api/history';
+import Snowfall from '../components/Effects/Snowfall';
+import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 
 const HistoryPage: React.FC = () => {
     const { theme } = useTheme();
@@ -55,6 +57,11 @@ const HistoryPage: React.FC = () => {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
             <Sidebar />
+            {theme === 'christmas' ? (
+                <Snowfall intensity="light" />
+            ) : (
+                <SpringFestivalEffects showSnow={true} intensity="light" />
+            )}
             <div style={{
                 flex: 1,
                 padding: '32px 40px',
@@ -177,7 +184,7 @@ const HistoryPage: React.FC = () => {
                                         border: 'none'
                                     }}
                                 >
-                                    <div className="icon-lg" style={{ marginBottom: '8px' }}>{msg.stickerType}</div>
+                                    <div className="icon-lg" style={{ marginBottom: '8px' }}><StickerIcon stickerType={msg.stickerType} size={64} /></div>
                                     <p style={{ margin: '0 0 8px', fontSize: '15px', lineHeight: 1.5 }}>{msg.content}</p>
                                     <small style={{ color: 'var(--ios-gray)', fontSize: '13px' }}>From: A friend</small>
                                 </div>

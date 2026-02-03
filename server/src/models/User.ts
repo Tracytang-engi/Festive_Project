@@ -12,6 +12,8 @@ export interface IUser extends Document {
     selectedScene?: string;
     themePreference?: 'christmas' | 'spring';
     backgroundImage?: string;
+    nicknameChangeCount?: number;
+    passwordChangeCount?: number;
     createdAt: Date;
 }
 
@@ -27,6 +29,8 @@ const UserSchema: Schema = new Schema({
     selectedScene: { type: String },
     themePreference: { type: String, enum: ['christmas', 'spring'], default: 'christmas' },
     backgroundImage: { type: String },
+    nicknameChangeCount: { type: Number, default: 0 },
+    passwordChangeCount: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now }
 });
 

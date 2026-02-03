@@ -17,8 +17,8 @@ router.post('/check-id', ipLimiterMiddleware, async (req: Request, res: Response
         if (!trimmed) {
             return res.status(400).json({ error: "INVALID_INPUT", message: "ID 不能为空" });
         }
-        if (trimmed.length !== 6) {
-            return res.status(400).json({ error: "INVALID_INPUT", message: "ID 必须为 6 位" });
+        if (trimmed.length < 1 || trimmed.length > 10) {
+            return res.status(400).json({ error: "INVALID_INPUT", message: "ID 为 1～10 位" });
         }
         const user = await User.findOne({ userId: trimmed });
         res.json({ exists: !!user });
@@ -55,10 +55,10 @@ router.post('/register', ipLimiterMiddleware, async (req: Request, res: Response
             });
         }
 
-        if (trimmedUserId.length !== 6) {
+        if (trimmedUserId.length < 1 || trimmedUserId.length > 10) {
             return res.status(400).json({
                 error: "INVALID_ID",
-                message: "ID 必须为 6 位"
+                message: "ID 为 1～10 位"
             });
         }
         if (trimmedPassword.length !== 6) {
@@ -118,10 +118,16 @@ router.post('/login', ipLimiterMiddleware, async (req: Request, res: Response) =
         const trimmedUserId = String(userId).trim();
         const trimmedPassword = String(password).trim();
 
-        if (trimmedUserId.length !== 6 || trimmedPassword.length !== 6) {
+        if (trimmedUserId.length < 1 || trimmedUserId.length > 10) {
             return res.status(400).json({
                 error: "INVALID_INPUT",
-                message: "ID 和密码必须均为 6 位"
+                message: "ID 为 1～10 位"
+            });
+        }
+        if (trimmedPassword.length !== 6) {
+            return res.status(400).json({
+                error: "INVALID_INPUT",
+                message: "密码必须为 6 位"
             });
         }
 

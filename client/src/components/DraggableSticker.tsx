@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
+import StickerIcon from './StickerIcon';
 import type { Message } from '../types';
 
 interface DraggableStickerProps {
     message: Message;
-    initialLeft: number;  // percentage
-    initialTop: number;   // percentage
+    initialLeft: number;
+    initialTop: number;
     onShowDetail: () => void;
 }
 
@@ -62,15 +63,14 @@ const DraggableSticker: React.FC<DraggableStickerProps> = ({
                 cursor: dragging ? 'grabbing' : 'grab',
                 zIndex: 100,
                 userSelect: 'none',
-                fontSize: '48px',
                 lineHeight: 1,
                 filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))',
                 transition: dragging ? 'none' : 'transform 0.2s ease',
             }}
-            className="tap-scale sticker-hover"
+            className="sticker-hover"
             title="Drag to move, click to view"
         >
-            {message.stickerType}
+            <StickerIcon stickerType={message.stickerType} size={96} />
         </div>
     );
 };

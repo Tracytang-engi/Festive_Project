@@ -5,15 +5,16 @@ import { useAuth } from '../context/AuthContext';
 import { getMessages } from '../api/messages';
 import { getSceneName } from '../constants/scenes';
 import christmasBg from '../assets/christmas-bg.jpg';
-import springBg from '../assets/spring-bg.jpg';
-import springFireworksBg from '../assets/spring-fireworks-bg.png';
-import springReunionBg from '../assets/spring-reunion-bg.png';
-import springTempleFairBg from '../assets/spring-temple-fair-bg.png';
+import springCarrierWishingTree from '../assets/spring_carrier_01_wishing_tree.png';
+import springCarrierPlumBranch from '../assets/spring_carrier_02_plum_branch.png';
+import springCarrierFuDoor from '../assets/spring_carrier_03_fu_door.png';
 import ChineseHorseSticker from '../components/ChineseHorseSticker';
 import SantaSticker from '../components/SantaSticker';
 import DraggableSticker from '../components/DraggableSticker';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import type { Message } from '../types';
+import Snowfall from '../components/Effects/Snowfall';
+import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 
 // Generate random position near center (25%-75% horizontal, 20%-70% vertical)
 const getRandomPosition = (seed: number) => {
@@ -36,12 +37,11 @@ const FestiveDecorPage: React.FC = () => {
     const [horseInCorner, setHorseInCorner] = useState(false);
     const [detailMessage, setDetailMessage] = useState<Message | null>(null);
     const [isUnlocked, setIsUnlocked] = useState(false);
-
     const springSceneBg =
-        user?.selectedScene === 'spring_fireworks' ? springFireworksBg
-            : user?.selectedScene === 'spring_reunion' ? springReunionBg
-                : user?.selectedScene === 'spring_temple_fair' ? springTempleFairBg
-                    : springBg;
+        user?.selectedScene === 'spring_fireworks' ? springCarrierWishingTree
+            : user?.selectedScene === 'spring_reunion' ? springCarrierPlumBranch
+                : user?.selectedScene === 'spring_temple_fair' ? springCarrierFuDoor
+                    : springCarrierWishingTree;
     const backgroundImage = theme === 'christmas' ? christmasBg : springSceneBg;
     const sceneTitle = getSceneName(user?.selectedScene);
 
@@ -86,6 +86,11 @@ const FestiveDecorPage: React.FC = () => {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto', overflowX: 'hidden' }}>
             <Sidebar />
+            {theme === 'christmas' ? (
+                <Snowfall intensity="moderate" />
+            ) : (
+                <SpringFestivalEffects showSnow={true} intensity="moderate" />
+            )}
             <div className="page-bg-area"
                 style={{
                     flex: 1,
@@ -185,6 +190,7 @@ const FestiveDecorPage: React.FC = () => {
                     onClose={() => setDetailMessage(null)}
                 />
             )}
+
         </div>
     );
 };

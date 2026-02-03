@@ -1,4 +1,5 @@
 import React from 'react';
+import StickerIcon from '../StickerIcon';
 import type { Message } from '../../types';
 
 interface StickerDetailModalProps {
@@ -42,8 +43,8 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
                 }}
                 onClick={e => e.stopPropagation()}
             >
-                <div style={{ textAlign: 'center', marginBottom: '16px', fontSize: '48px' }}>
-                    {isUnlocked ? message.stickerType : '🔒'}
+                <div style={{ textAlign: 'center', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+                    {isUnlocked ? <StickerIcon stickerType={message.stickerType} size={180} /> : <span style={{ fontSize: '112px' }}>🔒</span>}
                 </div>
                 <div style={{ marginBottom: '8px', fontSize: '14px', color: '#8e8e93' }}>
                     From: <strong style={{ color: '#333' }}>{senderName}</strong>

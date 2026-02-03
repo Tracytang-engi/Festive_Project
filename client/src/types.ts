@@ -8,6 +8,8 @@ export interface User {
     selectedScene?: string;
     themePreference?: 'christmas' | 'spring';
     backgroundImage?: string;
+    nicknameChangeCount?: number;
+    passwordChangeCount?: number;
 }
 
 export interface Message {

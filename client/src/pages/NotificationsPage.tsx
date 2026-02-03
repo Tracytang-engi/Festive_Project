@@ -5,6 +5,8 @@ import { themeConfig } from '../constants/theme';
 import { getNotifications, markAllAsRead } from '../api/notifications';
 import type { NotificationItem } from '../api/notifications';
 import { useNavigate } from 'react-router-dom';
+import Snowfall from '../components/Effects/Snowfall';
+import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 
 const NotificationsPage: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
@@ -77,6 +79,11 @@ const NotificationsPage: React.FC = () => {
     return (
         <div style={styles.container}>
             <Sidebar />
+            {theme === 'christmas' ? (
+                <Snowfall intensity="light" />
+            ) : (
+                <SpringFestivalEffects showSnow={true} intensity="light" />
+            )}
             <div style={styles.main}>
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                     <h1>🔔 Notifications</h1>

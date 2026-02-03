@@ -9,7 +9,7 @@ type Mode = 'login' | 'register';
 
 const AuthForm: React.FC = () => {
     const { login, register } = useAuth();
-    const { theme } = useTheme();
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
 
     const [mode, setMode] = useState<Mode>('login');
@@ -28,8 +28,9 @@ const AuthForm: React.FC = () => {
             setError('请输入 ID');
             return;
         }
-        if (userId.trim().length !== 6) {
-            setError('ID 必须为 6 位');
+        const idLen = userId.trim().length;
+        if (idLen < 1 || idLen > 10) {
+            setError('ID 为 1～10 位');
             return;
         }
         setError('');
@@ -61,6 +62,7 @@ const AuthForm: React.FC = () => {
         setLoading(true);
         try {
             await login(userId.trim(), password.trim());
+            toggleTheme('spring');
             navigate('/');
         } catch (err: any) {
             const data = err?.response?.data;
@@ -79,8 +81,9 @@ const AuthForm: React.FC = () => {
             setError('请选择地区');
             return;
         }
-        if (userId.trim().length !== 6) {
-            setError('ID 必须为 6 位');
+        const idLen = userId.trim().length;
+        if (idLen < 1 || idLen > 10) {
+            setError('ID 为 1～10 位');
             return;
         }
         if (password.length !== 6) {
@@ -91,6 +94,7 @@ const AuthForm: React.FC = () => {
         setLoading(true);
         try {
             await register(nickname.trim(), userId.trim(), password.trim(), region.trim());
+            toggleTheme('spring');
             navigate('/');
         } catch (err: any) {
             const data = err?.response?.data;
@@ -181,10 +185,10 @@ const AuthForm: React.FC = () => {
                                     <input
                                         type="text"
                                         className="ios-input"
-                                        placeholder="6位数字或字母"
+                                        placeholder="1～10位数字或字母"
                                         value={userId}
-                                        maxLength={6}
-                                        onChange={e => { setUserId(e.target.value.slice(0, 6)); setError(''); }}
+                                        maxLength={10}
+                                        onChange={e => { setUserId(e.target.value.slice(0, 10)); setError(''); }}
                                         style={{ width: '100%', boxSizing: 'border-box' }}
                                     />
                                 </div>
@@ -281,10 +285,10 @@ const AuthForm: React.FC = () => {
                             <input
                                 type="text"
                                 className="ios-input"
-                                placeholder="6位数字或字母"
+                                placeholder="1～10位数字或字母"
                                 value={userId}
-                                maxLength={6}
-                                onChange={e => { setUserId(e.target.value.slice(0, 6)); setError(''); }}
+                                maxLength={10}
+                                onChange={e => { setUserId(e.target.value.slice(0, 10)); setError(''); }}
                                 style={{ width: '100%', boxSizing: 'border-box' }}
                             />
                         </div>

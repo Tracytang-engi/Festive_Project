@@ -243,18 +243,20 @@ body {
   border-radius: var(--ios-radius-pill);
 }
 
-/* iOS segmented control - 分段控制器 */
+/* iOS segmented control - 分段控制器，边框优化 */
 .ios-segmented {
   display: inline-flex;
-  background: rgba(120, 120, 128, 0.16);
-  border-radius: 9px;
-  padding: 3px;
+  background: rgba(120, 120, 128, 0.18);
+  border-radius: 10px;
+  padding: 4px;
   gap: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35);
 }
 .ios-segmented button {
   padding: 8px 20px;
   border: none;
-  border-radius: 7px;
+  border-radius: 8px;
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -265,7 +267,8 @@ body {
 .ios-segmented button.active {
   background: white;
   color: #000;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 /* iOS 信息横幅 */
@@ -348,4 +351,141 @@ body {
 
 .animate-float-drift {
   animation: float-drift 4s ease-in-out infinite;
+}
+
+@keyframes snowfall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: translate(var(--drift, 10px), 150px) rotate(45deg);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(calc(var(--drift, 10px) * -0.5), 300px) rotate(90deg);
+    opacity: 0.6;
+  }
+  75% {
+    transform: translate(calc(var(--drift, 10px) * -1), 450px) rotate(135deg);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(calc(var(--drift, 10px) * -0.3), 600px) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+@keyframes spring-snowfall {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 0.9;
+  }
+  25% {
+    transform: translate(calc(var(--drift, 15px) + 10px), 200px) rotate(45deg) scale(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(calc(var(--drift, 15px) - 5px), 400px) rotate(90deg) scale(0.85);
+    opacity: 0.6;
+  }
+  75% {
+    transform: translate(calc(var(--drift, 15px) + 8px), 600px) rotate(135deg) scale(0.8);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(calc(var(--drift, 15px) * -0.5), 800px) rotate(180deg) scale(0.75);
+    opacity: 0;
+  }
+}
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(calc(var(--drift, 10px) * -0.3), 600px) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+@keyframes firework-particle {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateY(calc(var(--velocity) * -1));
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+.skeleton-text {
+  height: 16px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.skeleton-title {
+  height: 24px;
+  width: 60%;
+  margin-bottom: 12px;
+  border-radius: 6px;
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.skeleton-card {
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+@keyframes empty-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.empty-state-icon {
+  animation: empty-pulse 2s ease-in-out infinite;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0.3;
+  }
+}
+
+.confetti {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  animation: confetti-fall 4s linear infinite;
 }

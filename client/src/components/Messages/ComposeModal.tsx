@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getFriends } from '../../api/friends';
 import { sendMessage } from '../../api/messages';
+import StickerIcon from '../StickerIcon';
 import type { User } from '../../types';
 
 interface ComposeModalProps {
@@ -21,6 +22,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
         if (isOpen) {
             loadFriends();
             setSeason(initialSeason);
+            setSticker(initialSeason === 'spring' ? '🧧' : '🎄');
         }
     }, [isOpen, initialSeason]);
 
@@ -60,7 +62,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
 
     const stickers = season === 'christmas'
         ? ['🎄', '🎅', '❄️', '🎁', '⛄']
-        : ['🧧', '🏮', '🐉', '🥟', '🎇'];
+        : ['🧧', '🏮', '🐴', '🥟', '🎇', 'peach', 'couplets', 'paper_cutting', 'clouds', 'coin', 'chinese_knotting', 'painting', 'loong'];
 
     return (
         <div style={styles.overlay}>
@@ -81,17 +83,19 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                 </div>
 
                 <label style={styles.label}>Choose a Sticker</label>
-                <div className="icon-lg" style={styles.stickers}>
-                    {stickers.map(s => (
-                        <span
-                            key={s}
-                            className="tap-scale"
-                            style={{ ...styles.sticker, border: sticker === s ? '2px solid #007AFF' : 'none', background: sticker === s ? 'rgba(0,122,255,0.08)' : 'transparent' }}
-                            onClick={() => setSticker(s)}
-                        >
-                            {s}
-                        </span>
-                    ))}
+                <div style={styles.stickersWrap}>
+                    <div style={styles.stickers}>
+                        {stickers.map(s => (
+                            <span
+                                key={s}
+                                className="tap-scale"
+                                style={{ ...styles.sticker, border: sticker === s ? '2px solid #007AFF' : 'none', background: sticker === s ? 'rgba(0,122,255,0.08)' : 'transparent' }}
+                                onClick={() => setSticker(s)}
+                            >
+                                <StickerIcon stickerType={s} size={84} />
+                            </span>
+                        ))}
+                    </div>
                 </div>
 
                 <label style={styles.label}>Message</label>
@@ -120,7 +124,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
     },
     modal: {
-        backgroundColor: 'white', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '500px',
+        backgroundColor: 'white', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '540px',
         display: 'flex', flexDirection: 'column', gap: '16px', color: '#333',
         boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
     },
@@ -128,8 +132,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     label: { fontSize: '13px', color: '#8e8e93', fontWeight: 500 },
     input: { padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(60,60,67,0.12)', fontSize: '16px', width: '100%', boxSizing: 'border-box' as const },
     toggles: { display: 'flex', gap: '8px' },
-    stickers: { display: 'flex', gap: '10px', padding: '10px 0' },
-    sticker: { cursor: 'pointer', padding: '8px', borderRadius: '10px', transition: 'background 0.2s' },
+    stickersWrap: { maxHeight: '200px', overflowY: 'auto', padding: '4px 0' },
+    stickers: { display: 'flex', flexWrap: 'wrap', gap: '12px', padding: '8px 0' },
+    sticker: { cursor: 'pointer', padding: '8px', borderRadius: '12px', transition: 'background 0.2s', flexShrink: 0 },
     textarea: { padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(60,60,67,0.12)', minHeight: '100px', fontSize: '16px', fontFamily: 'inherit' },
     actions: { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' },
     cancelBtn: { padding: '10px 18px', background: '#f2f2f7', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '15px', fontWeight: 500 },

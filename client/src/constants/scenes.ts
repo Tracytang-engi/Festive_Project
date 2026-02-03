@@ -3,9 +3,9 @@ export const SCENE_NAMES: Record<string, string> = {
     xmas_1: 'Cozy Fireplace',
     xmas_2: 'Snowy Village',
     xmas_3: 'Santa Workshop',
-    spring_fireworks: 'Setting off Fireworks',
-    spring_reunion: 'Family reunion dinner',
-    spring_temple_fair: 'Temple Fair',
+    spring_fireworks: 'Wishing Tree',
+    spring_reunion: 'Plum Branch',
+    spring_temple_fair: 'Fu Character Door',
 };
 
 export function getSceneName(sceneId: string | undefined): string {
