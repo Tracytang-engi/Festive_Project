@@ -1,32 +1,38 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { generateSignature } from '../utils/security';
 
+export const SERVER_ORIGIN = 'http://127.0.0.1:3000';
+
 const api = axios.create({
-    baseURL: 'http://127.0.0.1:3000/api', // Point to Backend (use 127.0.0.1 to avoid ERR_NAME_NOT_RESOLVED on some Windows)
+    baseURL: `${SERVER_ORIGIN}/api`,
     headers: {
         'Content-Type': 'application/json'
     }
 });
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+    const isFormData = config.data instanceof FormData;
+
+    if (isFormData) {
+        // FormData：由浏览器自动设置 Content-Type（含 boundary），不设会断送上传
+        delete config.headers['Content-Type'];
+        // 上传接口不走签名，避免预检/校验导致无响应
+        config.headers.Authorization = localStorage.getItem('token')
+            ? `Bearer ${localStorage.getItem('token')}`
+            : '';
+        return config;
+    }
+
     // Add Auth Token
     const token = localStorage.getItem('token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Add Security Signatures (HMAC)
+    // Add Security Signatures (HMAC) — 仅对非 FormData 请求
     const timestamp = Date.now();
     config.headers['x-timestamp'] = timestamp.toString();
-
-    // Payload: data for POST/PUT, empty object for GET?
-    // WARNING: Server expects JSON.stringify(body) + timestamp.
-    // GET requests usually have no body. Server middleware needs to handle that.
-    // Our server middleware used `req.body || {}`.
-
     let payload = config.data || {};
-    // Axios might treat data as undefined for GET.
-
     const signature = generateSignature(payload, timestamp);
     config.headers['x-signature'] = signature;
 

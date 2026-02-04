@@ -4,9 +4,11 @@ export interface IMessage extends Document {
     sender: mongoose.Types.ObjectId;
     recipient: mongoose.Types.ObjectId;
     stickerType: string;
-    content: string; // The text message
+    content: string;
     season: 'christmas' | 'spring';
     year: number;
+    /** 抵达场景：spring_dinner | spring_temple_fair | spring_couplets | spring_firecrackers | xmas_1 | xmas_2 | xmas_3 */
+    sceneId?: string;
     isOpened: boolean;
     createdAt: Date;
 }
@@ -18,6 +20,7 @@ const MessageSchema: Schema = new Schema({
     content: { type: String, required: true },
     season: { type: String, enum: ['christmas', 'spring'], required: true },
     year: { type: Number, required: true },
+    sceneId: { type: String },
     isOpened: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 });

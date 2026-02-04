@@ -17,8 +17,10 @@ dotenv.config();
 
 const app = express();
 
-// Security Middleware
-app.use(helmet());
+// Security Middleware (allow frontend to load /uploads images cross-origin)
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 app.use(cors({
     origin: '*', // Configure this strictly in production!
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

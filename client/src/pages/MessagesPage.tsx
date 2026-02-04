@@ -7,6 +7,7 @@ import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import StickerIcon from '../components/StickerIcon';
 import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { themeConfig } from '../constants/theme';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
@@ -16,6 +17,7 @@ import { staggerContainer, staggerItem } from '../components/Effects/PageTransit
 
 const MessagesPage: React.FC = () => {
     const { theme } = useTheme();
+    useAuth(); // auth context required for layout
     const [searchParams] = useSearchParams();
     const urlSeason = searchParams.get('season');
     const initialSeason = (urlSeason === 'spring' || urlSeason === 'christmas') ? urlSeason : 'christmas';

@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Layout/Sidebar';
 import api from '../api/client';
-import { getMessages } from '../api/messages';
+import { getMessages, deleteMessage } from '../api/messages';
 import type { Message } from '../types';
 import christmasBg from '../assets/christmas-bg.jpg';
-import springCarrierWishingTree from '../assets/spring_carrier_01_wishing_tree.png';
+import { getSpringSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName } from '../constants/scenes';
+import { SERVER_ORIGIN } from '../api/client';
+import { themeConfig } from '../constants/theme';
 
 import SantaSticker from '../components/SantaSticker';
 import ChineseHorseSticker from '../components/ChineseHorseSticker';
@@ -16,15 +19,23 @@ import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import PageTransition from '../components/Effects/PageTransition';
 import { motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const HomePage: React.FC = () => {
     const { theme } = useTheme();
+    const { user } = useAuth();
     const navigate = useNavigate();
+    const pageSceneId = user?.selectedScene ?? (theme === 'spring' ? DEFAULT_SPRING_SCENE : 'xmas_1');
+    const defaultBg = theme === 'christmas' ? christmasBg : getSpringSceneBackgroundImage(pageSceneId);
+    const customBgPath = user?.customBackgrounds?.[pageSceneId];
+    const backgroundImage = customBgPath ? `${SERVER_ORIGIN}${customBgPath}` : defaultBg;
     const [ad, setAd] = useState<any>(null);
     const [showAd, setShowAd] = useState(true);
     const [messages, setMessages] = useState<Message[]>([]);
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [detailMessage, setDetailMessage] = useState<Message | null>(null);
+    const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
+    const [stickersPanelCollapsed, setStickersPanelCollapsed] = useState(false);
 
     useEffect(() => {
         fetchAd();
@@ -48,6 +59,16 @@ const HomePage: React.FC = () => {
         } catch (err) { }
     };
 
+    const handleDeleteSticker = async (messageId: string) => {
+        try {
+            await deleteMessage(messageId);
+            setMessages(prev => prev.filter(m => m._id !== messageId));
+            if (detailMessage?._id === messageId) setDetailMessage(null);
+        } catch {
+            alert(theme === 'spring' ? '删除失败，请重试' : 'Delete failed. Please try again.');
+        }
+    };
+
     const emptyStateConfig = {
         christmas: {
             title: 'Christmas Wonderland',
@@ -67,9 +88,221 @@ const HomePage: React.FC = () => {
 
     const currentConfig = emptyStateConfig[theme];
 
+    const sceneIds = theme === 'spring' ? [...SPRING_SCENE_IDS] : [...CHRISTMAS_SCENE_IDS];
+    const defaultSceneId = theme === 'spring' ? 'spring_dinner' : 'xmas_1';
+    const messagesInScene = selectedSceneId
+        ? messages.filter(m => (m.sceneId || defaultSceneId) === selectedSceneId)
+        : [];
+
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto', overflowX: 'hidden' }}>
             <Sidebar />
+            {messages.length > 0 && (
+                <div style={{
+                    width: stickersPanelCollapsed ? '28px' : '200px',
+                    minWidth: stickersPanelCollapsed ? '28px' : '200px',
+                    minHeight: '100vh',
+                    flexShrink: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: stickersPanelCollapsed ? 0 : '16px 12px',
+                    background: 'rgba(0,0,0,0.35)',
+                    backdropFilter: 'blur(10px)',
+                    borderRight: '1px solid rgba(255,255,255,0.1)',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
+                    transition: 'width 0.25s ease, min-width 0.25s ease',
+                    position: 'relative',
+                }}>
+                    {!stickersPanelCollapsed && (
+                        <>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexShrink: 0 }}>
+                                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.95)', fontWeight: 600 }}>
+                                    {theme === 'christmas' ? 'Stickers Received' : '收到的贴纸'}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setStickersPanelCollapsed(true)}
+                                    style={{
+                                        padding: '4px',
+                                        border: 'none',
+                                        background: 'rgba(255,255,255,0.2)',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        color: 'rgba(255,255,255,0.9)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                    title={theme === 'spring' ? '收起' : 'Collapse'}
+                                >
+                                    <ChevronLeft size={18} />
+                                </button>
+                            </div>
+                            {selectedSceneId == null ? (
+                                <>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(2, 56px)',
+                                        gap: '10px',
+                                        alignContent: 'flex-start',
+                                    }}>
+                                        {sceneIds.map(sceneId => {
+                                            const count = messages.filter(m => (m.sceneId || defaultSceneId) === sceneId).length;
+                                            if (count === 0) return null;
+                                            const icon = SCENE_ICONS[sceneId] ?? '📁';
+                                            return (
+                                                <button
+                                                    key={sceneId}
+                                                    type="button"
+                                                    onClick={() => setSelectedSceneId(sceneId)}
+                                                    style={{
+                                                        width: '56px',
+                                                        height: '56px',
+                                                        borderRadius: '12px',
+                                                        border: 'none',
+                                                        background: 'rgba(255,255,255,0.2)',
+                                                        cursor: 'pointer',
+                                                        fontSize: '28px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        position: 'relative',
+                                                        flexShrink: 0,
+                                                        boxSizing: 'border-box',
+                                                    }}
+                                                    title={getSceneName(sceneId)}
+                                                >
+                                                    {icon}
+                                                    <span style={{
+                                                        position: 'absolute',
+                                                        bottom: '2px',
+                                                        right: '4px',
+                                                        fontSize: '10px',
+                                                        color: 'rgba(255,255,255,0.9)',
+                                                    }}>{count}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedSceneId(null)}
+                                        style={{
+                                            alignSelf: 'flex-start',
+                                            marginBottom: '10px',
+                                            padding: '4px 8px',
+                                            border: 'none',
+                                            background: 'rgba(255,255,255,0.2)',
+                                            color: 'rgba(255,255,255,0.95)',
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            fontSize: '12px',
+                                        }}
+                                    >
+                                        ← {theme === 'spring' ? '返回' : 'Back'}
+                                    </button>
+                                    <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.95)', fontWeight: 600, marginBottom: '10px', flexShrink: 0 }}>
+                                        {SCENE_ICONS[selectedSceneId]} {getSceneName(selectedSceneId)}
+                                    </span>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(2, 56px)',
+                                        gap: '8px',
+                                        alignContent: 'flex-start',
+                                    }}>
+                                        {messagesInScene.map(msg => (
+                                            <div key={msg._id} style={{
+                                                position: 'relative',
+                                                width: '56px',
+                                                height: '56px',
+                                                flexShrink: 0,
+                                            }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDetailMessage(msg)}
+                                                    style={{
+                                                        width: '56px',
+                                                        height: '56px',
+                                                        margin: 0,
+                                                        padding: 0,
+                                                        background: 'rgba(255,255,255,0.15)',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        boxSizing: 'border-box',
+                                                    }}
+                                                    title={isUnlocked ? (theme === 'spring' ? '点击查看' : 'Click to view') : (theme === 'spring' ? '节日当天解锁' : 'Festival day unlock')}
+                                                >
+                                                    {isUnlocked ? <StickerIcon stickerType={msg.stickerType} size={44} /> : <span style={{ fontSize: '28px' }}>🔒</span>}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteSticker(msg._id); }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '2px',
+                                                        right: '2px',
+                                                        width: '18px',
+                                                        height: '18px',
+                                                        borderRadius: '50%',
+                                                        border: 'none',
+                                                        background: 'rgba(200,60,60,0.9)',
+                                                        color: 'white',
+                                                        fontSize: '12px',
+                                                        lineHeight: 1,
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        padding: 0,
+                                                    }}
+                                                    title={theme === 'spring' ? '删除' : 'Delete'}
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    )}
+                    {stickersPanelCollapsed && (
+                        <button
+                            type="button"
+                            onClick={() => setStickersPanelCollapsed(false)}
+                            style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                width: '28px',
+                                height: '56px',
+                                border: 'none',
+                                borderTopRightRadius: '8px',
+                                borderBottomRightRadius: '8px',
+                                background: 'rgba(0,0,0,0.4)',
+                                color: 'rgba(255,255,255,0.9)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: 0,
+                            }}
+                            title={theme === 'spring' ? '展开贴纸' : 'Expand stickers'}
+                        >
+                            <ChevronRight size={18} />
+                        </button>
+                    )}
+                </div>
+            )}
             {theme === 'christmas' ? (
                 <Snowfall intensity="moderate" />
             ) : (
@@ -80,7 +313,7 @@ const HomePage: React.FC = () => {
                 flex: 1,
                 minHeight: '100vh',
                 position: 'relative',
-                backgroundImage: `url(${theme === 'christmas' ? christmasBg : springCarrierWishingTree})`,
+                backgroundImage: `url(${backgroundImage})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
@@ -138,69 +371,13 @@ const HomePage: React.FC = () => {
                             onClick={() => navigate('/select-scene')}
                             style={{
                                 padding: '12px 28px',
-                                background: theme === 'christmas' ? '#c41e3a' : '#c2185b',
+                                background: themeConfig[theme].primary,
                                 color: 'white',
                                 fontSize: '15px',
                             }}
                         >
                             {currentConfig.ctaText} →
                         </button>
-                    </motion.div>
-                )}
-
-                {messages.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                        style={{
-                            position: 'absolute',
-                            top: '62%',
-                            left: '48%',
-                            transform: 'translate(-50%, -50%)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '8px 14px',
-                            background: 'rgba(0,0,0,0.4)',
-                            borderRadius: '12px',
-                            backdropFilter: 'blur(12px)',
-                            boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                            maxWidth: '85vw',
-                        }}
-                    >
-                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.95)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                            {theme === 'christmas' ? 'Stickers Received' : '收到的贴纸'}
-                        </span>
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            flexWrap: 'wrap',
-                            justifyContent: 'center',
-                        }}>
-                            {messages.map(msg => (
-                                <button
-                                    key={msg._id}
-                                    type="button"
-                                    className="tap-scale sticker-hover"
-                                    onClick={() => setDetailMessage(msg)}
-                                    style={{
-                                        background: 'rgba(255,255,255,0.15)',
-                                        border: 'none',
-                                        padding: '4px',
-                                        borderRadius: '8px',
-                                        cursor: 'pointer',
-                                        fontSize: '24px',
-                                        lineHeight: 1,
-                                    }}
-                                    title={isUnlocked ? 'Click to view' : 'Festival day unlock'}
-                                >
-                                    {isUnlocked ? <StickerIcon stickerType={msg.stickerType} size={56} /> : <span style={{ fontSize: '56px' }}>🔒</span>}
-                                </button>
-                            ))}
-                        </div>
                     </motion.div>
                 )}
 

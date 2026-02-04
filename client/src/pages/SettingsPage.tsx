@@ -1,25 +1,40 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api/client';
+import api, { SERVER_ORIGIN } from '../api/client';
 import Sidebar from '../components/Layout/Sidebar';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { themeConfig } from '../constants/theme';
+import { SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName, getSpringSceneBackgroundImage } from '../constants/scenes';
+import christmasBg from '../assets/christmas-bg.jpg';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 
 const NICKNAME_CHANGE_LIMIT = 3;
 const PASSWORD_CHANGE_LIMIT = 1;
 
+function getDefaultBackgroundUrl(sceneId: string): string {
+    if (sceneId.startsWith('spring')) return getSpringSceneBackgroundImage(sceneId);
+    return christmasBg;
+}
+
+const ALL_SCENES = [
+    { theme: 'spring' as const, ids: [...SPRING_SCENE_IDS] },
+    { theme: 'christmas' as const, ids: [...CHRISTMAS_SCENE_IDS] },
+];
+
 const SettingsPage: React.FC = () => {
     const { user, checkAuth } = useAuth();
     const { theme } = useTheme();
     const navigate = useNavigate();
+    const [selectedSceneId, setSelectedSceneId] = useState<string>(SPRING_SCENE_IDS[0]);
     const [file, setFile] = useState<File | null>(null);
-    const serverUrl = 'http://127.0.0.1:3000';
-    const initialPreview = user?.backgroundImage ? `${serverUrl}${user.backgroundImage}` : null;
-    const [preview, setPreview] = useState<string | null>(initialPreview);
+    const customBackgrounds = user?.customBackgrounds ?? {};
+    const currentCustomUrl = customBackgrounds[selectedSceneId] ? `${SERVER_ORIGIN}${customBackgrounds[selectedSceneId]}` : null;
+    const defaultUrl = getDefaultBackgroundUrl(selectedSceneId);
+    const [preview, setPreview] = useState<string | null>(currentCustomUrl || defaultUrl);
     const [uploading, setUploading] = useState(false);
+    const [restoring, setRestoring] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +53,13 @@ const SettingsPage: React.FC = () => {
     const [passwordLoading, setPasswordLoading] = useState(false);
     const [passwordError, setPasswordError] = useState<string | null>(null);
     const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+    // 切换选中的场景时只更新预览，不清空已选文件（避免 customBackgrounds 每次渲染是新对象导致 file 被清空、上传无请求）
+    React.useEffect(() => {
+        const custom = user?.customBackgrounds?.[selectedSceneId];
+        if (custom) setPreview(`${SERVER_ORIGIN}${custom}`);
+        else setPreview(getDefaultBackgroundUrl(selectedSceneId));
+    }, [selectedSceneId, user?.customBackgrounds]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -58,19 +80,41 @@ const SettingsPage: React.FC = () => {
         formData.append('image', file);
 
         try {
-            const response = await api.post('/users/background', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
+            const response = await api.post(
+                `/users/background?sceneId=${encodeURIComponent(selectedSceneId)}`,
+                formData,
+                { timeout: 20000 }
+            );
             if (response.data.success) {
                 setSuccess(true);
-                window.location.reload();
+                setFile(null);
+                if (response.data.imageUrl) setPreview(`${SERVER_ORIGIN}${response.data.imageUrl}`);
+                await checkAuth();
             }
         } catch (err: any) {
-            console.error(err);
-            setError(err.response?.data?.message || "Upload failed");
+            const data = err?.response?.data;
+            const msg = data?.message || data?.error || (err.code === 'ECONNABORTED' ? (theme === 'spring' ? '上传超时，请检查网络或稍后重试' : 'Upload timeout') : 'Upload failed');
+            setError(msg);
+            if (import.meta.env.DEV) console.error('Background upload error', err?.message || err, data);
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleRestoreDefault = async () => {
+        setRestoring(true);
+        setError(null);
+        setSuccess(false);
+        try {
+            await api.delete(`/users/background/${selectedSceneId}`);
+            setPreview(getDefaultBackgroundUrl(selectedSceneId));
+            setSuccess(true);
+            setFile(null);
+            await checkAuth();
+        } catch (err: any) {
+            setError((err as any)?.response?.data?.message || 'Restore failed');
+        } finally {
+            setRestoring(false);
         }
     };
 
@@ -301,8 +345,41 @@ const SettingsPage: React.FC = () => {
                     color: '#333'
                 }}>
                     <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, marginBottom: '12px' }}>
-                        Custom Background
+                        {theme === 'spring' ? '自定义背景（按场景）' : 'Custom Background (per scene)'}
                     </label>
+                    <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px' }}>
+                        {theme === 'spring' ? '先选择要修改的场景，再上传图片；可随时恢复默认。' : 'Select a scene, then upload an image; you can restore default anytime.'}
+                    </p>
+
+                    <div style={{ marginBottom: '16px' }}>
+                        <span style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '8px' }}>
+                            {theme === 'spring' ? '选择场景' : 'Select scene'}
+                        </span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {ALL_SCENES.flatMap(({ ids }) => ids).map(sid => (
+                                <button
+                                    key={sid}
+                                    type="button"
+                                    onClick={() => setSelectedSceneId(sid)}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: '10px',
+                                        border: selectedSceneId === sid ? '2px solid ' + themeConfig[theme].primary : '1px solid rgba(60,60,67,0.2)',
+                                        background: selectedSceneId === sid ? 'rgba(0,0,0,0.04)' : '#f9f9f9',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                    }}
+                                >
+                                    <span>{SCENE_ICONS[sid] ?? '📁'}</span>
+                                    <span>{getSceneName(sid)}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <div
                         style={{
                             border: '2px dashed rgba(60,60,67,0.2)',
@@ -335,7 +412,7 @@ const SettingsPage: React.FC = () => {
                                     height: '100%',
                                     objectFit: 'cover',
                                     borderRadius: '10px',
-                                    opacity: 0.5
+                                    opacity: 0.6
                                 }}
                             />
                         )}
@@ -348,7 +425,7 @@ const SettingsPage: React.FC = () => {
                                 fontWeight: 500,
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                             }}>
-                                {file ? file.name : "Choose an image"}
+                                {file ? file.name : (theme === 'spring' ? '选择图片' : 'Choose image')}
                             </span>
                         </div>
                     </div>
@@ -360,29 +437,52 @@ const SettingsPage: React.FC = () => {
                     )}
                     {success && (
                         <div className="ios-info-banner" style={{ marginTop: '16px', background: 'rgba(52,199,89,0.15)', borderColor: 'rgba(52,199,89,0.3)', color: '#27ae60' }}>
-                            Background updated!
+                            {theme === 'spring' ? '已更新' : 'Updated!'}
                         </div>
                     )}
 
-                    <button
-                        className="ios-btn tap-scale"
-                        onClick={handleUpload}
-                        disabled={!file || uploading}
-                        style={{
-                            width: '100%',
-                            marginTop: '20px',
-                            padding: '14px',
-                            background: (!file || uploading) ? '#ccc' : themeConfig[theme].primary,
-                            color: theme === 'spring' ? '#c0392b' : 'white',
-                            border: 'none',
-                            borderRadius: '10px',
-                            fontSize: '16px',
-                            fontWeight: 600,
-                            cursor: (!file || uploading) ? 'not-allowed' : 'pointer'
-                        }}
-                    >
-                        {uploading ? 'Uploading...' : 'Save Changes'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
+                        <button
+                            type="button"
+                            className="ios-btn tap-scale"
+                            onClick={handleUpload}
+                            disabled={!file || uploading}
+                            style={{
+                                flex: 1,
+                                minWidth: '120px',
+                                padding: '14px',
+                                background: (!file || uploading) ? '#ccc' : themeConfig[theme].primary,
+                                color: theme === 'spring' ? '#c0392b' : 'white',
+                                border: 'none',
+                                borderRadius: '10px',
+                                fontSize: '16px',
+                                fontWeight: 600,
+                                cursor: (!file || uploading) ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            {uploading ? (theme === 'spring' ? '上传中...' : 'Uploading...') : (theme === 'spring' ? '保存' : 'Save')}
+                        </button>
+                        {customBackgrounds[selectedSceneId] && (
+                            <button
+                                type="button"
+                                className="ios-btn tap-scale"
+                                onClick={handleRestoreDefault}
+                                disabled={restoring}
+                                style={{
+                                    padding: '14px 20px',
+                                    background: restoring ? '#ccc' : 'rgba(60,60,67,0.12)',
+                                    color: '#333',
+                                    border: 'none',
+                                    borderRadius: '10px',
+                                    fontSize: '15px',
+                                    fontWeight: 500,
+                                    cursor: restoring ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {restoring ? (theme === 'spring' ? '恢复中...' : 'Restoring...') : (theme === 'spring' ? '恢复默认' : 'Restore default')}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

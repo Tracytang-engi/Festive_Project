@@ -27,3 +27,32 @@ export function getStickerImageUrl(stickerType: string): string | null {
 export function hasStickerImage(stickerType: string): boolean {
     return stickerType in STICKER_IMAGE_URL;
 }
+
+/** Spring scene id → sticker types for that scene (e.g. 年夜饭 → 菜肴贴纸). */
+export const STICKERS_BY_SPRING_SCENE: Record<string, string[]> = {
+    spring_dinner: ['🥟', 'peach', 'coin', '🏮', 'chinese_knotting'],
+    spring_temple_fair: ['🏮', 'painting', 'paper_cutting', 'loong', 'chinese_knotting', 'coin'],
+    spring_couplets: ['couplets', '🥟', 'paper_cutting', 'clouds', '🏮'],
+    spring_firecrackers: ['🎇', '🧧', 'coin', '🏮', 'loong'],
+};
+
+const CHRISTMAS_STICKERS = ['🎄', '🎅', '❄️', '🎁', '⛄'];
+
+/** Christmas scene → stickers (same set for all for now). */
+export const STICKERS_BY_CHRISTMAS_SCENE: Record<string, string[]> = {
+    xmas_1: CHRISTMAS_STICKERS,
+    xmas_2: CHRISTMAS_STICKERS,
+    xmas_3: CHRISTMAS_STICKERS,
+};
+
+/** Get sticker options for a season; for spring/christmas, filter by sceneId if provided. */
+export function getStickersForScene(season: 'christmas' | 'spring', sceneId?: string): string[] {
+    if (season === 'christmas') {
+        if (sceneId && STICKERS_BY_CHRISTMAS_SCENE[sceneId]) return STICKERS_BY_CHRISTMAS_SCENE[sceneId];
+        return CHRISTMAS_STICKERS;
+    }
+    if (sceneId && STICKERS_BY_SPRING_SCENE[sceneId]) {
+        return STICKERS_BY_SPRING_SCENE[sceneId];
+    }
+    return ['🧧', '🏮', '🐴', '🥟', '🎇', 'peach', 'couplets', 'paper_cutting', 'clouds', 'coin', 'chinese_knotting', 'painting', 'loong'];
+}

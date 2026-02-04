@@ -18,7 +18,7 @@ const pageVariants = {
         scale: 1,
         transition: {
             duration: 0.4,
-            ease: [0.34, 1.56, 0.64, 1],
+            ease: [0.34, 1.56, 0.64, 1] as const,
         },
     },
     exit: {
@@ -27,7 +27,7 @@ const pageVariants = {
         scale: 0.98,
         transition: {
             duration: 0.3,
-            ease: 'easeInOut',
+            ease: 'easeInOut' as const,
         },
     },
 };
@@ -59,13 +59,13 @@ export const fadeVariants = {
 
 export const scaleVariants = {
     hidden: { opacity: 0, scale: 0.9 },
-    visible: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: 'easeOut' } },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: 'easeOut' as const } },
     exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } },
 };
 
 export const slideVariants = {
     hidden: { opacity: 0, x: 30 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.35, ease: 'easeOut' as const } },
     exit: { opacity: 0, x: -30, transition: { duration: 0.25 } },
 };
 
@@ -81,5 +81,5 @@ export const staggerContainer = {
 
 export const staggerItem = {
     hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
 };

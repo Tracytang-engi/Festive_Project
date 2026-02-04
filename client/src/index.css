@@ -398,13 +398,6 @@ body {
     opacity: 0;
   }
 }
-    opacity: 0.4;
-  }
-  100% {
-    transform: translate(calc(var(--drift, 10px) * -0.3), 600px) rotate(180deg);
-    opacity: 0;
-  }
-}
 
 @keyframes firework-particle {
   0% {

@@ -10,7 +10,7 @@ router.use(authMiddleware);
 // POST /api/messages
 router.post('/', async (req: AuthRequest, res) => {
     try {
-        const { recipientId, stickerType, content, season, year } = req.body;
+        const { recipientId, stickerType, content, season, year, sceneId } = req.body;
         const senderId = req.user?.id;
 
         // Verify Friendship
@@ -29,7 +29,8 @@ router.post('/', async (req: AuthRequest, res) => {
             stickerType,
             content,
             season,
-            year: year || new Date().getFullYear()
+            year: year || new Date().getFullYear(),
+            ...(sceneId && typeof sceneId === 'string' && { sceneId: sceneId.trim() })
         });
 
         // Notify (include season so frontend can open correct mailbox)
@@ -78,10 +79,9 @@ router.get('/:season', async (req: AuthRequest, res) => {
                 isUnlocked = true;
             }
         } else if (season === 'spring') {
-            // Mock date: Jan 29 (Month 0)
-            if (chinaTime.getMonth() === 0 && chinaTime.getDate() >= 29) {
-                isUnlocked = true;
-            }
+            // TODO: 正式上线时改回时间判断。暂时视为春节已到，可查看贴纸内容。
+            isUnlocked = true;
+            // if (chinaTime.getMonth() === 0 && chinaTime.getDate() >= 29) isUnlocked = true;
         }
 
         // DEBUG: Allow unlock via query param for testing ?unlock=true
@@ -98,6 +98,23 @@ router.get('/:season', async (req: AuthRequest, res) => {
         });
 
         res.json({ messages: results, isUnlocked });
+    } catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
+// DELETE /api/messages/:id — 仅收件人可删除自己收到的贴纸
+router.delete('/:id', async (req: AuthRequest, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?.id;
+        const msg = await Message.findById(id);
+        if (!msg) return res.status(404).json({ error: "NOT_FOUND" });
+        if (msg.recipient.toString() !== userId) {
+            return res.status(403).json({ error: "FORBIDDEN", message: "只能删除自己收到的贴纸" });
+        }
+        await Message.findByIdAndDelete(id);
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
     }

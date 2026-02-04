@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getFriends } from '../../api/friends';
 import { sendMessage } from '../../api/messages';
 import StickerIcon from '../StickerIcon';
+import { getStickersForScene } from '../../constants/stickers';
+import { SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName } from '../../constants/scenes';
 import type { User } from '../../types';
 
 interface ComposeModalProps {
@@ -14,17 +16,36 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
     const [friends, setFriends] = useState<User[]>([]);
     const [selectedFriend, setSelectedFriend] = useState<string>('');
     const [season, setSeason] = useState<'christmas' | 'spring'>(initialSeason);
+    /** First-level: chosen scene for this message. Null = show scene picker; set = show stickers for that scene. */
+    const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
     const [sticker, setSticker] = useState<string>('🎄');
     const [content, setContent] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const sceneIds = season === 'spring' ? [...SPRING_SCENE_IDS] : [...CHRISTMAS_SCENE_IDS];
+    const defaultSceneId = season === 'spring' ? 'spring_dinner' : 'xmas_1';
 
     useEffect(() => {
         if (isOpen) {
             loadFriends();
             setSeason(initialSeason);
-            setSticker(initialSeason === 'spring' ? '🧧' : '🎄');
+            setSelectedSceneId(null);
+            const firstScene = sceneIds[0];
+            const list = getStickersForScene(initialSeason, firstScene);
+            setSticker(list[0] ?? (initialSeason === 'spring' ? '🧧' : '🎄'));
         }
     }, [isOpen, initialSeason]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        whenSeasonOrSceneChange();
+    }, [season, selectedSceneId, isOpen]);
+
+    const whenSeasonOrSceneChange = () => {
+        const scene = selectedSceneId ?? sceneIds[0];
+        const list = getStickersForScene(season, scene);
+        setSticker(list[0] ?? (season === 'spring' ? '🧧' : '🎄'));
+    };
 
     const loadFriends = async () => {
         try {
@@ -39,6 +60,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
     const handleSend = async () => {
         if (!selectedFriend) return alert("Select a friend first!");
         if (!content.trim()) return alert("Write a message!");
+        const sceneId = selectedSceneId ?? defaultSceneId;
 
         setLoading(true);
         try {
@@ -46,7 +68,8 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                 recipientId: selectedFriend,
                 stickerType: sticker,
                 content,
-                season
+                season,
+                sceneId,
             });
             alert("Message sent!");
             onClose();
@@ -60,9 +83,8 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
 
     if (!isOpen) return null;
 
-    const stickers = season === 'christmas'
-        ? ['🎄', '🎅', '❄️', '🎁', '⛄']
-        : ['🧧', '🏮', '🐴', '🥟', '🎇', 'peach', 'couplets', 'paper_cutting', 'clouds', 'coin', 'chinese_knotting', 'painting', 'loong'];
+    const stickers = getStickersForScene(season, selectedSceneId ?? defaultSceneId);
+    const showScenePicker = selectedSceneId === null;
 
     return (
         <div style={styles.overlay}>
@@ -78,40 +100,66 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
 
                 <label style={styles.label}>Season</label>
                 <div className="ios-segmented" style={styles.toggles}>
-                    <button className={season === 'christmas' ? 'active' : ''} onClick={() => setSeason('christmas')}>Christmas</button>
-                    <button className={season === 'spring' ? 'active' : ''} onClick={() => setSeason('spring')}>Spring Festival</button>
+                    <button className={season === 'christmas' ? 'active' : ''} onClick={() => { setSeason('christmas'); setSelectedSceneId(null); }}>Christmas</button>
+                    <button className={season === 'spring' ? 'active' : ''} onClick={() => { setSeason('spring'); setSelectedSceneId(null); }}>Spring Festival</button>
                 </div>
 
-                <label style={styles.label}>Choose a Sticker</label>
-                <div style={styles.stickersWrap}>
-                    <div style={styles.stickers}>
-                        {stickers.map(s => (
-                            <span
-                                key={s}
+                <label style={styles.label}>{showScenePicker ? (season === 'spring' ? '选择分类' : 'Choose Scene') : (season === 'spring' ? '选择贴纸' : 'Choose Sticker')}</label>
+                {showScenePicker ? (
+                    <div style={styles.sceneGrid}>
+                        {sceneIds.map(sid => (
+                            <button
+                                key={sid}
+                                type="button"
                                 className="tap-scale"
-                                style={{ ...styles.sticker, border: sticker === s ? '2px solid #007AFF' : 'none', background: sticker === s ? 'rgba(0,122,255,0.08)' : 'transparent' }}
-                                onClick={() => setSticker(s)}
+                                style={styles.sceneBtn}
+                                onClick={() => setSelectedSceneId(sid)}
                             >
-                                <StickerIcon stickerType={s} size={84} />
-                            </span>
+                                <span style={{ fontSize: '28px', marginBottom: '4px' }}>{SCENE_ICONS[sid] ?? '📁'}</span>
+                                <span style={{ fontSize: '12px', color: '#333' }}>{getSceneName(sid)}</span>
+                            </button>
                         ))}
                     </div>
-                </div>
+                ) : (
+                    <>
+                        <button type="button" onClick={() => setSelectedSceneId(null)} style={styles.backBtn}>
+                            ← {season === 'spring' ? '换分类' : 'Change scene'}
+                        </button>
+                        <div style={styles.stickersWrap}>
+                            <div style={styles.stickers}>
+                                {stickers.map(s => (
+                                    <span
+                                        key={s}
+                                        className="tap-scale"
+                                        style={{ ...styles.sticker, border: sticker === s ? '2px solid #007AFF' : 'none', background: sticker === s ? 'rgba(0,122,255,0.08)' : 'transparent' }}
+                                        onClick={() => setSticker(s)}
+                                    >
+                                        <StickerIcon stickerType={s} size={84} />
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </>
+                )}
 
-                <label style={styles.label}>Message</label>
-                <textarea
-                    placeholder="Write your warm wishes..."
-                    value={content}
-                    onChange={e => setContent(e.target.value)}
-                    style={styles.textarea}
-                />
+                {!showScenePicker && (
+                    <>
+                        <label style={styles.label}>Message</label>
+                        <textarea
+                            placeholder="Write your warm wishes..."
+                            value={content}
+                            onChange={e => setContent(e.target.value)}
+                            style={styles.textarea}
+                        />
 
-                <div style={styles.actions}>
-                    <button className="ios-btn tap-scale" onClick={onClose} style={styles.cancelBtn}>Cancel</button>
-                    <button className="ios-btn tap-scale" onClick={handleSend} disabled={loading} style={styles.sendBtn}>
-                        {loading ? 'Sending...' : 'Send Wishes'}
-                    </button>
-                </div>
+                        <div style={styles.actions}>
+                            <button className="ios-btn tap-scale" onClick={onClose} style={styles.cancelBtn}>Cancel</button>
+                            <button className="ios-btn tap-scale" onClick={handleSend} disabled={loading} style={styles.sendBtn}>
+                                {loading ? 'Sending...' : 'Send Wishes'}
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
@@ -132,6 +180,16 @@ const styles: { [key: string]: React.CSSProperties } = {
     label: { fontSize: '13px', color: '#8e8e93', fontWeight: 500 },
     input: { padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(60,60,67,0.12)', fontSize: '16px', width: '100%', boxSizing: 'border-box' as const },
     toggles: { display: 'flex', gap: '8px' },
+    sceneGrid: { display: 'flex', flexWrap: 'wrap', gap: '12px' },
+    sceneBtn: {
+        width: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '12px 8px', borderRadius: '12px', border: '1px solid rgba(60,60,67,0.12)', background: '#f9f9f9',
+        cursor: 'pointer', transition: 'background 0.2s'
+    },
+    backBtn: {
+        alignSelf: 'flex-start', padding: '6px 12px', border: 'none', borderRadius: '8px', background: '#f2f2f7',
+        cursor: 'pointer', fontSize: '13px', color: '#333'
+    },
     stickersWrap: { maxHeight: '200px', overflowY: 'auto', padding: '4px 0' },
     stickers: { display: 'flex', flexWrap: 'wrap', gap: '12px', padding: '8px 0' },
     sticker: { cursor: 'pointer', padding: '8px', borderRadius: '12px', transition: 'background 0.2s', flexShrink: 0 },

@@ -6,6 +6,7 @@ import { getHistoryList, getHistoryDetail, archiveSeason } from '../api/history'
 import type { HistoryItem, HistorySceneData } from '../api/history';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
+import StickerIcon from '../components/StickerIcon';
 
 const HistoryPage: React.FC = () => {
     const { theme } = useTheme();

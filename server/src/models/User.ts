@@ -12,8 +12,12 @@ export interface IUser extends Document {
     selectedScene?: string;
     themePreference?: 'christmas' | 'spring';
     backgroundImage?: string;
+    /** 按场景的自定义背景：{ [sceneId]: '/uploads/xxx.jpg' } */
+    customBackgrounds?: Record<string, string>;
     nicknameChangeCount?: number;
     passwordChangeCount?: number;
+    /** 场景贴纸布置：{ christmas: { [messageId]: { left, top } }, spring: { ... } }，百分比 */
+    sceneLayout?: Record<string, Record<string, { left: number; top: number }>>;
     createdAt: Date;
 }
 
@@ -29,8 +33,10 @@ const UserSchema: Schema = new Schema({
     selectedScene: { type: String },
     themePreference: { type: String, enum: ['christmas', 'spring'], default: 'christmas' },
     backgroundImage: { type: String },
+    customBackgrounds: { type: Schema.Types.Mixed },
     nicknameChangeCount: { type: Number, default: 0 },
     passwordChangeCount: { type: Number, default: 0 },
+    sceneLayout: { type: Schema.Types.Mixed },
     createdAt: { type: Date, default: Date.now }
 });
 

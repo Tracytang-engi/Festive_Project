@@ -7,6 +7,7 @@ interface DraggableStickerProps {
     initialLeft: number;
     initialTop: number;
     onShowDetail: () => void;
+    onPositionChange?: (left: number, top: number) => void;
 }
 
 const DraggableSticker: React.FC<DraggableStickerProps> = ({
@@ -14,10 +15,15 @@ const DraggableSticker: React.FC<DraggableStickerProps> = ({
     initialLeft,
     initialTop,
     onShowDetail,
+    onPositionChange,
 }) => {
     const [pos, setPos] = useState({ left: initialLeft, top: initialTop });
     const [dragging, setDragging] = useState(false);
     const dragRef = React.useRef({ x: 0, y: 0, left: 0, top: 0, moved: false });
+
+    React.useEffect(() => {
+        setPos({ left: initialLeft, top: initialTop });
+    }, [initialLeft, initialTop]);
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
@@ -39,8 +45,12 @@ const DraggableSticker: React.FC<DraggableStickerProps> = ({
     const handleMouseUp = useCallback(() => {
         const wasClick = !dragRef.current.moved;
         setDragging(false);
-        if (wasClick) onShowDetail();
-    }, [onShowDetail]);
+        if (wasClick) {
+            onShowDetail();
+        } else if (onPositionChange) {
+            onPositionChange(pos.left, pos.top);
+        }
+    }, [onShowDetail, onPositionChange, pos.left, pos.top]);
 
     React.useEffect(() => {
         if (!dragging) return;

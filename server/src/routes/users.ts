@@ -53,6 +53,25 @@ router.put('/scene', async (req: AuthRequest, res) => {
     }
 });
 
+// PUT /api/users/scene-layout — 保存当前主题下贴纸布置（百分比位置）
+router.put('/scene-layout', async (req: AuthRequest, res) => {
+    try {
+        const { season, positions } = req.body;
+        if (!season || (season !== 'christmas' && season !== 'spring')) {
+            return res.status(400).json({ error: "INVALID_INPUT", message: "season 须为 christmas 或 spring" });
+        }
+        const userId = req.user?.id;
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: "NOT_FOUND" });
+        const layout = (user.sceneLayout && typeof user.sceneLayout === 'object') ? { ...user.sceneLayout } : {};
+        layout[season] = positions && typeof positions === 'object' ? positions : {};
+        await User.findByIdAndUpdate(userId, { sceneLayout: layout });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
 // PUT /api/users/profile/nickname - 改名字，每人限 3 次
 const NICKNAME_CHANGE_LIMIT = 3;
 router.put('/profile/nickname', async (req: AuthRequest, res) => {
@@ -115,21 +134,55 @@ router.put('/profile/password', async (req: AuthRequest, res) => {
     }
 });
 
-// POST /api/users/background
-router.post('/background', upload.single('image'), async (req: AuthRequest, res) => {
+// POST /api/users/background — 为指定场景上传自定义背景（sceneId 用 query 或 form 均可，避免 multipart 下 body 未解析）
+router.post('/background', (req: AuthRequest, res, next) => {
+    upload.single('image')(req, res, (err: any) => {
+        if (err) {
+            const msg = err.code === 'LIMIT_FILE_SIZE' ? 'File too large (max 5MB)' : (err.message || 'Upload failed');
+            return res.status(400).json({ error: "UPLOAD_ERROR", message: msg });
+        }
+        next();
+    });
+}, async (req: AuthRequest, res) => {
     try {
-        if (!req.file) return res.status(400).json({ error: "NO_FILE_UPLOADED" });
+        if (!req.file) {
+            return res.status(400).json({ error: "NO_FILE_UPLOADED", message: "请选择图片并上传（字段名须为 image）" });
+        }
+        // sceneId: 优先 query（multipart 时更可靠），其次 form body
+        const sceneId = (req.query?.sceneId as string)?.trim()
+            || (req.body?.sceneId && String(req.body.sceneId).trim())
+            || null;
+        if (!sceneId) return res.status(400).json({ error: "SCENE_ID_REQUIRED", message: "请指定场景 sceneId（可用 query 或表单）" });
 
-        // Construct URL (assuming local storage)
-        // In production, you might return a full URL or CDN path.
-        // For now, we return a relative path that the client can prepend the server origin to,
-        // OR a relative path that works if the client proxies to the server.
-        // Let's store '/uploads/filename'
         const imageUrl = `/uploads/${req.file.filename}`;
+        const user = await User.findById(req.user?.id);
+        if (!user) return res.status(404).json({ error: "NOT_FOUND" });
 
-        await User.findByIdAndUpdate(req.user?.id, { backgroundImage: imageUrl });
+        const customBackgrounds = { ...(user.customBackgrounds || {}) };
+        customBackgrounds[sceneId] = imageUrl;
+        await User.findByIdAndUpdate(req.user?.id, { customBackgrounds });
 
-        res.json({ success: true, imageUrl });
+        res.json({ success: true, imageUrl, sceneId });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
+// DELETE /api/users/background/:sceneId — 恢复该场景的默认背景
+router.delete('/background/:sceneId', async (req: AuthRequest, res) => {
+    try {
+        const sceneId = String(req.params.sceneId || '').trim();
+        if (!sceneId) return res.status(400).json({ error: "SCENE_ID_REQUIRED" });
+
+        const user = await User.findById(req.user?.id);
+        if (!user) return res.status(404).json({ error: "NOT_FOUND" });
+
+        const customBackgrounds = { ...(user.customBackgrounds || {}) };
+        delete customBackgrounds[sceneId];
+        await User.findByIdAndUpdate(req.user?.id, { customBackgrounds });
+
+        res.json({ success: true, sceneId });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "SERVER_ERROR" });

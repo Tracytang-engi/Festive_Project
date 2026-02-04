@@ -8,8 +8,10 @@ interface User {
     selectedScene?: string;
     themePreference?: 'christmas' | 'spring';
     backgroundImage?: string;
+    customBackgrounds?: Record<string, string>;
     nicknameChangeCount?: number;
     passwordChangeCount?: number;
+    sceneLayout?: Record<string, Record<string, { left: number; top: number }>>;
 }
 
 interface AuthContextType {

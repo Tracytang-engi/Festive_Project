@@ -5,23 +5,20 @@ import { useTheme } from '../context/ThemeContext';
 import Sidebar from '../components/Layout/Sidebar';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
+import { SCENE_NAMES, SPRING_SCENE_IDS } from '../constants/scenes';
 
 const SceneSelector: React.FC = () => {
     const { updateUserScene } = useAuth();
     const { theme: currentTheme } = useTheme();
     const navigate = useNavigate();
 
-    // Christmas: 3 options. Spring: 3 options (same workflow as Christmas).
-    const scenes = [
-        { id: 'xmas_1', name: 'Cozy Fireplace', theme: 'christmas' },
-        { id: 'xmas_2', name: 'Snowy Village', theme: 'christmas' },
-        { id: 'xmas_3', name: 'Santa Workshop', theme: 'christmas' },
-        { id: 'spring_fireworks', name: 'Wishing Tree', theme: 'spring' },
-        { id: 'spring_reunion', name: 'Plum Branch', theme: 'spring' },
-        { id: 'spring_temple_fair', name: 'Fu Character Door', theme: 'spring' },
+    const christmasScenes = [
+        { id: 'xmas_1', name: SCENE_NAMES['xmas_1'], theme: 'christmas' as const },
+        { id: 'xmas_2', name: SCENE_NAMES['xmas_2'], theme: 'christmas' as const },
+        { id: 'xmas_3', name: SCENE_NAMES['xmas_3'], theme: 'christmas' as const },
     ];
-
-    const filteredScenes = scenes.filter(scene => scene.theme === currentTheme);
+    const springScenes = SPRING_SCENE_IDS.map(id => ({ id, name: SCENE_NAMES[id], theme: 'spring' as const }));
+    const scenes = currentTheme === 'christmas' ? christmasScenes : springScenes;
 
     const handleSelect = async (sceneId: string, theme: string) => {
         try {
@@ -44,7 +41,7 @@ const SceneSelector: React.FC = () => {
             <div style={{ flex: 1, padding: '40px', textAlign: 'center' }}>
                 <h1>Choose Your Festive Scene</h1>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '40px' }}>
-                {filteredScenes.map(scene => (
+                {scenes.map(scene => (
                     <div
                         key={scene.id}
                         onClick={() => handleSelect(scene.id, scene.theme)}

@@ -11,6 +11,11 @@ export const sendMessage = async (data: {
     stickerType: string;
     content: string;
     season: string;
+    sceneId?: string;
 }): Promise<void> => {
     await api.post('/messages', data);
+};
+
+export const deleteMessage = async (messageId: string): Promise<void> => {
+    await api.delete(`/messages/${messageId}`);
 };
