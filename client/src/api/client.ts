@@ -1,7 +1,11 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { generateSignature } from '../utils/security';
 
-export const SERVER_ORIGIN = 'http://127.0.0.1:3000';
+// 开发环境用本地，生产环境用 VITE_API_URL（部署时在 Vercel 设置）
+// 生产构建若未设置 VITE_API_URL，fallback 到线上 API，避免请求本地端口
+const devApiUrl = 'http://127.0.0.1:3000';
+const prodApiUrl = 'https://api.festickers.com';
+export const SERVER_ORIGIN = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? prodApiUrl : devApiUrl);
 
 const api = axios.create({
     baseURL: `${SERVER_ORIGIN}/api`,

@@ -48,6 +48,15 @@ router.post('/register', ipLimiterMiddleware, async (req: Request, res: Response
         const trimmedUserId = String(userId).trim();
         const trimmedPassword = String(password).trim();
 
+        // [DEBUG] 排查传参与重复检查
+        console.log('[REGISTER] 收到参数:', {
+            nickname: JSON.stringify(trimmedNickname),
+            nicknameLen: trimmedNickname.length,
+            userId: JSON.stringify(trimmedUserId),
+            userIdLen: trimmedUserId.length,
+            region: JSON.stringify(String(region).trim())
+        });
+
         if (!trimmedNickname || !trimmedUserId || !trimmedPassword) {
             return res.status(400).json({
                 error: "INVALID_INPUT",
@@ -68,16 +77,19 @@ router.post('/register', ipLimiterMiddleware, async (req: Request, res: Response
             });
         }
 
-        // 检查 ID 或名称是否已存在
+        // 检查 ID 或名称是否已存在（精确匹配，避免 Mongoose regex 误匹配）
         const existingById = await User.findOne({ userId: trimmedUserId });
+        const existingByNickname = await User.findOne({ nickname: trimmedNickname });
+
         if (existingById) {
+            console.log('[REGISTER] 触发原因: userId 已存在, 匹配到用户:', existingById._id);
             return res.status(400).json({
                 error: "DUPLICATE",
                 message: "该名称/ID 已经被使用，请重新输入"
             });
         }
-        const existingByNickname = await User.findOne({ nickname: trimmedNickname });
         if (existingByNickname) {
+            console.log('[REGISTER] 触发原因: nickname 已存在, 匹配到用户:', existingByNickname._id);
             return res.status(400).json({
                 error: "DUPLICATE",
                 message: "该名称/ID 已经被使用，请重新输入"
@@ -97,9 +109,10 @@ router.post('/register', ipLimiterMiddleware, async (req: Request, res: Response
     } catch (err: any) {
         console.error("Register Error:", err);
         const msg = err?.message || "SERVER_ERROR";
-        const isDup = err?.code === 11000; // MongoDB duplicate key
-        res.status(500).json({
-            error: "SERVER_ERROR",
+        const isDup = err?.code === 11000; // MongoDB duplicate key（如并发或索引与查询不一致）
+        console.log('[REGISTER] catch 分支: err.code=', err?.code, ', isDup=', isDup, ', msg=', msg);
+        res.status(isDup ? 400 : 500).json({
+            error: isDup ? "DUPLICATE" : "SERVER_ERROR",
             message: isDup ? "该名称/ID 已经被使用，请重新输入" : msg
         });
     }
