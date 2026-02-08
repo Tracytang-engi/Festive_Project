@@ -52,15 +52,15 @@ cd Festive_Project/server
 nano .env
 ```
 
-填入以下内容（按实际情况修改）：
+填入以下内容（**使用 MongoDB Atlas 时**）：
 
 ```
-MONGODB_URI=mongodb://localhost:27017/festive-app
-JWT_SECRET=你的JWT密钥_请改为随机长字符串
+MONGODB_URI=mongodb+srv://用户名:密码@cluster.xxx.mongodb.net/festive-app?retryWrites=true&w=majority&appName=Festickers
+JWT_SECRET=你的JWT密钥_随机长字符串
 HMAC_SECRET=super_secret_hmac_key_change_me
 ```
 
-> 若使用 MongoDB Atlas，将 `MONGODB_URI` 改为 Atlas 连接串。
+> `.env` 必须位于 `server/` 目录下。密码中的 `!` 需写成 `%21`。
 
 保存：`Ctrl+O` 回车，`Ctrl+X` 退出。
 

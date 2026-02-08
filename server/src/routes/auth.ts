@@ -24,7 +24,7 @@ router.post('/check-id', ipLimiterMiddleware, async (req: Request, res: Response
         res.json({ exists: !!user });
     } catch (err) {
         console.error("Check ID Error:", err);
-        res.status(500).json({ error: "SERVER_ERROR" });
+        res.status(500).json({ error: "SERVER_ERROR", message: "服务器繁忙，请稍后重试" });
     }
 });
 
@@ -108,12 +108,11 @@ router.post('/register', ipLimiterMiddleware, async (req: Request, res: Response
         res.status(200).json({ success: true, token });
     } catch (err: any) {
         console.error("Register Error:", err);
-        const msg = err?.message || "SERVER_ERROR";
         const isDup = err?.code === 11000; // MongoDB duplicate key（如并发或索引与查询不一致）
-        console.log('[REGISTER] catch 分支: err.code=', err?.code, ', isDup=', isDup, ', msg=', msg);
+        console.log('[REGISTER] catch 分支: err.code=', err?.code, ', isDup=', isDup);
         res.status(isDup ? 400 : 500).json({
             error: isDup ? "DUPLICATE" : "SERVER_ERROR",
-            message: isDup ? "该名称/ID 已经被使用，请重新输入" : msg
+            message: isDup ? "该名称/ID 已经被使用，请重新输入" : "服务器繁忙，请稍后重试"
         });
     }
 });
@@ -202,7 +201,7 @@ router.post('/login', ipLimiterMiddleware, async (req: Request, res: Response) =
         res.status(200).json({ success: true, token });
     } catch (err) {
         console.error("Login Error:", err);
-        res.status(500).json({ error: "SERVER_ERROR" });
+        res.status(500).json({ error: "SERVER_ERROR", message: "服务器繁忙，请稍后重试" });
     }
 });
 

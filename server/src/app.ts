@@ -1,8 +1,12 @@
+import path from 'path';
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
+
+// 从 server 根目录加载 .env（兼容 PM2 不同 cwd）
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 // Routes
 import authRoutes from './routes/auth';
@@ -12,8 +16,6 @@ import messageRoutes from './routes/messages';
 import notificationRoutes from './routes/notifications';
 import adRoutes from './routes/ads';
 import historyRoutes from './routes/history';
-
-dotenv.config();
 
 const app = express();
 
