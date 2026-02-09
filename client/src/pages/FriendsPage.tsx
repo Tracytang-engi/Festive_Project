@@ -42,7 +42,7 @@ const FriendsPage: React.FC = () => {
         try {
             await respondToFriendRequest(requestId, action);
             loadData();
-        } catch (err) {
+        } catch {
             alert("Action failed.");
         }
     };

@@ -6,7 +6,6 @@ import { getMessages, deleteMessage } from '../api/messages';
 import type { Message } from '../types';
 import { getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName } from '../constants/scenes';
 import { SERVER_ORIGIN } from '../api/client';
-import { themeConfig } from '../constants/theme';
 
 import SantaSticker from '../components/SantaSticker';
 import ChineseHorseSticker from '../components/ChineseHorseSticker';
@@ -37,7 +36,7 @@ const HomePage: React.FC = () => {
                 const data = await getMessages(theme);
                 setMessages(data.messages);
                 setIsUnlocked(data.isUnlocked);
-            } catch { }
+            } catch { /* ignore load error */ }
         };
         load();
     }, [theme]);

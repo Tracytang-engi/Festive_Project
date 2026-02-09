@@ -23,7 +23,7 @@ const HistoryPage: React.FC = () => {
         try {
             const data = await getHistoryList();
             setHistory(data);
-        } catch (err) {
+        } catch {
             console.error("Failed to load history");
         } finally {
             setLoading(false);
@@ -34,7 +34,7 @@ const HistoryPage: React.FC = () => {
         try {
             const data = await getHistoryDetail(id);
             setSelectedScene(data);
-        } catch (err) {
+        } catch {
             alert("Failed to load details");
         }
     };
@@ -47,7 +47,7 @@ const HistoryPage: React.FC = () => {
                 await archiveSeason(year, theme);
                 alert("Archived! Check the list.");
                 loadHistory();
-            } catch (err) {
+            } catch {
                 alert("Archive failed (maybe empty? or server error)");
             }
         }

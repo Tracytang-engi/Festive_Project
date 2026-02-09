@@ -36,7 +36,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     // Add Security Signatures (HMAC) — 仅对非 FormData 请求
     const timestamp = Date.now();
     config.headers['x-timestamp'] = timestamp.toString();
-    let payload = config.data || {};
+    const payload = config.data || {};
     const signature = generateSignature(payload, timestamp);
     config.headers['x-signature'] = signature;
 

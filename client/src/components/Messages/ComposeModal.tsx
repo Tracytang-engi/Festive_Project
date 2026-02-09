@@ -74,7 +74,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
             alert("Message sent!");
             onClose();
             setContent('');
-        } catch (err) {
+        } catch {
             alert("Failed to send message.");
         } finally {
             setLoading(false);

@@ -32,7 +32,7 @@ const NotificationsPage: React.FC = () => {
         try {
             const list = await getNotifications();
             setNotifications(list);
-        } catch (err) {
+        } catch {
             console.error("Failed to load notifications");
         } finally {
             setLoading(false);
