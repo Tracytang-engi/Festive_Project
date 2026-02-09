@@ -60,7 +60,7 @@ router.get('/:season', async (req: AuthRequest, res) => {
             recipient: userId,
             season,
             year: currentYear
-        }).populate('sender', 'nickname');
+        }).populate('sender', 'nickname avatar');
 
         // 2. Check Time Lock (China Time UTC+8)
         // Christmas: Dec 25 00:00

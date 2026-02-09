@@ -31,7 +31,7 @@ router.post('/check-id', ipLimiterMiddleware, async (req: Request, res: Response
 // POST /api/auth/register - 注册
 router.post('/register', ipLimiterMiddleware, async (req: Request, res: Response) => {
     try {
-        const { nickname, userId, password, region } = req.body;
+        const { nickname, userId, password, region, avatar } = req.body;
         if (!nickname || !userId || !password) {
             return res.status(400).json({
                 error: "INVALID_INPUT",
@@ -97,9 +97,11 @@ router.post('/register', ipLimiterMiddleware, async (req: Request, res: Response
         }
 
         const passwordHash = await hashPassword(trimmedPassword);
+        const avatarStr = (avatar != null && String(avatar).trim()) ? String(avatar).trim().slice(0, 8) : '👤';
         const user = await User.create({
             userId: trimmedUserId,
             nickname: trimmedNickname,
+            avatar: avatarStr,
             passwordHash,
             region: String(region).trim()
         });

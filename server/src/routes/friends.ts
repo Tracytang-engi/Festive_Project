@@ -1,6 +1,7 @@
 import express from 'express';
 import Friend from '../models/Friend';
 import User from '../models/User';
+import Message from '../models/Message';
 import Notification from '../models/Notification';
 import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
 
@@ -109,9 +110,44 @@ router.get('/requests', async (req: AuthRequest, res) => {
         const requests = await Friend.find({
             recipient: userId,
             status: 'pending'
-        }).populate('requester', 'nickname region');
+        }).populate('requester', 'nickname region avatar');
 
         res.json(requests);
+    } catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
+// GET /api/friends/:friendId/decor — 查看好友的主题装饰（仅好友可看）
+router.get('/:friendId/decor', async (req: AuthRequest, res) => {
+    try {
+        const userId = req.user?.id;
+        const { friendId } = req.params;
+        if (!friendId) return res.status(400).json({ error: "FRIEND_ID_REQUIRED" });
+
+        const link = await Friend.findOne({
+            $or: [
+                { requester: userId, recipient: friendId, status: 'accepted' },
+                { requester: friendId, recipient: userId, status: 'accepted' }
+            ]
+        });
+        if (!link) return res.status(403).json({ error: "NOT_FRIENDS", message: "仅可查看好友的装饰" });
+
+        const friend = await User.findById(friendId)
+            .select('nickname avatar selectedScene themePreference customBackgrounds sceneLayout')
+            .lean();
+        if (!friend) return res.status(404).json({ error: "USER_NOT_FOUND" });
+
+        const messages = await Message.find({ recipient: friendId, season: 'spring' })
+            .select('_id stickerType sceneId')
+            .lean();
+        const messagesForClient = messages.map((m: any) => ({
+            _id: m._id.toString(),
+            stickerType: m.stickerType,
+            sceneId: m.sceneId,
+        }));
+
+        res.json({ ...friend, messages: messagesForClient });
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
     }
@@ -126,8 +162,8 @@ router.get('/', async (req: AuthRequest, res) => {
                 { requester: userId, status: 'accepted' },
                 { recipient: userId, status: 'accepted' }
             ]
-        }).populate('requester', 'nickname region')
-            .populate('recipient', 'nickname region');
+        }).populate('requester', 'nickname region avatar')
+            .populate('recipient', 'nickname region avatar');
 
         // Transform to return the *other* user
         const result = friends.map(f => {

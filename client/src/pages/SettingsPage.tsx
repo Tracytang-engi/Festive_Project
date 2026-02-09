@@ -5,8 +5,8 @@ import Sidebar from '../components/Layout/Sidebar';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { themeConfig } from '../constants/theme';
-import { SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName, getSpringSceneBackgroundImage } from '../constants/scenes';
-import christmasBg from '../assets/christmas-bg.jpg';
+import { SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName, getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage } from '../constants/scenes';
+import { AVATAR_EMOJIS, DEFAULT_AVATAR } from '../constants/avatars';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 
@@ -15,7 +15,7 @@ const PASSWORD_CHANGE_LIMIT = 1;
 
 function getDefaultBackgroundUrl(sceneId: string): string {
     if (sceneId.startsWith('spring')) return getSpringSceneBackgroundImage(sceneId);
-    return christmasBg;
+    return getChristmasSceneBackgroundImage(sceneId);
 }
 
 const ALL_SCENES = [
@@ -38,6 +38,10 @@ const SettingsPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // 个人主页：头像
+    const currentAvatar = user?.avatar || DEFAULT_AVATAR;
+    const [avatarLoading, setAvatarLoading] = useState(false);
 
     // 个人主页：昵称
     const nicknameRemain = NICKNAME_CHANGE_LIMIT - (user?.nicknameChangeCount ?? 0);
@@ -216,6 +220,47 @@ const SettingsPage: React.FC = () => {
                     <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 600 }}>
                         个人主页
                     </h2>
+
+                    {/* 头像 */}
+                    <div style={{ marginBottom: '24px' }}>
+                        <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, marginBottom: '8px' }}>
+                            头像
+                        </label>
+                        <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#666' }}>
+                            当前头像：<span style={{ fontSize: '28px' }}>{currentAvatar}</span>
+                        </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {AVATAR_EMOJIS.map(emoji => (
+                                <button
+                                    key={emoji}
+                                    type="button"
+                                    disabled={avatarLoading}
+                                    onClick={async () => {
+                                        setAvatarLoading(true);
+                                        try {
+                                            await api.put('/users/profile/avatar', { avatar: emoji });
+                                            await checkAuth();
+                                        } catch {
+                                            // ignore
+                                        } finally {
+                                            setAvatarLoading(false);
+                                        }
+                                    }}
+                                    style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        fontSize: '24px',
+                                        border: currentAvatar === emoji ? '2px solid var(--ios-blue)' : '1px solid rgba(60,60,67,0.2)',
+                                        borderRadius: '10px',
+                                        background: currentAvatar === emoji ? 'rgba(0,122,255,0.1)' : '#f2f2f7',
+                                        cursor: avatarLoading ? 'not-allowed' : 'pointer',
+                                    }}
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
                     {/* 修改昵称 */}
                     <div style={{ marginBottom: '24px' }}>

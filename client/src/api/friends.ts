@@ -29,3 +29,29 @@ export const getFriendRequests = async (): Promise<any[]> => {
     const response = await api.get('/friends/requests');
     return response.data;
 };
+
+/** 好友的贴纸消息（仅用于展示布置） */
+export interface FriendDecorMessage {
+    _id: string;
+    stickerType: string;
+    sceneId?: string;
+}
+
+/** 好友主题装饰（查看用，含场景、背景与布置） */
+export interface FriendDecor {
+    nickname: string;
+    avatar?: string;
+    selectedScene?: string;
+    themePreference?: 'christmas' | 'spring';
+    customBackgrounds?: Record<string, string>;
+    /** 场景贴纸布置：{ spring: { [messageId]: { left, top } } }，百分比 */
+    sceneLayout?: Record<string, Record<string, { left: number; top: number }>>;
+    /** 对方收到的春节贴纸列表，用于展示具体贴纸 */
+    messages?: FriendDecorMessage[];
+}
+
+// 查看好友的主题装饰页数据（仅好友可调）
+export const getFriendDecor = async (friendId: string): Promise<FriendDecor> => {
+    const response = await api.get(`/friends/${friendId}/decor`);
+    return response.data;
+};

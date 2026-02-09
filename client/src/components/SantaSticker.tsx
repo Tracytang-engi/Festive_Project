@@ -1,13 +1,12 @@
-
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useChristmasMessage } from '../context/ChristmasMessageContext';
 
 const SantaSticker: React.FC = () => {
-    const navigate = useNavigate();
+    const { showChristmasUnavailable } = useChristmasMessage();
 
     return (
         <div
-            onClick={() => navigate('/select-scene')}
+            onClick={showChristmasUnavailable}
             style={{
                 position: 'absolute',
                 top: '50%',

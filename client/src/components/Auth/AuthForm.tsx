@@ -3,6 +3,7 @@ import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { themeConfig } from '../../constants/theme';
+import { AVATAR_EMOJIS, DEFAULT_AVATAR } from '../../constants/avatars';
 import { useNavigate } from 'react-router-dom';
 
 type Mode = 'login' | 'register';
@@ -17,6 +18,7 @@ const AuthForm: React.FC = () => {
     const [userId, setUserId] = useState('');
     const [password, setPassword] = useState('');
     const [nickname, setNickname] = useState('');
+    const [avatar, setAvatar] = useState(DEFAULT_AVATAR);
     const [region, setRegion] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -93,7 +95,7 @@ const AuthForm: React.FC = () => {
         setError('');
         setLoading(true);
         try {
-            await register(nickname.trim(), userId.trim(), password.trim(), region.trim());
+            await register(nickname.trim(), userId.trim(), password.trim(), region.trim(), avatar);
             toggleTheme('spring');
             navigate('/');
         } catch (err: any) {
@@ -110,6 +112,7 @@ const AuthForm: React.FC = () => {
         setUserId('');
         setPassword('');
         setNickname('');
+        setAvatar(DEFAULT_AVATAR);
         setRegion('');
         setError('');
     };
@@ -242,6 +245,32 @@ const AuthForm: React.FC = () => {
                 {/* 注册流程 */}
                 {mode === 'register' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
+                                头像
+                            </label>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }}>
+                                {AVATAR_EMOJIS.map(emoji => (
+                                    <button
+                                        key={emoji}
+                                        type="button"
+                                        onClick={() => setAvatar(emoji)}
+                                        style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            fontSize: '24px',
+                                            border: avatar === emoji ? '2px solid var(--ios-blue)' : '1px solid rgba(60,60,67,0.2)',
+                                            borderRadius: '10px',
+                                            background: avatar === emoji ? 'rgba(0,122,255,0.1)' : '#f2f2f7',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        {emoji}
+                                    </button>
+                                ))}
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--ios-gray)' }}>当前：<span style={{ fontSize: '20px' }}>{avatar}</span></div>
+                        </div>
                         <div>
                             <label style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
                                 名称

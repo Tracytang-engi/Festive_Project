@@ -4,9 +4,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { getMessages } from '../api/messages';
 import { saveSceneLayout } from '../api/scene';
-import { getSceneName, getSpringSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS } from '../constants/scenes';
+import { getSceneName, getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS } from '../constants/scenes';
 import { SERVER_ORIGIN } from '../api/client';
-import christmasBg from '../assets/christmas-bg.jpg';
 import ChineseHorseSticker from '../components/ChineseHorseSticker';
 import SantaSticker from '../components/SantaSticker';
 import DraggableSticker from '../components/DraggableSticker';
@@ -40,28 +39,27 @@ const FestiveDecorPage: React.FC = () => {
     const [stickerPositions, setStickerPositions] = useState<Record<string, { left: number; top: number }>>({});
     const [saving, setSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
-    /** Left sidebar: 额外选中的分类（可多选），再点一次取消高亮并隐藏该分类贴纸。当前主题场景始终显示。 */
-    const [sidebarSceneIds, setSidebarSceneIds] = useState<string[]>([]);
+    /** Left sidebar: 额外选中的分类（单选，仅一个框亮），无默认。当前主题场景始终显示。 */
+    const [selectedSidebarSceneId, setSelectedSidebarSceneId] = useState<string | null>(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const defaultSceneId = theme === 'spring' ? DEFAULT_SPRING_SCENE : 'xmas_1';
     const sceneIds = theme === 'spring' ? [...SPRING_SCENE_IDS] : [...CHRISTMAS_SCENE_IDS];
     const pageScene = user?.selectedScene ?? defaultSceneId;
     const defaultSpringBg = getSpringSceneBackgroundImage(user?.selectedScene || DEFAULT_SPRING_SCENE);
     const customBgPath = user?.customBackgrounds?.[pageScene];
-    const backgroundImage = customBgPath ? `${SERVER_ORIGIN}${customBgPath}` : (theme === 'christmas' ? christmasBg : defaultSpringBg);
+    const backgroundImage = customBgPath ? `${SERVER_ORIGIN}${customBgPath}` : (theme === 'christmas' ? getChristmasSceneBackgroundImage(pageScene) : defaultSpringBg);
     const sceneTitle = getSceneName(pageScene);
-    /** 页面上显示：当前主题场景 + 左侧栏已选中的分类（多选）；点击分类为切换选中，再点一次取消。 */
+    /** 页面上显示：当前主题场景 + 至多一个左侧栏选中的分类（单选）。 */
     const visibleMessages = messages.filter(m => {
         const scene = m.sceneId || defaultSceneId;
         if (scene === pageScene) return true;
-        if (sidebarSceneIds.includes(scene)) return true;
+        if (selectedSidebarSceneId && scene === selectedSidebarSceneId) return true;
         return false;
     });
 
     const toggleSidebarScene = useCallback((sid: string) => {
-        if (sid === pageScene) return; // 当前主题场景始终显示，不参与切换
-        setSidebarSceneIds(prev => prev.includes(sid) ? prev.filter(id => id !== sid) : [...prev, sid]);
-    }, [pageScene]);
+        setSelectedSidebarSceneId(prev => prev === sid ? null : sid);
+    }, []);
 
     useEffect(() => {
         const fetch = async () => {
@@ -175,6 +173,7 @@ const FestiveDecorPage: React.FC = () => {
                                 <ChevronLeft size={18} />
                             </button>
                         </div>
+                        {/* 分类网格：单选，点同一框取消选中，无默认选中；仅一个框亮 */}
                         <div style={{
                             display: 'grid',
                             gridTemplateColumns: 'repeat(2, 56px)',
@@ -183,7 +182,7 @@ const FestiveDecorPage: React.FC = () => {
                         }}>
                             {sceneIds.map(sid => {
                                 const count = messages.filter(m => (m.sceneId || defaultSceneId) === sid).length;
-                                const active = sid === pageScene || sidebarSceneIds.includes(sid);
+                                const isSelected = selectedSidebarSceneId === sid;
                                 return (
                                     <button
                                         key={sid}
@@ -193,8 +192,9 @@ const FestiveDecorPage: React.FC = () => {
                                             width: '56px',
                                             height: '56px',
                                             borderRadius: '12px',
-                                            border: active ? '2px solid rgba(255,255,255,0.9)' : 'none',
-                                            background: active ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.2)',
+                                            border: 'none',
+                                            background: isSelected ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)',
+                                            boxShadow: isSelected ? '0 0 0 2px rgba(255,255,255,0.8)' : 'none',
                                             cursor: 'pointer',
                                             fontSize: '28px',
                                             display: 'flex',

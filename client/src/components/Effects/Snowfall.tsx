@@ -17,7 +17,7 @@ interface SnowfallProps {
 }
 
 const Snowfall: React.FC<SnowfallProps> = ({ intensity = 'moderate', theme = 'christmas' }) => {
-    const count = intensity === 'light' ? 30 : intensity === 'heavy' ? 100 : 60;
+    const count = intensity === 'light' ? 25 : intensity === 'heavy' ? 55 : 38;
 
     const snowflakes = useMemo<Snowflake[]>(() => {
         return Array.from({ length: count }, (_, i) => ({

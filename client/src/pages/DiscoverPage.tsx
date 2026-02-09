@@ -16,6 +16,7 @@ const DiscoverPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
+    const [addingId, setAddingId] = useState<string | null>(null);
 
     const handleSearch = async (searchQuery?: string) => {
         const q = searchQuery !== undefined ? searchQuery : query;
@@ -35,12 +36,24 @@ const DiscoverPage: React.FC = () => {
     };
 
     const sendRequest = async (targetId: string) => {
+        if (addingId) return;
+        setAddingId(targetId);
         try {
             await api.post('/friends/request', { targetUserId: targetId });
-            alert("好友请求已发送！");
+            alert(theme === 'spring' ? '好友请求已发送！' : 'Friend request sent!');
         } catch (err: any) {
-            const msg = err?.response?.data?.error || err?.message;
-            alert(msg === "Request already exists or connected" ? "已发送过请求或已是好友" : "发送失败：" + (msg || "请重试"));
+            const status = err?.response?.status;
+            const data = err?.response?.data;
+            const msg = data?.message || data?.error || err?.message;
+            if (status === 401) {
+                alert(theme === 'spring' ? '登录已过期，请重新登录后再添加好友' : 'Please log in again to add friends');
+            } else if (msg === 'Request already exists or connected') {
+                alert(theme === 'spring' ? '已发送过请求或已是好友' : 'Already sent or already friends');
+            } else {
+                alert((theme === 'spring' ? '发送失败：' : 'Failed: ') + (msg || (theme === 'spring' ? '请重试' : 'Please retry')));
+            }
+        } finally {
+            setAddingId(null);
         }
     };
 
@@ -186,18 +199,28 @@ const DiscoverPage: React.FC = () => {
                                 }}
                                 whileHover={{ background: 'rgba(0,122,255,0.05)' }}
                             >
-                                <div>
-                                    <strong style={{ fontSize: '17px', fontWeight: 600, color: '#333' }}>{u.nickname || '未设置昵称'}</strong>
-                                    <span style={{ fontSize: '14px', color: 'var(--ios-gray)', marginLeft: '10px' }}>
-                                        📍 {u.region || '未设置地区'}
-                                    </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <span style={{ fontSize: '28px', lineHeight: 1 }}>{u.avatar || '👤'}</span>
+                                    <div>
+                                        <strong style={{ fontSize: '17px', fontWeight: 600, color: '#333' }}>{u.nickname || '未设置昵称'}</strong>
+                                        <span style={{ fontSize: '14px', color: 'var(--ios-gray)', marginLeft: '10px' }}>
+                                            📍 {u.region || '未设置地区'}
+                                        </span>
+                                    </div>
                                 </div>
                                 <button
                                     className="ios-btn ios-btn-pill tap-scale"
                                     onClick={() => sendRequest(u._id)}
-                                    style={{ background: 'var(--ios-blue)', color: 'white', padding: '10px 20px', fontSize: '14px' }}
+                                    disabled={addingId === u._id}
+                                    style={{
+                                        background: addingId === u._id ? '#ccc' : 'var(--ios-blue)',
+                                        color: 'white',
+                                        padding: '10px 20px',
+                                        fontSize: '14px',
+                                        cursor: addingId === u._id ? 'not-allowed' : 'pointer',
+                                    }}
                                 >
-                                    + 添加
+                                    {addingId === u._id ? (theme === 'spring' ? '发送中...' : 'Sending...') : '+ 添加'}
                                 </button>
                             </motion.div>
                         ))

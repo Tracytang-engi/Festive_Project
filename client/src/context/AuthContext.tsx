@@ -5,6 +5,7 @@ interface User {
     _id: string;
     userId?: string;
     nickname?: string;
+    avatar?: string;
     selectedScene?: string;
     themePreference?: 'christmas' | 'spring';
     backgroundImage?: string;
@@ -18,7 +19,7 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     login: (userId: string, password: string) => Promise<void>;
-    register: (nickname: string, userId: string, password: string, region?: string) => Promise<void>;
+    register: (nickname: string, userId: string, password: string, region?: string, avatar?: string) => Promise<void>;
     logout: () => void;
     checkAuth: () => Promise<void>;
     updateUserScene: (sceneId: string, theme: string) => Promise<void>;
@@ -50,8 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const register = async (nickname: string, userId: string, password: string, region?: string) => {
-        const res = await api.post('/auth/register', { nickname, userId, password, region });
+    const register = async (nickname: string, userId: string, password: string, region?: string, avatar?: string) => {
+        const res = await api.post('/auth/register', { nickname, userId, password, region, avatar: avatar || '👤' });
         localStorage.setItem('token', res.data.token);
         await checkAuth();
     };

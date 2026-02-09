@@ -14,7 +14,6 @@ import userRoutes from './routes/users';
 import friendRoutes from './routes/friends';
 import messageRoutes from './routes/messages';
 import notificationRoutes from './routes/notifications';
-import adRoutes from './routes/ads';
 import historyRoutes from './routes/history';
 
 const app = express();
@@ -43,7 +42,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/ads', adRoutes);
 app.use('/api/history', historyRoutes);
 
 // Health Check

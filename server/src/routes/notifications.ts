@@ -11,7 +11,7 @@ router.get('/', async (req: AuthRequest, res) => {
     try {
         const notes = await Notification.find({ recipient: req.user?.id })
             .sort({ createdAt: -1 })
-            .populate('relatedUser', 'nickname')
+            .populate('relatedUser', 'nickname avatar')
             .lean();
         // 为旧通知补充 season：NEW_MESSAGE 且无 season 时，从消息中获取
         const enriched = await Promise.all(notes.map(async (n: any) => {

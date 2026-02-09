@@ -1,4 +1,7 @@
 import springFuDoor from '../assets/spring_carrier_03_fu_door.png';
+import bgFireplace from '../assets/bg-fireplace.jpg';
+import bgSnowyVillage from '../assets/bg-snowy-village.jpg';
+import bgWorkshop from '../assets/bg-workshop.jpg';
 
 /** Public path for backgrounds in client/public/background. Resolve at call time so origin is correct. */
 function publicBgPath(path: string): string {
@@ -29,6 +32,20 @@ export const SPRING_SCENE_IDS: readonly string[] = ['spring_dinner', 'spring_tem
 
 /** Christmas scene ids (for grouping). */
 export const CHRISTMAS_SCENE_IDS: readonly string[] = ['xmas_1', 'xmas_2', 'xmas_3'] as const;
+
+/** Christmas scene id → background (asset import). */
+const CHRISTMAS_SCENE_BG: Record<string, string> = {
+    xmas_1: bgFireplace,
+    xmas_2: bgSnowyVillage,
+    xmas_3: bgWorkshop,
+};
+
+const DEFAULT_CHRISTMAS_SCENE = 'xmas_1';
+
+export function getChristmasSceneBackgroundImage(sceneId: string | undefined): string {
+    const key = sceneId && CHRISTMAS_SCENE_BG[sceneId] !== undefined ? sceneId : DEFAULT_CHRISTMAS_SCENE;
+    return CHRISTMAS_SCENE_BG[key] ?? bgFireplace;
+}
 
 /** First-level category icon per scene (典型图标). */
 export const SCENE_ICONS: Record<string, string> = {

@@ -2,6 +2,8 @@ export interface User {
     _id: string;
     userId?: string;
     nickname: string;
+    /** 头像 emoji */
+    avatar?: string;
     region?: string;
     gender?: string;
     age?: number;

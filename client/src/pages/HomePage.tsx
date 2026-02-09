@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Layout/Sidebar';
-import api from '../api/client';
 import { getMessages, deleteMessage } from '../api/messages';
 import type { Message } from '../types';
-import christmasBg from '../assets/christmas-bg.jpg';
-import { getSpringSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName } from '../constants/scenes';
+import { getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName } from '../constants/scenes';
 import { SERVER_ORIGIN } from '../api/client';
 import { themeConfig } from '../constants/theme';
 
@@ -24,22 +21,15 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const HomePage: React.FC = () => {
     const { theme } = useTheme();
     const { user } = useAuth();
-    const navigate = useNavigate();
     const pageSceneId = user?.selectedScene ?? (theme === 'spring' ? DEFAULT_SPRING_SCENE : 'xmas_1');
-    const defaultBg = theme === 'christmas' ? christmasBg : getSpringSceneBackgroundImage(pageSceneId);
+    const defaultBg = theme === 'christmas' ? getChristmasSceneBackgroundImage(pageSceneId) : getSpringSceneBackgroundImage(pageSceneId);
     const customBgPath = user?.customBackgrounds?.[pageSceneId];
     const backgroundImage = customBgPath ? `${SERVER_ORIGIN}${customBgPath}` : defaultBg;
-    const [ad, setAd] = useState<any>(null);
-    const [showAd, setShowAd] = useState(true);
     const [messages, setMessages] = useState<Message[]>([]);
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [detailMessage, setDetailMessage] = useState<Message | null>(null);
     const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
     const [stickersPanelCollapsed, setStickersPanelCollapsed] = useState(false);
-
-    useEffect(() => {
-        fetchAd();
-    }, [theme]);
 
     useEffect(() => {
         const load = async () => {
@@ -52,13 +42,6 @@ const HomePage: React.FC = () => {
         load();
     }, [theme]);
 
-    const fetchAd = async () => {
-        try {
-            const res = await api.get('/ads');
-            setAd(res.data);
-        } catch (err) { }
-    };
-
     const handleDeleteSticker = async (messageId: string) => {
         try {
             await deleteMessage(messageId);
@@ -68,25 +51,6 @@ const HomePage: React.FC = () => {
             alert(theme === 'spring' ? '删除失败，请重试' : 'Delete failed. Please try again.');
         }
     };
-
-    const emptyStateConfig = {
-        christmas: {
-            title: 'Christmas Wonderland',
-            subtitle: 'Share the joy of the season!',
-            icon: '🎄',
-            ctaText: 'Select Scene',
-            message: 'No stickers yet. Share your scene with friends!'
-        },
-        spring: {
-            title: '春节庆典',
-            subtitle: '分享新春的喜悦与祝福！',
-            icon: '🧧',
-            ctaText: '选择场景',
-            message: '还没有收到祝福，快分享你的场景给好友吧！'
-        }
-    };
-
-    const currentConfig = emptyStateConfig[theme];
 
     const sceneIds = theme === 'spring' ? [...SPRING_SCENE_IDS] : [...CHRISTMAS_SCENE_IDS];
     const defaultSceneId = theme === 'spring' ? 'spring_dinner' : 'xmas_1';
@@ -139,72 +103,57 @@ const HomePage: React.FC = () => {
                                     <ChevronLeft size={18} />
                                 </button>
                             </div>
-                            {selectedSceneId == null ? (
+                            {/* 分类网格：单选，点同一框取消选中，无默认选中 */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(2, 56px)',
+                                gap: '10px',
+                                alignContent: 'flex-start',
+                                marginBottom: '12px',
+                            }}>
+                                {sceneIds.map(sceneId => {
+                                    const count = messages.filter(m => (m.sceneId || defaultSceneId) === sceneId).length;
+                                    if (count === 0) return null;
+                                    const isSelected = selectedSceneId === sceneId;
+                                    const icon = SCENE_ICONS[sceneId] ?? '📁';
+                                    return (
+                                        <button
+                                            key={sceneId}
+                                            type="button"
+                                            onClick={() => setSelectedSceneId(isSelected ? null : sceneId)}
+                                            style={{
+                                                width: '56px',
+                                                height: '56px',
+                                                borderRadius: '12px',
+                                                border: 'none',
+                                                background: isSelected ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)',
+                                                boxShadow: isSelected ? '0 0 0 2px rgba(255,255,255,0.8)' : 'none',
+                                                cursor: 'pointer',
+                                                fontSize: '28px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                position: 'relative',
+                                                flexShrink: 0,
+                                                boxSizing: 'border-box',
+                                            }}
+                                            title={getSceneName(sceneId)}
+                                        >
+                                            {icon}
+                                            <span style={{
+                                                position: 'absolute',
+                                                bottom: '2px',
+                                                right: '4px',
+                                                fontSize: '10px',
+                                                color: 'rgba(255,255,255,0.9)',
+                                            }}>{count}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {/* 选中某分类时，下方显示该分类的贴纸列表 */}
+                            {selectedSceneId != null && (
                                 <>
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(2, 56px)',
-                                        gap: '10px',
-                                        alignContent: 'flex-start',
-                                    }}>
-                                        {sceneIds.map(sceneId => {
-                                            const count = messages.filter(m => (m.sceneId || defaultSceneId) === sceneId).length;
-                                            if (count === 0) return null;
-                                            const icon = SCENE_ICONS[sceneId] ?? '📁';
-                                            return (
-                                                <button
-                                                    key={sceneId}
-                                                    type="button"
-                                                    onClick={() => setSelectedSceneId(sceneId)}
-                                                    style={{
-                                                        width: '56px',
-                                                        height: '56px',
-                                                        borderRadius: '12px',
-                                                        border: 'none',
-                                                        background: 'rgba(255,255,255,0.2)',
-                                                        cursor: 'pointer',
-                                                        fontSize: '28px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        position: 'relative',
-                                                        flexShrink: 0,
-                                                        boxSizing: 'border-box',
-                                                    }}
-                                                    title={getSceneName(sceneId)}
-                                                >
-                                                    {icon}
-                                                    <span style={{
-                                                        position: 'absolute',
-                                                        bottom: '2px',
-                                                        right: '4px',
-                                                        fontSize: '10px',
-                                                        color: 'rgba(255,255,255,0.9)',
-                                                    }}>{count}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedSceneId(null)}
-                                        style={{
-                                            alignSelf: 'flex-start',
-                                            marginBottom: '10px',
-                                            padding: '4px 8px',
-                                            border: 'none',
-                                            background: 'rgba(255,255,255,0.2)',
-                                            color: 'rgba(255,255,255,0.95)',
-                                            borderRadius: '8px',
-                                            cursor: 'pointer',
-                                            fontSize: '12px',
-                                        }}
-                                    >
-                                        ← {theme === 'spring' ? '返回' : 'Back'}
-                                    </button>
                                     <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.95)', fontWeight: 600, marginBottom: '10px', flexShrink: 0 }}>
                                         {SCENE_ICONS[selectedSceneId]} {getSceneName(selectedSceneId)}
                                     </span>
@@ -340,47 +289,6 @@ const HomePage: React.FC = () => {
                 {theme === 'christmas' && <SantaSticker />}
                 {theme === 'spring' && <ChineseHorseSticker />}
 
-                {messages.length === 0 && theme === 'spring' && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            textAlign: 'center',
-                            padding: '32px 48px',
-                            background: 'rgba(255,255,255,0.95)',
-                            borderRadius: '20px',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-                        }}
-                    >
-                        <div className="empty-state-icon" style={{ fontSize: '72px', marginBottom: '16px' }}>
-                            {currentConfig.icon}
-                        </div>
-                        <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 600, color: '#333' }}>
-                            {currentConfig.subtitle}
-                        </h2>
-                        <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#666' }}>
-                            {currentConfig.message}
-                        </p>
-                        <button
-                            className="ios-btn ios-btn-pill tap-scale"
-                            onClick={() => navigate('/select-scene')}
-                            style={{
-                                padding: '12px 28px',
-                                background: themeConfig[theme].primary,
-                                color: 'white',
-                                fontSize: '15px',
-                            }}
-                        >
-                            {currentConfig.ctaText} →
-                        </button>
-                    </motion.div>
-                )}
-
                 {detailMessage && (
                     <StickerDetailModal
                         message={detailMessage}
@@ -389,28 +297,6 @@ const HomePage: React.FC = () => {
                     />
                 )}
 
-                {showAd && ad && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="ad-responsive tap-scale"
-                        style={{
-                            position: 'absolute',
-                            bottom: 'var(--ad-gap)',
-                            right: 'var(--ad-gap)',
-                            background: 'rgba(255,255,255,0.95)',
-                            borderRadius: '12px',
-                            boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
-                            backdropFilter: 'blur(10px)',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-                        }}
-                    >
-                        <button className="tap-scale" onClick={() => setShowAd(false)} style={{ float: 'right', border: 'none', background: 'none', cursor: 'pointer', fontSize: 'clamp(14px, 1.5vw, 18px)', opacity: 0.6, padding: '8px' }}>✕</button>
-                        <img src={ad.imageUrl} alt="Ad" style={{ borderRadius: '8px', marginTop: '8px' }} />
-                        <p style={{ textAlign: 'center', margin: '12px 0 8px', fontSize: '13px' }}>{ad.linkUrl ? <a href={ad.linkUrl} style={{ color: '#007AFF' }}>Learn More</a> : "Sponsored"}</p>
-                    </motion.div>
-                )}
                 </motion.div>
                 </PageTransition>
 

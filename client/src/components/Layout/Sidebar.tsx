@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { MessageCircle, Clock, LogOut, UserPlus, Heart, Bell, Settings } from 'lucide-react';
+import { MessageCircle, LogOut, UserPlus, Heart, Bell, Settings } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getNotifications } from '../../api/notifications';
 
@@ -30,7 +30,7 @@ const Sidebar: React.FC = () => {
 
     // 定期轮询以检测新消息，修复收到消息后小红点不显示的问题
     useEffect(() => {
-        const interval = setInterval(loadNotifications, 8000);
+        const interval = setInterval(loadNotifications, 15000);
         return () => clearInterval(interval);
     }, [loadNotifications]);
 
@@ -95,9 +95,6 @@ const Sidebar: React.FC = () => {
                 </div>
                 <div className="sidebar-nav-icon theme-tap icon-responsive" title="Messages" onClick={() => navigate('/messages')} style={{ opacity: isActive('/messages') ? 1 : 0.5, transform: isActive('/messages') ? 'scale(1.2)' : 'scale(1)' }}>
                     <MessageCircle size={24} />
-                </div>
-                <div className="sidebar-nav-icon theme-tap icon-responsive" title="History" onClick={() => navigate('/history')} style={{ opacity: isActive('/history') ? 1 : 0.5, transform: isActive('/history') ? 'scale(1.2)' : 'scale(1)' }}>
-                    <Clock size={24} />
                 </div>
                 <div className="sidebar-nav-icon theme-tap icon-responsive" title="Settings" onClick={() => navigate('/settings')} style={{ opacity: isActive('/settings') ? 1 : 0.5, transform: isActive('/settings') ? 'scale(1.2)' : 'scale(1)' }}>
                     <Settings size={24} />

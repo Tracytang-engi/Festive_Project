@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
 import { themeConfig } from '../constants/theme';
@@ -12,6 +13,7 @@ import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 
 const FriendsPage: React.FC = () => {
     const { theme } = useTheme();
+    const navigate = useNavigate();
     const [friends, setFriends] = useState<User[]>([]);
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -115,7 +117,7 @@ const FriendsPage: React.FC = () => {
                                             variants={staggerItem}
                                             style={styles.card}
                                         >
-                                            <div className="icon-lg" style={{ marginBottom: '10px', fontSize: '48px' }}>👤</div>
+                                            <div className="icon-lg" style={{ marginBottom: '10px', fontSize: '48px' }}>{req.requester?.avatar || '👤'}</div>
                                             <div>
                                                 <strong style={{ fontSize: '16px' }}>{req.requester.nickname}</strong>
                                                 <div style={{ fontSize: '13px', opacity: 0.7, marginTop: '4px' }}>📍 {req.requester.region}</div>
@@ -183,13 +185,18 @@ const FriendsPage: React.FC = () => {
                                             key={friend._id}
                                             variants={staggerItem}
                                             className="tap-scale"
-                                            style={styles.card}
+                                            style={{ ...styles.card, cursor: 'pointer' }}
                                             whileHover={{ scale: 1.02, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                            onClick={() => navigate(`/friend/${friend._id}/decor`)}
+                                            title={theme === 'spring' ? '查看TA的春节页面' : 'View their Spring Festival page'}
                                         >
-                                            <div className="icon-lg" style={{ marginBottom: '10px', fontSize: '56px' }}>👤</div>
+                                            <div className="icon-lg" style={{ marginBottom: '10px', fontSize: '56px' }}>{friend.avatar || '👤'}</div>
                                             <div>
                                                 <strong style={{ fontSize: '16px', color: '#333' }}>{friend.nickname}</strong>
                                                 <div style={{ fontSize: '13px', opacity: 0.7, marginTop: '4px' }}>📍 {friend.region}</div>
+                                            </div>
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#007AFF' }}>
+                                                {theme === 'spring' ? '查看春节页' : 'View Spring page'}
                                             </div>
                                         </motion.div>
                                     ))}

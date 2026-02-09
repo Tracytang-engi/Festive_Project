@@ -17,7 +17,7 @@ interface SpringSnowProps {
 }
 
 const SpringSnow: React.FC<SpringSnowProps> = ({ intensity = 'moderate' }) => {
-    const count = intensity === 'light' ? 25 : intensity === 'heavy' ? 80 : 50;
+    const count = intensity === 'light' ? 20 : intensity === 'heavy' ? 50 : 32;
 
     const snowflakes = useMemo<Snowflake[]>(() => {
         return Array.from({ length: count }, (_, i) => ({

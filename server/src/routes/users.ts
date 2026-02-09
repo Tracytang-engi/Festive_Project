@@ -33,7 +33,7 @@ router.get('/search', async (req: AuthRequest, res) => {
         // else: empty or "*" = browse all users
 
         const users = await User.find(filter)
-            .select('nickname userId region selectedScene')
+            .select('nickname userId region selectedScene avatar')
             .limit(100);
 
         res.json(users);
@@ -67,6 +67,18 @@ router.put('/scene-layout', async (req: AuthRequest, res) => {
         layout[season] = positions && typeof positions === 'object' ? positions : {};
         await User.findByIdAndUpdate(userId, { sceneLayout: layout });
         res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
+// PUT /api/users/profile/avatar - 设置头像（emoji）
+router.put('/profile/avatar', async (req: AuthRequest, res) => {
+    try {
+        const { avatar } = req.body;
+        const avatarStr = (avatar != null && String(avatar).trim()) ? String(avatar).trim().slice(0, 8) : '👤';
+        await User.findByIdAndUpdate(req.user?.id, { avatar: avatarStr });
+        res.json({ success: true, avatar: avatarStr });
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
     }

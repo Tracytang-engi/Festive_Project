@@ -32,26 +32,6 @@
   --icon-lg: clamp(31px, 3.4vw, 45px);
   --icon-xl: clamp(40px, 4.5vw, 63px);
 
-  /* 广告响应式尺寸 - 随视口按比例缩放 */
-  --ad-width: clamp(220px, 22vw, 380px);
-  --ad-padding: clamp(10px, 1.2vw, 18px);
-  --ad-gap: clamp(16px, 2vw, 28px);
-}
-
-/* 广告容器 - 响应式缩放 */
-.ad-responsive {
-  width: var(--ad-width) !important;
-  max-width: 95%;
-  padding: var(--ad-padding) !important;
-}
-.ad-responsive img {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
-}
-.ad-responsive p {
-  font-size: clamp(12px, 1.2vw, 15px);
-  margin: clamp(4px, 0.5vw, 8px) 0 !important;
 }
 
 /* 主题切换区域 - iOS 风格 */

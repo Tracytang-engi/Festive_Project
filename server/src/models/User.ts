@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IUser extends Document {
     userId: string;           // 用户自定义 ID，用于登录
     nickname: string;         // 显示名称
+    avatar?: string;          // 头像 emoji，如 '👤' '😊'
     passwordHash: string;     // bcrypt 加密的密码
     loginAttempts: number;    // 登录失败次数
     lockedUntil?: Date;       // 账户冻结截止时间
@@ -24,6 +25,7 @@ export interface IUser extends Document {
 const UserSchema: Schema = new Schema({
     userId: { type: String, required: true, unique: true },
     nickname: { type: String, required: true, unique: true },
+    avatar: { type: String },
     passwordHash: { type: String, required: true },
     loginAttempts: { type: Number, default: 0 },
     lockedUntil: { type: Date },

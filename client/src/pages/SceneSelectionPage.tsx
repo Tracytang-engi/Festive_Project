@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { useChristmasMessage } from '../context/ChristmasMessageContext';
 import Sidebar from '../components/Layout/Sidebar';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
@@ -11,6 +12,14 @@ const SceneSelector: React.FC = () => {
     const { updateUserScene } = useAuth();
     const { theme: currentTheme } = useTheme();
     const navigate = useNavigate();
+    const { showChristmasUnavailable } = useChristmasMessage();
+
+    useEffect(() => {
+        if (currentTheme === 'christmas') {
+            showChristmasUnavailable();
+            navigate('/', { replace: true });
+        }
+    }, [currentTheme, showChristmasUnavailable, navigate]);
 
     const christmasScenes = [
         { id: 'xmas_1', name: SCENE_NAMES['xmas_1'], theme: 'christmas' as const },
