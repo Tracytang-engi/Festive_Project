@@ -1,0 +1,23 @@
+# 与 Vercel 相同的构建：push 到 main/master 时在 GitHub 上跑一遍，方便看报错
+name: Build (same as Vercel)
+
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install (root)
+        run: npm install
+
+      - name: Build (client)
+        run: npm run build
