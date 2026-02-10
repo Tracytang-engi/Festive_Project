@@ -5,7 +5,7 @@ server/uploads/
 node_modules/
 server/node_modules/
 client/node_modules/
-server/dist/
+# server/dist/ 暂时保留在仓库内，供 api.festickers.com 部署使用（若部署时会执行 npm run build 可再取消注释）
 client/dist/
 
 # Environment
