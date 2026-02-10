@@ -7,9 +7,11 @@ const devApiUrl = 'http://127.0.0.1:3000';
 const prodApiUrl = 'https://api.festickers.com';
 const rawOrigin = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? prodApiUrl : devApiUrl);
 export const SERVER_ORIGIN = typeof rawOrigin === 'string' ? rawOrigin.replace(/\/+$/, '') : rawOrigin;
+// 避免 Vercel 里 VITE_API_URL 已含 /api 时变成 .../api/api/... 导致 404
+const baseURL = SERVER_ORIGIN.endsWith('/api') ? SERVER_ORIGIN : `${SERVER_ORIGIN}/api`;
 
 const api = axios.create({
-    baseURL: `${SERVER_ORIGIN}/api`,
+    baseURL,
     headers: {
         'Content-Type': 'application/json'
     }
