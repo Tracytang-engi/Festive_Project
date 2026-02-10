@@ -279,6 +279,7 @@ const FriendDecorPage: React.FC = () => {
                             onClick={() => setShowSceneList(true)}
                             className="tap-scale"
                             style={{
+                                position: 'relative',
                                 width: '100%',
                                 maxWidth: '560px',
                                 padding: '16px 24px',
@@ -292,14 +293,10 @@ const FriendDecorPage: React.FC = () => {
                                 fontSize: '17px',
                                 fontWeight: 600,
                                 cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '12px',
                             }}
                         >
-                            <span>选择场景查看</span>
-                            <span style={{ fontSize: '18px', color: 'var(--ios-gray)' }}>→</span>
+                            <span style={{ display: 'block', width: '100%', textAlign: 'center' }}>选择场景查看 (Select scene to view)</span>
+                            <span style={{ position: 'absolute', right: '24px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', color: 'var(--ios-gray)' }}>→</span>
                         </button>
                     ) : (
                         <div style={{

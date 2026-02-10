@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { MessageCircle, LogOut, UserPlus, Heart, Bell, Settings } from 'lucide-react';
+import { PenSquare, LogOut, UserPlus, Heart, Bell, Settings } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getNotifications } from '../../api/notifications';
 
@@ -93,8 +93,8 @@ const Sidebar: React.FC = () => {
                 <div className="sidebar-nav-icon theme-tap icon-responsive" title="我的好友 (My Friends)" onClick={() => navigate('/friends')} style={{ opacity: isActive('/friends') ? 1 : 0.5, transform: isActive('/friends') ? 'scale(1.2)' : 'scale(1)' }}>
                     <Heart size={24} />
                 </div>
-                <div className="sidebar-nav-icon theme-tap icon-responsive" title="消息 (Messages)" onClick={() => navigate('/messages')} style={{ opacity: isActive('/messages') ? 1 : 0.5, transform: isActive('/messages') ? 'scale(1.2)' : 'scale(1)' }}>
-                    <MessageCircle size={24} />
+                <div className="sidebar-nav-icon theme-tap icon-responsive" title="写贺卡 (Write a Card)" onClick={() => navigate('/messages')} style={{ opacity: isActive('/messages') ? 1 : 0.5, transform: isActive('/messages') ? 'scale(1.2)' : 'scale(1)' }}>
+                    <PenSquare size={24} />
                 </div>
                 <div className="sidebar-nav-icon theme-tap icon-responsive" title="设置 (Settings)" onClick={() => navigate('/settings')} style={{ opacity: isActive('/settings') ? 1 : 0.5, transform: isActive('/settings') ? 'scale(1.2)' : 'scale(1)' }}>
                     <Settings size={24} />

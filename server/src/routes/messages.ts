@@ -34,6 +34,59 @@ function randomPositionOnScene(existing: Record<string, { left: number; top: num
 const router = express.Router();
 router.use(authMiddleware);
 
+// GET /api/messages/detail/:id — single message detail for sender/recipient
+router.get('/detail/:id', async (req: AuthRequest, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?.id;
+        const msg = await Message.findById(id).populate('sender', 'nickname avatar');
+        if (!msg) return res.status(404).json({ error: "NOT_FOUND" });
+
+        const isSender = msg.sender && msg.sender.toString ? msg.sender.toString() === userId : false;
+        const isRecipient = msg.recipient.toString() === userId;
+        if (!isSender && !isRecipient) {
+            return res.status(403).json({ error: "FORBIDDEN", message: "仅发送方或接收方可查看该消息" });
+        }
+
+        // Time lock logic — mirror season inbox route
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const chinaTime = new Date(utc + (3600000 * 8)); // UTC+8
+        const month = chinaTime.getMonth();
+        const date = chinaTime.getDate();
+        const currentYear = chinaTime.getFullYear();
+
+        let isUnlocked = false;
+        if (msg.season === 'christmas') {
+            if (month === 11 && date >= 25) isUnlocked = true;
+        } else if (msg.season === 'spring') {
+            if (currentYear === 2025 && month === 0 && date >= 29) isUnlocked = true;
+            else if (currentYear === 2026 && month === 1 && date >= 17) isUnlocked = true;
+            else if (currentYear === 2027 && month === 1 && date >= 6) isUnlocked = true;
+            else if (currentYear === 2024 && month === 1 && date >= 10) isUnlocked = true;
+        }
+        if (req.query.unlock === 'true') isUnlocked = true;
+
+        // Special viewer override: account ID 111111 or moderator can always view
+        if (!isUnlocked && userId) {
+            const viewer = await User.findById(userId).select('userId role').lean();
+            if (viewer && (viewer.userId === '111111' || viewer.role === 'moderator')) {
+                isUnlocked = true;
+            }
+        }
+
+        const result = isUnlocked ? msg : {
+            ...msg.toObject(),
+            content: "LOCKED UNTIL FESTIVAL",
+            stickerType: msg.stickerType
+        };
+
+        res.json({ message: result, isUnlocked });
+    } catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
 // POST /api/messages
 router.post('/', async (req: AuthRequest, res) => {
     try {
@@ -118,6 +171,24 @@ router.put('/:id/position', async (req: AuthRequest, res) => {
     }
 });
 
+// GET /api/messages/sent/:season — messages sent by current user (no year filter)
+router.get('/sent/:season', async (req: AuthRequest, res) => {
+    try {
+        const { season } = req.params;
+        const userId = req.user?.id;
+        if (season !== 'christmas' && season !== 'spring') {
+            return res.status(400).json({ error: "INVALID_SEASON" });
+        }
+        const messages = await Message.find({
+            sender: userId,
+            season
+        }).sort({ createdAt: -1 }).populate('recipient', 'nickname avatar');
+        res.json({ messages });
+    } catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
 // GET /api/messages/:season
 router.get('/:season', async (req: AuthRequest, res) => {
     try {
@@ -155,6 +226,14 @@ router.get('/:season', async (req: AuthRequest, res) => {
 
         // DEBUG: Allow unlock via query param for testing ?unlock=true
         if (req.query.unlock === 'true') isUnlocked = true;
+
+        // Special viewer override: account ID 111111 or moderator can always view
+        if (!isUnlocked && userId) {
+            const viewer = await User.findById(userId).select('userId role').lean();
+            if (viewer && (viewer.userId === '111111' || viewer.role === 'moderator')) {
+                isUnlocked = true;
+            }
+        }
 
         // 3. Mask content if locked
         const results = messages.map(msg => {

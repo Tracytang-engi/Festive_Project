@@ -7,12 +7,17 @@ import type { NotificationItem } from '../api/notifications';
 import { useNavigate } from 'react-router-dom';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
+import StickerDetailModal from '../components/Messages/StickerDetailModal';
+import { getMessageDetail } from '../api/messages';
+import type { Message } from '../types';
 
 const NotificationsPage: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [loading, setLoading] = useState(false);
+    const [selectedDetail, setSelectedDetail] = useState<{ message: Message; isUnlocked: boolean } | null>(null);
+    const [detailLoading, setDetailLoading] = useState(false);
 
     useEffect(() => {
         const init = async () => {
@@ -49,13 +54,31 @@ const NotificationsPage: React.FC = () => {
         }
     };
 
+    const openMessageDetail = async (messageId: string) => {
+        try {
+            setDetailLoading(true);
+            const data = await getMessageDetail(messageId);
+            setSelectedDetail({ message: data.message, isUnlocked: data.isUnlocked });
+        } catch (err) {
+            console.error(err);
+            alert('无法加载贺卡详情，请稍后再试。');
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
     const handleAction = (note: NotificationItem) => {
         if (note.type === 'FRIEND_REQUEST' || note.type === 'CONNECTION_SUCCESS') {
             navigate('/friends');
         } else if (note.type === 'NEW_MESSAGE') {
             const season = note.season || 'christmas';
             toggleTheme(season);  // 切换到 sticker 对应的主题
-            navigate(`/messages?season=${season}`);
+            if (note.relatedEntityId) {
+                openMessageDetail(note.relatedEntityId);
+            } else {
+                // 兼容旧通知：无 messageId 时退回到原来的行为，打开收件箱
+                navigate(`/messages?season=${season}`);
+            }
         }
     };
 
@@ -127,6 +150,89 @@ const NotificationsPage: React.FC = () => {
                                 </div>
                             ))
                         )}
+                    </div>
+                )}
+                {selectedDetail && !selectedDetail.isUnlocked && (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: 'rgba(0,0,0,0.4)',
+                            backdropFilter: 'blur(8px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 2000,
+                        }}
+                        onClick={() => setSelectedDetail(null)}
+                    >
+                        <div
+                            className="ios-card tap-scale"
+                            style={{
+                                position: 'relative',
+                                background: 'linear-gradient(145deg, #fff9e6 0%, #fff3cc 100%)',
+                                padding: '32px 28px',
+                                borderRadius: '20px',
+                                maxWidth: '360px',
+                                width: '90%',
+                                color: '#333',
+                                boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
+                                textAlign: 'center',
+                                border: '2px solid rgba(255,193,7,0.4)',
+                            }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div style={{ fontSize: '56px', marginBottom: '16px', lineHeight: 1 }}>🧧</div>
+                            <h2 style={{ margin: '0 0 12px', fontSize: '20px', fontWeight: 700, color: '#b8860b' }}>
+                                祝福已封存 (Blessing sealed)
+                            </h2>
+                            <p style={{ margin: '0 0 24px', fontSize: '16px', lineHeight: 1.6, color: '#5c4a00' }}>
+                                这份心意要留到新年再拆开哦～ 届时再来打开，惊喜加倍！
+                            </p>
+                            <p style={{ margin: '0 0 24px', fontSize: '15px', lineHeight: 1.5, color: '#7a6a00' }}>
+                                This card will unlock at the New Year. Come back then for a little surprise!
+                            </p>
+                            <button
+                                className="ios-btn tap-scale"
+                                onClick={() => setSelectedDetail(null)}
+                                style={{
+                                    padding: '14px 32px',
+                                    background: 'linear-gradient(180deg, #c2185b 0%, #ad1457 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    cursor: 'pointer',
+                                    fontSize: '16px',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                返回 (Return)
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {selectedDetail && selectedDetail.isUnlocked && (
+                    <StickerDetailModal
+                        message={selectedDetail.message}
+                        isUnlocked={selectedDetail.isUnlocked}
+                        onClose={() => setSelectedDetail(null)}
+                    />
+                )}
+                {detailLoading && !selectedDetail && (
+                    <div style={{
+                        position: 'fixed',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.25)',
+                        zIndex: 1500,
+                        fontSize: '16px'
+                    }}>
+                        正在打开贺卡... (Opening card...)
                     </div>
                 )}
             </div>

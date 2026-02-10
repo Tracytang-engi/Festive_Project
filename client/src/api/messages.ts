@@ -6,6 +6,16 @@ export const getMessages = async (season: string): Promise<{ messages: Message[]
     return response.data;
 };
 
+export const getMessageDetail = async (messageId: string): Promise<{ message: Message; isUnlocked: boolean }> => {
+    const response = await api.get(`/messages/detail/${messageId}`);
+    return response.data;
+};
+
+export const getSentMessages = async (season: string): Promise<{ messages: Message[] }> => {
+    const response = await api.get(`/messages/sent/${season}`);
+    return response.data;
+};
+
 export const sendMessage = async (data: {
     recipientId: string;
     stickerType: string;
