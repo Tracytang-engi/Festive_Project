@@ -42,7 +42,10 @@ router.get('/detail/:id', async (req: AuthRequest, res) => {
         const msg = await Message.findById(id).populate('sender', 'nickname avatar');
         if (!msg) return res.status(404).json({ error: "NOT_FOUND" });
 
-        const isSender = msg.sender && msg.sender.toString ? msg.sender.toString() === userId : false;
+        const senderId = typeof msg.sender === 'object' && msg.sender !== null && '_id' in msg.sender
+            ? (msg.sender as { _id: { toString(): string } })._id.toString()
+            : (msg.sender as { toString(): string }).toString();
+        const isSender = senderId === userId;
         const isRecipient = msg.recipient.toString() === userId;
         if (!isSender && !isRecipient) {
             return res.status(403).json({ error: "FORBIDDEN", message: "仅发送方或接收方可查看该消息" });
