@@ -75,7 +75,7 @@ app.get('/health', (req, res) => {
 
 // 404 时打印请求路径，便于排查浏览器 404
 app.use((req, res) => {
-    console.warn('[404]', req.method, req.path);
+    console.warn('[404]', req.method, req.originalUrl || req.path);
     res.status(404).json({ error: 'NOT_FOUND' });
 });
 

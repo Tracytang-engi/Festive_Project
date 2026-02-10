@@ -77,8 +77,8 @@ router.put('/scene-layout', async (req: AuthRequest, res) => {
     }
 });
 
-// PUT /api/users/profile/avatar - 设置头像（emoji）
-router.put('/profile/avatar', async (req: AuthRequest, res) => {
+// PUT /api/users/profile/avatar - 设置头像（emoji）（支持带/不带尾部斜杠）
+const handleAvatar = async (req: AuthRequest, res: express.Response): Promise<void> => {
     try {
         const { avatar } = req.body;
         const avatarStr = (avatar != null && String(avatar).trim()) ? String(avatar).trim().slice(0, 8) : '👤';
@@ -87,7 +87,9 @@ router.put('/profile/avatar', async (req: AuthRequest, res) => {
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
     }
-});
+};
+router.put('/profile/avatar', handleAvatar);
+router.put('/profile/avatar/', handleAvatar);
 
 // PUT /api/users/profile/nickname - 改名字，每人限 3 次
 const NICKNAME_CHANGE_LIMIT = 3;
