@@ -5,7 +5,8 @@ import { generateSignature } from '../utils/security';
 // 生产构建若未设置 VITE_API_URL，fallback 到线上 API，避免请求本地端口
 const devApiUrl = 'http://127.0.0.1:3000';
 const prodApiUrl = 'https://api.festickers.com';
-export const SERVER_ORIGIN = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? prodApiUrl : devApiUrl);
+const rawOrigin = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? prodApiUrl : devApiUrl);
+export const SERVER_ORIGIN = typeof rawOrigin === 'string' ? rawOrigin.replace(/\/+$/, '') : rawOrigin;
 
 const api = axios.create({
     baseURL: `${SERVER_ORIGIN}/api`,

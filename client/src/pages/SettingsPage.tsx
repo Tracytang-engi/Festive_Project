@@ -249,7 +249,8 @@ const SettingsPage: React.FC = () => {
                                             setAvatarSuccess(true);
                                             await checkAuth();
                                         } catch (err: any) {
-                                            const msg = err?.response?.data?.message ?? err?.response?.data?.error ?? (theme === 'spring' ? '更新失败，请重试' : 'Update failed');
+                                            const status = err?.response?.status;
+                                            const msg = err?.response?.data?.message ?? err?.response?.data?.error ?? (status === 404 ? (theme === 'spring' ? '接口不存在(404)，请检查网络或联系管理员' : 'Not found (404)') : (theme === 'spring' ? '更新失败，请重试' : 'Update failed'));
                                             setAvatarError(msg);
                                         } finally {
                                             setAvatarLoading(false);
