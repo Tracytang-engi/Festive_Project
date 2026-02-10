@@ -44,9 +44,15 @@ const FriendDecorPage: React.FC = () => {
                 }
             } catch (err: any) {
                 if (!cancelled) {
-                    const msg = err.response?.data?.error === 'NOT_FRIENDS'
+                    const status = err?.response?.status;
+                    const data = err?.response?.data;
+                    const msg = data?.error === 'NOT_FRIENDS'
                         ? '仅可查看好友的装饰'
-                        : (err.response?.data?.message || err.message || '加载失败');
+                        : data?.error === 'USER_NOT_FOUND'
+                        ? '该用户不存在'
+                        : status === 404
+                        ? '接口暂时不可用(404)，请稍后或检查网络'
+                        : (data?.message || err.message || '加载失败');
                     setError(msg);
                     setDecor(null);
                 }
