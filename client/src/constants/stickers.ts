@@ -1,18 +1,17 @@
 /**
- * 春节贴纸：一级菜单为五分类（年夜饭/贴对联/逛庙会/放烟花/马年），
- * 对应文件夹 eve_dinner / couplets / temple_fair / fireworks / horse，
- * 每类下为多张图片，stickerType 格式为 category_N（如 couplets_1、horse_3）。
+ * 春节贴纸：一级菜单为四分类（年夜饭/贴对联/逛庙会/放烟花），
+ * 对应文件夹 eve_dinner / couplets / temple_fair / fireworks，
+ * 每类下为多张图片，stickerType 格式为 category_N（如 couplets_1）。
  * 圣诞保持原有 emoji 贴纸逻辑。
  */
 const P = '/sticker_processed';
 
-/** 春节贴纸五分类：id 对应 public/sticker_processed 下文件夹名 */
+/** 春节贴纸四分类：id 对应 public/sticker_processed 下文件夹名 */
 export const SPRING_STICKER_CATEGORIES: { id: string; name: string }[] = [
     { id: 'eve_dinner', name: '年夜饭' },
     { id: 'couplets', name: '贴对联' },
     { id: 'temple_fair', name: '逛庙会' },
     { id: 'fireworks', name: '放烟花' },
-    { id: 'horse', name: '马年' },
 ];
 
 /** 春节分类在列表中的图标（一级菜单/侧栏用） */
@@ -21,22 +20,21 @@ export const SPRING_CATEGORY_ICONS: Record<string, string> = {
     couplets: '🧧',
     temple_fair: '🏮',
     fireworks: '🎇',
-    horse: '🐴',
 };
 
-/** 每个分类下的贴纸数量（与 sticker_processed 下各文件夹内文件数一致） */
+/** 每个分类下的贴纸数量（与 sticker_processed 下各文件夹内文件数一致）。含 horse 仅用于已有贴纸展示。 */
 const SPRING_CATEGORY_COUNTS: Record<string, number> = {
     eve_dinner: 8,
     couplets: 9,
     temple_fair: 7,
     fireworks: 4,
-    horse: 5,
+    horse: 5, // legacy: 不再在分类选择中显示，已有马年贴纸仍可展示
 };
 
-/** 生成 STICKER_IMAGE_URL：所有春节贴纸 type → 图片路径 */
+/** 生成 STICKER_IMAGE_URL：所有春节贴纸 type → 图片路径（含已下架分类以便已有贴纸仍可展示） */
 function buildSpringStickerImageUrls(): Record<string, string> {
     const urls: Record<string, string> = {};
-    for (const { id } of SPRING_STICKER_CATEGORIES) {
+    for (const id of Object.keys(SPRING_CATEGORY_COUNTS)) {
         const n = SPRING_CATEGORY_COUNTS[id] ?? 0;
         for (let i = 1; i <= n; i++) {
             urls[`${id}_${i}`] = `${P}/${id}/${id}_${i}.png`;

@@ -24,3 +24,8 @@ export const deleteMessage = async (messageId: string): Promise<void> => {
 export const reportMessage = async (messageId: string, reason?: string): Promise<void> => {
     await api.post(`/messages/${messageId}/report`, { reason });
 };
+
+/** Sender updates where their sticker is placed on the recipient's scene (percent 0–100). */
+export const updateMessagePosition = async (messageId: string, left: number, top: number): Promise<void> => {
+    await api.put(`/messages/${messageId}/position`, { left, top });
+};

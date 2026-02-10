@@ -38,7 +38,7 @@ export interface FriendDecorMessage {
     isPrivate?: boolean;
     /** 公开消息才有，用于 StickerDetailModal */
     content?: string;
-    sender?: { nickname: string; avatar?: string };
+    sender?: { _id?: string; nickname: string; avatar?: string };
     createdAt?: string;
 }
 

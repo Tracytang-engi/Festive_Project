@@ -1,32 +1,47 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/Layout/Sidebar';
 import { getFriendDecor, type FriendDecor, type FriendDecorMessage } from '../api/friends';
+import { updateMessagePosition } from '../api/messages';
 import { getSceneName, getSpringSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, SCENE_ICONS } from '../constants/scenes';
 import { hasStickerImage } from '../constants/stickers';
 import { SERVER_ORIGIN } from '../api/client';
 import StickerIcon from '../components/StickerIcon';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import PrivateMessagePlaceholderModal from '../components/Messages/PrivateMessagePlaceholderModal';
+import ComposeModal from '../components/Messages/ComposeModal';
 import { themeConfig } from '../constants/theme';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 import type { Message } from '../types';
 
 const FriendDecorPage: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const { user: currentUser } = useAuth();
+    const sceneContainerRef = useRef<HTMLDivElement>(null);
+    /** Sender dragging their sticker to reposition on owner's scene */
+    const [draggingSticker, setDraggingSticker] = useState<{ messageId: string; left: number; top: number } | null>(null);
     const [decor, setDecor] = useState<FriendDecor | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    /** 当前要查看的场景；null 表示在选场景步骤 */
-    const [viewingSceneId, setViewingSceneId] = useState<string | null>(null);
+    /** 当前要查看的场景；null 表示在选场景步骤。从 URL ?scene= 初始化以便直接进入场景+发祝福。 */
+    const [viewingSceneId, setViewingSceneId] = useState<string | null>(() => {
+        const scene = new URLSearchParams(window.location.search).get('scene');
+        return scene && SPRING_SCENE_IDS.includes(scene) ? scene : null;
+    });
     /** 场景名称弹窗是否显示，进入场景后 1s 渐变消失 */
     const [sceneCardVisible, setSceneCardVisible] = useState(true);
     /** 点击贴纸：私密占位弹窗 或 公开消息详情 */
     const [showPrivatePlaceholder, setShowPrivatePlaceholder] = useState(false);
     const [detailMessage, setDetailMessage] = useState<Message | null>(null);
+    /** 是否展开具体场景列表（年夜饭/庙会/贴对联/放鞭炮） */
+    const [showSceneList, setShowSceneList] = useState(false);
+    /** 发祝福：选择贴纸 + 写留言 */
+    const [showComposeModal, setShowComposeModal] = useState(false);
 
     useEffect(() => {
         if (!userId) {
@@ -64,6 +79,18 @@ const FriendDecorPage: React.FC = () => {
         return () => { cancelled = true; };
     }, [userId]);
 
+    // Sync URL ?scene= & ?compose=1 into state (go to owner's scene and open sticker+words popup)
+    useEffect(() => {
+        const scene = searchParams.get('scene');
+        const compose = searchParams.get('compose');
+        if (scene && SPRING_SCENE_IDS.includes(scene)) {
+            setViewingSceneId(scene);
+        }
+        if (compose === '1') {
+            setShowComposeModal(true);
+        }
+    }, [searchParams]);
+
     useEffect(() => {
         if (viewingSceneId === null) return;
         setSceneCardVisible(true);
@@ -85,10 +112,51 @@ const FriendDecorPage: React.FC = () => {
         .map(m => ({ message: m, pos: springLayout[m._id] }))
         .filter(({ pos }) => pos && typeof pos.left === 'number' && typeof pos.top === 'number');
 
+    const justDraggedRef = useRef(false);
+    const dragPositionRef = useRef({ left: 0, top: 0 });
+
+    const refetchDecor = useCallback(() => {
+        if (userId) getFriendDecor(userId).then(setDecor).catch(() => {});
+    }, [userId]);
+
+    useEffect(() => {
+        if (!draggingSticker || !sceneContainerRef.current) return;
+        const messageId = draggingSticker.messageId;
+        dragPositionRef.current = { left: draggingSticker.left, top: draggingSticker.top };
+        const el = sceneContainerRef.current;
+        const onMove = (e: MouseEvent) => {
+            const rect = el.getBoundingClientRect();
+            const left = Math.min(95, Math.max(5, ((e.clientX - rect.left) / rect.width) * 100));
+            const top = Math.min(95, Math.max(5, ((e.clientY - rect.top) / rect.height) * 100));
+            dragPositionRef.current = { left, top };
+            setDraggingSticker(prev => prev ? { ...prev, left, top } : null);
+        };
+        const onUp = async () => {
+            setDraggingSticker(null);
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            const { left, top } = dragPositionRef.current;
+            justDraggedRef.current = true;
+            try {
+                await updateMessagePosition(messageId, left, top);
+                refetchDecor();
+            } catch {
+                refetchDecor();
+            }
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+        return () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+        };
+    }, [draggingSticker?.messageId, refetchDecor]);
+
     const handleStickerClick = (message: FriendDecorMessage) => {
-        if (message.isPrivate) {
+        const isSender = currentUser?._id && message.sender?._id && message.sender._id === currentUser._id;
+        if (message.isPrivate && !isSender) {
             setShowPrivatePlaceholder(true);
-        } else if (message.content !== undefined && message.sender) {
+        } else if (message.content !== undefined || (message.isPrivate && isSender)) {
             setDetailMessage(message as Message);
         }
     };
@@ -134,6 +202,7 @@ const FriendDecorPage: React.FC = () => {
     if (viewingSceneId === null) {
         const springScenes = SPRING_SCENE_IDS.map(id => ({ id, name: getSceneName(id), icon: SCENE_ICONS[id] ?? '📁' }));
         return (
+            <>
             <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
                 <Sidebar />
                 <SpringFestivalEffects showSnow={true} intensity="light" />
@@ -200,76 +269,169 @@ const FriendDecorPage: React.FC = () => {
                         color: 'rgba(255,255,255,0.88)',
                         textShadow: '0 1px 2px rgba(0,0,0,0.2)',
                     }}>
-                        查看 {decor.nickname} 的哪个春节场景 (Which scene to view)
+                        先选择一个场景，再进入对方页面 (First choose a scene, then view their page)
                     </p>
 
-                    {/* 场景列表 - iOS 分组卡片 */}
-                    <div style={{
-                        width: '100%',
-                        maxWidth: '560px',
-                        borderRadius: 'var(--ios-radius-lg)',
-                        overflow: 'hidden',
-                        background: 'var(--ios-glass)',
-                        backdropFilter: 'saturate(180%) blur(20px)',
-                        WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-                        boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(255,255,255,0.3)',
-                    }}>
-                        {springScenes.map((scene, index) => (
-                            <motion.button
-                                key={scene.id}
-                                type="button"
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => setViewingSceneId(scene.id)}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '16px',
-                                    width: '100%',
-                                    padding: '18px 20px',
-                                    border: 'none',
-                                    borderBottom: index < springScenes.length - 1 ? '1px solid var(--ios-divider)' : 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    textAlign: 'left',
-                                    fontFamily: 'inherit',
-                                }}
-                                className="tap-scale"
-                            >
-                                <span style={{
-                                    width: '52px',
-                                    height: '52px',
-                                    borderRadius: '12px',
-                                    background: 'rgba(255,255,255,0.9)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '28px',
-                                    flexShrink: 0,
-                                    boxShadow: 'var(--ios-shadow)',
-                                }}>
-                                    {scene.icon}
-                                </span>
-                                <span style={{
-                                    flex: 1,
-                                    fontSize: '17px',
-                                    fontWeight: 600,
-                                    color: '#1d1d1f',
-                                    letterSpacing: '-0.2px',
-                                }}>
-                                    {scene.name}
-                                </span>
-                                <span style={{
-                                    fontSize: '15px',
-                                    color: 'var(--ios-gray)',
-                                    fontWeight: 500,
-                                }}>
-                                    →
-                                </span>
-                            </motion.button>
-                        ))}
-                    </div>
+                    {/* 先显示一个「选择场景查看」按钮，点击后再展开四个具体场景 */}
+                    {!showSceneList ? (
+                        <button
+                            type="button"
+                            onClick={() => setShowSceneList(true)}
+                            className="tap-scale"
+                            style={{
+                                width: '100%',
+                                maxWidth: '560px',
+                                padding: '16px 24px',
+                                borderRadius: 'var(--ios-radius-lg)',
+                                border: 'none',
+                                background: 'var(--ios-glass)',
+                                backdropFilter: 'saturate(180%) blur(20px)',
+                                WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+                                boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(255,255,255,0.3)',
+                                color: '#1d1d1f',
+                                fontSize: '17px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '12px',
+                            }}
+                        >
+                            <span>选择场景查看</span>
+                            <span style={{ fontSize: '18px', color: 'var(--ios-gray)' }}>→</span>
+                        </button>
+                    ) : (
+                        <div style={{
+                            width: '100%',
+                            maxWidth: '560px',
+                            borderRadius: 'var(--ios-radius-lg)',
+                            overflow: 'hidden',
+                            background: 'var(--ios-glass)',
+                            backdropFilter: 'saturate(180%) blur(20px)',
+                            WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+                            boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(255,255,255,0.3)',
+                        }}>
+                            {springScenes.map((scene, index) => (
+                                <motion.button
+                                    key={scene.id}
+                                    type="button"
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setViewingSceneId(scene.id)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '16px',
+                                        width: '100%',
+                                        padding: '18px 20px',
+                                        border: 'none',
+                                        borderBottom: index < springScenes.length - 1 ? '1px solid var(--ios-divider)' : 'none',
+                                        background: 'transparent',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        fontFamily: 'inherit',
+                                    }}
+                                    className="tap-scale"
+                                >
+                                    <span style={{
+                                        width: '52px',
+                                        height: '52px',
+                                        borderRadius: '12px',
+                                        background: 'rgba(255,255,255,0.9)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '28px',
+                                        flexShrink: 0,
+                                        boxShadow: 'var(--ios-shadow)',
+                                    }}>
+                                        {scene.icon}
+                                    </span>
+                                    <span style={{
+                                        flex: 1,
+                                        fontSize: '17px',
+                                        fontWeight: 600,
+                                        color: '#1d1d1f',
+                                        letterSpacing: '-0.2px',
+                                    }}>
+                                        {scene.name}
+                                    </span>
+                                    <span style={{
+                                        fontSize: '15px',
+                                        color: 'var(--ios-gray)',
+                                        fontWeight: 500,
+                                    }}>
+                                        →
+                                    </span>
+                                </motion.button>
+                            ))}
+                        </div>
+                    )}
+
+                    {showSceneList && (
+                        <button
+                            type="button"
+                            onClick={() => setShowSceneList(false)}
+                            className="tap-scale"
+                            style={{
+                                marginTop: '12px',
+                                width: '100%',
+                                maxWidth: '560px',
+                                padding: '10px 20px',
+                                fontSize: '15px',
+                                fontWeight: 500,
+                                color: 'rgba(255,255,255,0.9)',
+                                background: 'transparent',
+                                border: '1px solid rgba(255,255,255,0.5)',
+                                borderRadius: 'var(--ios-radius-lg)',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            收起
+                        </button>
+                    )}
+
+                    {/* 给 TA 发祝福：选贴纸 + 写留言 */}
+                    <button
+                        type="button"
+                        onClick={() => setShowComposeModal(true)}
+                        className="tap-scale"
+                        style={{
+                            marginTop: '28px',
+                            width: '100%',
+                            maxWidth: '560px',
+                            padding: '16px 24px',
+                            fontSize: '17px',
+                            fontWeight: 600,
+                            color: 'white',
+                            background: 'linear-gradient(135deg, #FF6B35 0%, #F7931E 100%)',
+                            border: 'none',
+                            borderRadius: 'var(--ios-radius-lg)',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 16px rgba(247,147,30,0.4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                        }}
+                    >
+                        ✉️ 给 TA 发祝福 (Send a wish)
+                    </button>
                 </div>
             </div>
+            <ComposeModal
+                isOpen={showComposeModal}
+                onClose={() => {
+                    setShowComposeModal(false);
+                    if (searchParams.get('compose') === '1') navigate(`/friend/${userId}/decor`, { replace: true });
+                }}
+                initialSeason="spring"
+                preselectedFriendId={userId ?? undefined}
+                hideFriendSelect={true}
+                fixedSceneId={searchParams.get('compose') === '1' ? (searchParams.get('scene') ?? undefined) : undefined}
+                onSceneChosen={searchParams.get('compose') !== '1' ? (sceneId) => { navigate(`/friend/${userId}/decor?scene=${sceneId}&compose=1`); setShowComposeModal(false); } : undefined}
+            />
+        </>
         );
     }
 
@@ -279,6 +441,7 @@ const FriendDecorPage: React.FC = () => {
             <Sidebar />
             <SpringFestivalEffects showSnow={true} intensity="moderate" />
             <div
+                ref={sceneContainerRef}
                 className="page-bg-area"
                 style={{
                     flex: 1,
@@ -335,34 +498,72 @@ const FriendDecorPage: React.FC = () => {
                     <h1 style={{ margin: 0, fontSize: 'clamp(18px, 2.5vw, 24px)', fontWeight: 600 }}>
                         {decor.nickname} 的春节页面 · {sceneTitle}
                     </h1>
-                </div>
-
-                {/* 对方在该场景的布置：按 sceneLayout 位置显示具体贴纸，可点击 */}
-                {stickersInScene.map(({ message, pos }) => (
-                    <div
-                        key={message._id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => handleStickerClick(message)}
-                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleStickerClick(message); }}
+                    <button
+                        type="button"
+                        onClick={() => setShowComposeModal(true)}
+                        className="tap-scale"
                         style={{
-                            position: 'absolute',
-                            left: `${pos.left}%`,
-                            top: `${pos.top}%`,
-                            transform: 'translate(-50%, -50%)',
-                            width: 'clamp(48px, 7vw, 80px)',
-                            height: 'clamp(48px, 7vw, 80px)',
+                            marginLeft: 'auto',
+                            padding: '10px 18px',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            color: '#1d1d1f',
+                            background: 'rgba(255,255,255,0.95)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            zIndex: 10,
-                            filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))',
+                            gap: '6px',
                         }}
                     >
-                        <StickerIcon stickerType={message.stickerType} size={72} />
-                    </div>
-                ))}
+                        ✉️ 发祝福
+                    </button>
+                </div>
+
+                {/* 对方在该场景的布置：按 sceneLayout 位置显示具体贴纸，可点击；发送者可拖拽自己的贴纸改位置 */}
+                {stickersInScene.map(({ message, pos }) => {
+                    const isMySticker = currentUser?._id && message.sender?._id && message.sender._id === currentUser._id;
+                    const displayPos = draggingSticker?.messageId === message._id
+                        ? { left: draggingSticker.left, top: draggingSticker.top }
+                        : pos;
+                    return (
+                        <div
+                            key={message._id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                                if (justDraggedRef.current) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    justDraggedRef.current = false;
+                                    return;
+                                }
+                                if (!isMySticker) handleStickerClick(message);
+                            }}
+                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { if (!isMySticker) handleStickerClick(message); } }}
+                            onMouseDown={isMySticker ? (e) => { e.preventDefault(); setDraggingSticker({ messageId: message._id, left: pos.left, top: pos.top }); } : undefined}
+                            style={{
+                                position: 'absolute',
+                                left: `${displayPos.left}%`,
+                                top: `${displayPos.top}%`,
+                                transform: 'translate(-50%, -50%)',
+                                width: 'clamp(48px, 7vw, 80px)',
+                                height: 'clamp(48px, 7vw, 80px)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: isMySticker ? (draggingSticker?.messageId === message._id ? 'grabbing' : 'grab') : 'pointer',
+                                zIndex: draggingSticker?.messageId === message._id ? 20 : 10,
+                                filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))',
+                                userSelect: 'none',
+                            }}
+                        >
+                            <StickerIcon stickerType={message.stickerType} size={72} />
+                        </div>
+                    );
+                })}
 
                 {/* 场景名称卡片：1s 后渐变消失 */}
                 <div
@@ -390,11 +591,24 @@ const FriendDecorPage: React.FC = () => {
                 {detailMessage && (
                     <StickerDetailModal
                         message={detailMessage}
-                        isUnlocked={decor?.isUnlocked ?? false}
+                        isUnlocked={(decor?.isUnlocked ?? false) || !!(currentUser?._id && (detailMessage as FriendDecorMessage).sender?._id === currentUser._id)}
                         onClose={() => setDetailMessage(null)}
                         showReportButton={false}
                     />
                 )}
+                <ComposeModal
+                    isOpen={showComposeModal}
+                    onClose={() => {
+                        setShowComposeModal(false);
+                        if (searchParams.get('compose') === '1') navigate(`/friend/${userId}/decor`, { replace: true });
+                        if (viewingSceneId && decor) getFriendDecor(userId!).then(setDecor).catch(() => {});
+                    }}
+                    initialSeason="spring"
+                    preselectedFriendId={userId ?? undefined}
+                    hideFriendSelect={true}
+                    fixedSceneId={searchParams.get('compose') === '1' ? (searchParams.get('scene') ?? undefined) : undefined}
+                    onSceneChosen={searchParams.get('compose') !== '1' ? (sceneId) => { navigate(`/friend/${userId}/decor?scene=${sceneId}&compose=1`); setShowComposeModal(false); } : undefined}
+                />
             </div>
         </div>
     );

@@ -3,7 +3,33 @@ import Message from '../models/Message';
 import Report from '../models/Report';
 import Friend from '../models/Friend';
 import Notification from '../models/Notification';
+import User from '../models/User';
 import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
+
+/** Pick a random position (percent) avoiding existing positions; fallback to simple random. */
+function randomPositionOnScene(existing: Record<string, { left: number; top: number }>): { left: number; top: number } {
+    const positions: { left: number; top: number }[] = [];
+    for (let row = 15; row <= 85; row += 20) {
+        for (let col = 15; col <= 85; col += 18) {
+            positions.push({ left: col, top: row });
+        }
+    }
+    const used = new Set<number>();
+    Object.values(existing).forEach(({ left, top }) => {
+        positions.forEach((p, i) => {
+            if (Math.abs(p.left - left) < 15 && Math.abs(p.top - top) < 15) used.add(i);
+        });
+    });
+    const available = positions.filter((_, i) => !used.has(i));
+    if (available.length > 0) {
+        const p = available[Math.floor(Math.random() * available.length)];
+        return { left: p.left + (Math.random() * 8 - 4), top: p.top + (Math.random() * 8 - 4) };
+    }
+    return {
+        left: 15 + Math.random() * 70,
+        top: 15 + Math.random() * 70,
+    };
+}
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -35,6 +61,19 @@ router.post('/', async (req: AuthRequest, res) => {
             isPrivate: !!isPrivate
         });
 
+        // Place sticker randomly on recipient's scene (spring only)
+        if (season === 'spring' && sceneId && typeof sceneId === 'string') {
+            const recipient = await User.findById(recipientId).select('sceneLayout').lean();
+            const layout = recipient?.sceneLayout && typeof recipient.sceneLayout === 'object'
+                ? { ...recipient.sceneLayout } : {};
+            const springLayout = layout.spring && typeof layout.spring === 'object'
+                ? { ...layout.spring } : {};
+            const pos = randomPositionOnScene(springLayout);
+            springLayout[message._id.toString()] = pos;
+            layout.spring = springLayout;
+            await User.findByIdAndUpdate(recipientId, { sceneLayout: layout });
+        }
+
         // Notify (include season so frontend can open correct mailbox)
         await Notification.create({
             recipient: recipientId,
@@ -44,6 +83,35 @@ router.post('/', async (req: AuthRequest, res) => {
             season: season
         });
 
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
+// PUT /api/messages/:id/position — sender updates where their sticker appears on recipient's scene
+router.put('/:id/position', async (req: AuthRequest, res) => {
+    try {
+        const { id: messageId } = req.params;
+        const { left, top } = req.body;
+        const userId = req.user?.id;
+        if (typeof left !== 'number' || typeof top !== 'number') {
+            return res.status(400).json({ error: "INVALID_INPUT", message: "left and top (numbers) required" });
+        }
+        const message = await Message.findById(messageId);
+        if (!message) return res.status(404).json({ error: "NOT_FOUND" });
+        if (message.sender.toString() !== userId) {
+            return res.status(403).json({ error: "FORBIDDEN", message: "Only the sender can move this sticker" });
+        }
+        const recipientId = message.recipient.toString();
+        const recipient = await User.findById(recipientId).select('sceneLayout').lean();
+        const layout = recipient?.sceneLayout && typeof recipient.sceneLayout === 'object'
+            ? { ...recipient.sceneLayout } : {};
+        const springLayout = layout.spring && typeof layout.spring === 'object'
+            ? { ...layout.spring } : {};
+        springLayout[messageId] = { left, top };
+        layout.spring = springLayout;
+        await User.findByIdAndUpdate(recipientId, { sceneLayout: layout });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });

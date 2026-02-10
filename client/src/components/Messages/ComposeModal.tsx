@@ -10,9 +10,17 @@ interface ComposeModalProps {
     isOpen: boolean;
     onClose: () => void;
     initialSeason?: 'christmas' | 'spring';
+    /** When set, recipient is fixed to this friend (e.g. when opened from friend's homepage). */
+    preselectedFriendId?: string;
+    /** Hide the "To" friend selector (use with preselectedFriendId). */
+    hideFriendSelect?: boolean;
+    /** When set, only show sticker picker + message for this scene (opened on friend's scene page). */
+    fixedSceneId?: string;
+    /** When user chooses a scene (category) from the first step, call this then close (navigate to friend's scene). */
+    onSceneChosen?: (sceneId: string) => void;
 }
 
-const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSeason = 'christmas' }) => {
+const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSeason = 'christmas', preselectedFriendId, hideFriendSelect = false, fixedSceneId, onSceneChosen }) => {
     const [friends, setFriends] = useState<User[]>([]);
     const [selectedFriend, setSelectedFriend] = useState<string>('');
     const [season, setSeason] = useState<'christmas' | 'spring'>(initialSeason);
@@ -30,7 +38,12 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
         if (isOpen) {
             loadFriends();
             setSeason(initialSeason);
-            setSelectedSceneId(null);
+            if (fixedSceneId && sceneIdToCategory[fixedSceneId]) {
+                setSelectedSceneId(sceneIdToCategory[fixedSceneId]);
+            } else {
+                setSelectedSceneId(null);
+            }
+            if (preselectedFriendId) setSelectedFriend(preselectedFriendId);
             if (initialSeason === 'spring') {
                 setSticker('');
             } else {
@@ -38,7 +51,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                 setSticker(list[0] ?? '🎄');
             }
         }
-    }, [isOpen, initialSeason]);
+    }, [isOpen, initialSeason, preselectedFriendId, fixedSceneId]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -56,7 +69,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
         try {
             const list = await getFriends();
             setFriends(list);
-            setSelectedFriend(list.length > 0 ? list[0]._id : '');
+            if (!preselectedFriendId) setSelectedFriend(list.length > 0 ? list[0]._id : '');
         } catch (err) {
             console.error("Failed to load friends", err);
         }
@@ -68,7 +81,13 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
         couplets: 'spring_couplets',
         temple_fair: 'spring_temple_fair',
         fireworks: 'spring_firecrackers',
-        horse: 'spring_firecrackers',
+    };
+    /** 后端 sceneId → 春节分类 id（用于 fixedSceneId 时显示贴纸列表） */
+    const sceneIdToCategory: Record<string, string> = {
+        spring_dinner: 'eve_dinner',
+        spring_couplets: 'couplets',
+        spring_temple_fair: 'temple_fair',
+        spring_firecrackers: 'fireworks',
     };
 
     const handleSend = async () => {
@@ -79,9 +98,11 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
         }
         if (!content.trim()) return alert(season === 'spring' ? '请写一句祝福 (Write a message!)' : "Write a message!");
         if (season === 'spring' && (!selectedSceneId || !sticker)) return alert("请先选择分类并选择一张贴纸");
-        const sceneId = season === 'spring'
-            ? (selectedSceneId ? springCategoryToSceneId[selectedSceneId] ?? defaultSceneId : defaultSceneId)
-            : (selectedSceneId ?? defaultSceneId);
+        const sceneId = fixedSceneId
+            ? fixedSceneId
+            : season === 'spring'
+                ? (selectedSceneId ? springCategoryToSceneId[selectedSceneId] ?? defaultSceneId : defaultSceneId)
+                : (selectedSceneId ?? defaultSceneId);
 
         setLoading(true);
         try {
@@ -105,86 +126,139 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
 
     if (!isOpen) return null;
 
-    const showScenePicker = selectedSceneId === null;
+    /** From friend's page: first step = choose scene only; on category click navigate to friend's scene. */
+    const sceneOnlyStep = !!(hideFriendSelect && preselectedFriendId && onSceneChosen);
+    const showScenePicker = fixedSceneId ? false : selectedSceneId === null;
+    const categoryForStickers = fixedSceneId ? (sceneIdToCategory[fixedSceneId] ?? 'eve_dinner') : selectedSceneId;
     const stickers = season === 'spring'
-        ? (selectedSceneId ? getStickersByCategory(selectedSceneId) : [])
+        ? (categoryForStickers ? getStickersByCategory(categoryForStickers) : [])
         : getStickersForScene(season, selectedSceneId ?? defaultSceneId);
 
     return (
         <div style={styles.overlay}>
             <div style={styles.modal}>
-                <h3 style={styles.title}>发送节日祝福 (Send a Festive Greeting)</h3>
-
-                <label style={styles.label}>发送给 (To)</label>
-                <select value={selectedFriend} onChange={e => setSelectedFriend(e.target.value)} className="ios-input" style={styles.input}>
-                    {friends.map(f => (
-                        <option key={f._id} value={f._id}>{f.nickname} ({f.region ?? '未设置地区'})</option>
-                    ))}
-                </select>
-
-                <label style={styles.label}>季节 (Season)</label>
-                <div className="ios-segmented" style={styles.toggles}>
-                    <button className={season === 'christmas' ? 'active' : ''} onClick={() => { setSeason('christmas'); setSelectedSceneId(null); }}>圣诞 (Christmas)</button>
-                    <button className={season === 'spring' ? 'active' : ''} onClick={() => { setSeason('spring'); setSelectedSceneId(null); }}>春节 (Spring Festival)</button>
+                <div style={styles.headerRow}>
+                    <h3 style={styles.title}>发送节日祝福 (Send a Festive Greeting)</h3>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        style={styles.headerCancelBtn}
+                    >
+                        取消
+                    </button>
                 </div>
 
-                <label style={styles.label}>{showScenePicker ? '选择分类 (Choose Category)' : '选择贴纸 (Choose Sticker)'}</label>
-                {showScenePicker ? (
-                    <div style={styles.sceneGrid}>
-                        {sceneIds.map(sid => {
-                            if (season === 'spring') {
-                                const cat = SPRING_STICKER_CATEGORIES.find(c => c.id === sid);
-                                if (!cat) return null;
-                                return (
-                                    <button
-                                        key={sid}
-                                        type="button"
-                                        className="tap-scale"
-                                        style={styles.sceneBtn}
-                                        onClick={() => setSelectedSceneId(sid)}
-                                    >
-                                        <span style={{ fontSize: '28px', marginBottom: '4px' }}>{SPRING_CATEGORY_ICONS[sid] ?? '📁'}</span>
-                                        <span style={{ fontSize: '12px', color: '#333' }}>{cat.name}</span>
-                                    </button>
-                                );
-                            }
-                            return (
-                                <button
-                                    key={sid}
-                                    type="button"
-                                    className="tap-scale"
-                                    style={styles.sceneBtn}
-                                    onClick={() => setSelectedSceneId(sid)}
-                                >
-                                    <span style={{ fontSize: '28px', marginBottom: '4px' }}>{SCENE_ICONS[sid] ?? '📁'}</span>
-                                    <span style={{ fontSize: '12px', color: '#333' }}>{getSceneName(sid)}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                ) : (
+                {!hideFriendSelect && (
                     <>
-                        <button type="button" onClick={() => setSelectedSceneId(null)} style={styles.backBtn}>
-                            ← 换分类 (Change category)
-                        </button>
-                        <div style={styles.stickersWrap}>
-                            <div style={styles.stickers}>
-                                {stickers.map(s => (
-                                    <span
-                                        key={s}
-                                        className="tap-scale"
-                                        style={{ ...styles.sticker, border: sticker === s ? '2px solid #007AFF' : 'none', background: sticker === s ? 'rgba(0,122,255,0.08)' : 'transparent' }}
-                                        onClick={() => setSticker(s)}
-                                    >
-                                        <StickerIcon stickerType={s} size={84} />
-                                    </span>
-                                ))}
-                            </div>
+                        <label style={styles.label}>发送给 (To)</label>
+                        <select value={selectedFriend} onChange={e => setSelectedFriend(e.target.value)} className="ios-input" style={styles.input}>
+                            {friends.map(f => (
+                                <option key={f._id} value={f._id}>{f.nickname} ({f.region ?? '未设置地区'})</option>
+                            ))}
+                        </select>
+                    </>
+                )}
+                {hideFriendSelect && friends.length > 0 && (
+                    <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
+                        发送给 (To): <strong>{friends.find(f => f._id === selectedFriend)?.nickname ?? selectedFriend}</strong>
+                    </p>
+                )}
+
+                {!sceneOnlyStep && !fixedSceneId && (
+                    <>
+                        <label style={styles.label}>季节 (Season)</label>
+                        <div className="ios-segmented" style={styles.toggles}>
+                            <button className={season === 'christmas' ? 'active' : ''} onClick={() => { setSeason('christmas'); setSelectedSceneId(null); }}>圣诞 (Christmas)</button>
+                            <button className={season === 'spring' ? 'active' : ''} onClick={() => { setSeason('spring'); setSelectedSceneId(null); }}>春节 (Spring Festival)</button>
                         </div>
                     </>
                 )}
 
-                {!showScenePicker && (
+                {sceneOnlyStep ? (
+                    <>
+                        <label style={styles.label}>选择场景 (Choose the scene to give stickers)</label>
+                        <div style={styles.sceneGrid}>
+                            {SPRING_STICKER_CATEGORIES.map(cat => (
+                                <button
+                                    key={cat.id}
+                                    type="button"
+                                    className="tap-scale"
+                                    style={styles.sceneBtn}
+                                    onClick={() => {
+                                        const sceneId = springCategoryToSceneId[cat.id];
+                                        onSceneChosen?.(sceneId);
+                                        onClose();
+                                    }}
+                                >
+                                    <span style={{ fontSize: '28px', marginBottom: '4px' }}>{SPRING_CATEGORY_ICONS[cat.id] ?? '📁'}</span>
+                                    <span style={{ fontSize: '12px', color: '#333' }}>{cat.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <label style={styles.label}>{showScenePicker ? '选择分类 (Choose Category)' : '选择贴纸 (Choose Sticker)'}</label>
+                        {showScenePicker ? (
+                            <div style={styles.sceneGrid}>
+                                {sceneIds.map(sid => {
+                                    if (season === 'spring') {
+                                        const cat = SPRING_STICKER_CATEGORIES.find(c => c.id === sid);
+                                        if (!cat) return null;
+                                        return (
+                                            <button
+                                                key={sid}
+                                                type="button"
+                                                className="tap-scale"
+                                                style={styles.sceneBtn}
+                                                onClick={() => setSelectedSceneId(sid)}
+                                            >
+                                                <span style={{ fontSize: '28px', marginBottom: '4px' }}>{SPRING_CATEGORY_ICONS[sid] ?? '📁'}</span>
+                                                <span style={{ fontSize: '12px', color: '#333' }}>{cat.name}</span>
+                                            </button>
+                                        );
+                                    }
+                                    return (
+                                        <button
+                                            key={sid}
+                                            type="button"
+                                            className="tap-scale"
+                                            style={styles.sceneBtn}
+                                            onClick={() => setSelectedSceneId(sid)}
+                                        >
+                                            <span style={{ fontSize: '28px', marginBottom: '4px' }}>{SCENE_ICONS[sid] ?? '📁'}</span>
+                                            <span style={{ fontSize: '12px', color: '#333' }}>{getSceneName(sid)}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <>
+                                {!fixedSceneId && (
+                                    <button type="button" onClick={() => setSelectedSceneId(null)} style={styles.backBtn}>
+                                        ← 换分类 (Change category)
+                                    </button>
+                                )}
+                                <div style={styles.stickersWrap}>
+                                    <div style={styles.stickers}>
+                                        {stickers.map(s => (
+                                            <span
+                                                key={s}
+                                                className="tap-scale"
+                                                style={{ ...styles.sticker, border: sticker === s ? '2px solid #007AFF' : 'none', background: sticker === s ? 'rgba(0,122,255,0.08)' : 'transparent' }}
+                                                onClick={() => setSticker(s)}
+                                            >
+                                                <StickerIcon stickerType={s} size={84} />
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </>
+                )}
+
+                {!showScenePicker && !sceneOnlyStep && (
                     <>
                         <label style={styles.label}>
                             <input
@@ -227,7 +301,22 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: 'flex', flexDirection: 'column', gap: '16px', color: '#333',
         boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
     },
+    headerRow: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+    },
     title: { margin: 0, fontSize: '20px', fontWeight: 600 },
+    headerCancelBtn: {
+        border: 'none',
+        background: 'transparent',
+        color: '#8e8e93',
+        fontSize: '14px',
+        cursor: 'pointer',
+        padding: '4px 8px',
+        borderRadius: '8px',
+    },
     label: { fontSize: '13px', color: '#8e8e93', fontWeight: 500 },
     input: { padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(60,60,67,0.12)', fontSize: '16px', width: '100%', boxSizing: 'border-box' as const },
     toggles: { display: 'flex', gap: '8px' },

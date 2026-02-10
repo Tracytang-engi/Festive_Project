@@ -140,7 +140,7 @@ router.get('/:friendId/decor', async (req: AuthRequest, res) => {
 
         const messages = await Message.find({ recipient: friendId, season: 'spring' })
             .select('_id stickerType sceneId isPrivate content sender createdAt')
-            .populate('sender', 'nickname avatar')
+            .populate('sender', '_id nickname avatar')
             .lean();
 
         // 贴纸内容锁定：节日当天 00:00（北京时间）后解锁，与 messages 接口一致
@@ -164,7 +164,12 @@ router.get('/:friendId/decor', async (req: AuthRequest, res) => {
                 isPrivate: !!m.isPrivate,
             };
             if (m.isPrivate) {
-                return base;
+                const senderId = m.sender && (m.sender._id || m.sender).toString();
+                const requesterIsSenderOrRecipient = userId === senderId || userId === friendId;
+                if (requesterIsSenderOrRecipient) {
+                    return { ...base, content: m.content, sender: m.sender, createdAt: m.createdAt };
+                }
+                return { ...base, sender: m.sender };
             }
             if (!isUnlocked) {
                 return { ...base, content: 'LOCKED UNTIL FESTIVAL', sender: m.sender, createdAt: m.createdAt };
