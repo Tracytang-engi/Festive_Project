@@ -42,8 +42,9 @@ const FriendsPage: React.FC = () => {
         try {
             await respondToFriendRequest(requestId, action);
             loadData();
-        } catch {
-            alert("Action failed.");
+        } catch (err: any) {
+            const msg = err?.response?.data?.message ?? err?.response?.data?.error ?? (theme === 'spring' ? '操作失败，请重试' : 'Action failed. Please try again.');
+            alert(msg);
         }
     };
 
@@ -80,7 +81,9 @@ const FriendsPage: React.FC = () => {
                 background: themeConfig[theme].mainBg,
                 color: 'white',
                 overflowY: 'auto',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+                position: 'relative',
+                zIndex: 60,
             }}>
                 <PageTransition pageKey="friends">
                 <h1 style={{ margin: '0 0 28px', fontSize: '28px', fontWeight: 700 }}>{currentConfig.title}</h1>

@@ -72,8 +72,12 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
     };
 
     const handleSend = async () => {
-        if (!selectedFriend) return alert("Select a friend first!");
-        if (!content.trim()) return alert("Write a message!");
+        if (!selectedFriend) {
+            return alert(friends.length === 0
+                ? (season === 'spring' ? '请先添加好友 (Add friends first)' : 'Please add friends first.')
+                : (season === 'spring' ? '请先选择一位好友' : 'Select a friend first!'));
+        }
+        if (!content.trim()) return alert(season === 'spring' ? '请写一句祝福 (Write a message!)' : "Write a message!");
         if (season === 'spring' && (!selectedSceneId || !sticker)) return alert("请先选择分类并选择一张贴纸");
         const sceneId = season === 'spring'
             ? (selectedSceneId ? springCategoryToSceneId[selectedSceneId] ?? defaultSceneId : defaultSceneId)

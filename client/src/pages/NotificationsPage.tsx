@@ -64,7 +64,9 @@ const NotificationsPage: React.FC = () => {
         main: {
             flex: 1, padding: '32px 40px', color: 'white', overflowY: 'auto',
             background: themeConfig[theme].mainBg,
-            fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+            fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+            position: 'relative' as const,
+            zIndex: 60,
         },
         list: { display: 'flex', flexDirection: 'column', gap: '12px' },
         item: {

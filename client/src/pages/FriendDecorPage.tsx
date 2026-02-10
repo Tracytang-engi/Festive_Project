@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Layout/Sidebar';
 import { getFriendDecor, type FriendDecor, type FriendDecorMessage } from '../api/friends';
 import { getSceneName, getSpringSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, SCENE_ICONS } from '../constants/scenes';
+import { hasStickerImage } from '../constants/stickers';
 import { SERVER_ORIGIN } from '../api/client';
 import StickerIcon from '../components/StickerIcon';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
@@ -73,6 +74,7 @@ const FriendDecorPage: React.FC = () => {
     const friendMessages = decor?.messages ?? [];
     const defaultSceneId = DEFAULT_SPRING_SCENE;
     const stickersInScene = friendMessages
+        .filter(m => hasStickerImage(m.stickerType))
         .filter(m => (m.sceneId || defaultSceneId) === pageScene)
         .map(m => ({ message: m, pos: springLayout[m._id] }))
         .filter(({ pos }) => pos && typeof pos.left === 'number' && typeof pos.top === 'number');
@@ -352,7 +354,7 @@ const FriendDecorPage: React.FC = () => {
                             filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))',
                         }}
                     >
-                        {decor?.isUnlocked ? <StickerIcon stickerType={message.stickerType} size={72} /> : <span style={{ fontSize: '56px' }}>🔒</span>}
+                        <StickerIcon stickerType={message.stickerType} size={72} />
                     </div>
                 ))}
 

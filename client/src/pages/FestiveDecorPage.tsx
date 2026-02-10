@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { getMessages, deleteMessage } from '../api/messages';
 import { saveSceneLayout } from '../api/scene';
 import { getSceneName, getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE, CHRISTMAS_SCENE_IDS, SCENE_ICONS } from '../constants/scenes';
-import { getStickerCategory, SPRING_STICKER_CATEGORIES, SPRING_CATEGORY_ICONS } from '../constants/stickers';
+import { getStickerCategory, hasStickerImage, isChristmasSticker, SPRING_STICKER_CATEGORIES, SPRING_CATEGORY_ICONS } from '../constants/stickers';
 import { SERVER_ORIGIN } from '../api/client';
 import ChineseHorseSticker from '../components/ChineseHorseSticker';
 import SantaSticker from '../components/SantaSticker';
@@ -53,7 +53,9 @@ const FestiveDecorPage: React.FC = () => {
     const backgroundImage = customBgPath ? `${SERVER_ORIGIN}${customBgPath}` : (theme === 'christmas' ? getChristmasSceneBackgroundImage(pageScene) : defaultSpringBg);
     const sceneTitle = getSceneName(pageScene);
     /** 页面上显示：圣诞 = 当前场景 + 侧栏选中场景的贴纸；春节 = 仅侧栏选中的分类的贴纸（不按背景自动显示，未选分类则不显示任何贴纸）。 */
+    const displayable = (m: Message) => hasStickerImage(m.stickerType) || isChristmasSticker(m.stickerType);
     const visibleMessages = messages.filter(m => {
+        if (!displayable(m)) return false;
         if (theme === 'spring') {
             if (!selectedSidebarSceneId) return false;
             return getStickerCategory(m.stickerType) === selectedSidebarSceneId;
@@ -88,11 +90,11 @@ const FestiveDecorPage: React.FC = () => {
         setWelcomeStickerHidden(localStorage.getItem('welcomeStickerHidden_' + theme) === 'true');
     }, [theme]);
 
-    // 用已保存的布置 + 默认位置初始化贴纸位置（含官方欢迎贴纸）
+    // 用已保存的布置 + 默认位置初始化贴纸位置（含官方欢迎贴纸）；只对有图贴纸分配位置，旧贴纸类型不显示
     useEffect(() => {
         const saved = (user?.sceneLayout && user.sceneLayout[theme]) ? user.sceneLayout[theme] : {};
         const next: Record<string, { left: number; top: number }> = {};
-        messages.forEach((msg, i) => {
+        messages.filter(m => displayable(m)).forEach((msg, i) => {
             if (saved[msg._id] && typeof saved[msg._id].left === 'number' && typeof saved[msg._id].top === 'number') {
                 next[msg._id] = { left: saved[msg._id].left, top: saved[msg._id].top };
             } else {
@@ -214,8 +216,8 @@ const FestiveDecorPage: React.FC = () => {
                         }}>
                             {sceneIds.map(sid => {
                                 const count = theme === 'spring'
-                                    ? messages.filter(m => getStickerCategory(m.stickerType) === sid).length
-                                    : messages.filter(m => (m.sceneId || defaultSceneId) === sid).length;
+                                    ? messages.filter(m => displayable(m) && getStickerCategory(m.stickerType) === sid).length
+                                    : messages.filter(m => displayable(m) && (m.sceneId || defaultSceneId) === sid).length;
                                 const isSelected = selectedSidebarSceneId === sid;
                                 const title = theme === 'spring' ? (SPRING_STICKER_CATEGORIES.find(c => c.id === sid)?.name ?? sid) : getSceneName(sid);
                                 const icon = theme === 'spring' ? (SPRING_CATEGORY_ICONS[sid] ?? '📁') : (SCENE_ICONS[sid] ?? '📁');

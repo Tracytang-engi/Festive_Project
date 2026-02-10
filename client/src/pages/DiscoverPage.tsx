@@ -92,7 +92,9 @@ const DiscoverPage: React.FC = () => {
                 overflowY: 'auto',
                 background: mainBg,
                 color: 'white',
-                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+                position: 'relative',
+                zIndex: 60,
             }}>
                 <PageTransition pageKey="discover">
                 <header style={{

@@ -5,7 +5,7 @@ import Sidebar from '../components/Layout/Sidebar';
 import { getMessages, deleteMessage } from '../api/messages';
 import type { Message } from '../types';
 import { getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName } from '../constants/scenes';
-import { getStickerCategory, SPRING_STICKER_CATEGORIES, SPRING_CATEGORY_ICONS } from '../constants/stickers';
+import { getStickerCategory, hasStickerImage, isChristmasSticker, SPRING_STICKER_CATEGORIES, SPRING_CATEGORY_ICONS } from '../constants/stickers';
 import { SERVER_ORIGIN } from '../api/client';
 
 import SantaSticker from '../components/SantaSticker';
@@ -54,10 +54,11 @@ const HomePage: React.FC = () => {
 
     const sceneIds = theme === 'spring' ? SPRING_STICKER_CATEGORIES.map(c => c.id) : [...CHRISTMAS_SCENE_IDS];
     const defaultSceneId = theme === 'spring' ? 'spring_dinner' : 'xmas_1';
+    const displayable = (m: Message) => hasStickerImage(m.stickerType) || isChristmasSticker(m.stickerType);
     const messagesInScene = selectedSceneId
         ? (theme === 'spring'
-            ? messages.filter(m => getStickerCategory(m.stickerType) === selectedSceneId)
-            : messages.filter(m => (m.sceneId || defaultSceneId) === selectedSceneId))
+            ? messages.filter(m => displayable(m) && getStickerCategory(m.stickerType) === selectedSceneId)
+            : messages.filter(m => displayable(m) && (m.sceneId || defaultSceneId) === selectedSceneId))
         : [];
 
     return (
@@ -115,8 +116,8 @@ const HomePage: React.FC = () => {
                             }}>
                                 {sceneIds.map(sceneId => {
                                     const count = theme === 'spring'
-                                        ? messages.filter(m => getStickerCategory(m.stickerType) === sceneId).length
-                                        : messages.filter(m => (m.sceneId || defaultSceneId) === sceneId).length;
+                                        ? messages.filter(m => displayable(m) && getStickerCategory(m.stickerType) === sceneId).length
+                                        : messages.filter(m => displayable(m) && (m.sceneId || defaultSceneId) === sceneId).length;
                                     if (count === 0) return null;
                                     const isSelected = selectedSceneId === sceneId;
                                     const icon = theme === 'spring' ? (SPRING_CATEGORY_ICONS[sceneId] ?? '📁') : (SCENE_ICONS[sceneId] ?? '📁');
@@ -268,6 +269,7 @@ const HomePage: React.FC = () => {
                 flex: 1,
                 minHeight: '100vh',
                 position: 'relative',
+                zIndex: 60,
                 backgroundImage: `url(${backgroundImage})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',

@@ -9,6 +9,7 @@ import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { themeConfig } from '../constants/theme';
+import { hasStickerImage, isChristmasSticker } from '../constants/stickers';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import PageTransition from '../components/Effects/PageTransition';
@@ -78,7 +79,7 @@ const MessagesPage: React.FC = () => {
             ) : (
                 <SpringFestivalEffects showSnow={true} intensity="moderate" />
             )}
-            <div style={{ flex: 1, padding: '32px 40px', overflowY: 'auto', background: mainBg, color: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
+            <div style={{ flex: 1, padding: '32px 40px', overflowY: 'auto', background: mainBg, color: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', position: 'relative', zIndex: 60 }}>
             <PageTransition pageKey={`messages-${season}`}>
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
                 <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>
@@ -172,7 +173,7 @@ const MessagesPage: React.FC = () => {
                             </button>
                         </motion.div>
                     ) : (
-                        messages.map(msg => (
+                        messages.filter(msg => hasStickerImage(msg.stickerType) || isChristmasSticker(msg.stickerType)).map(msg => (
                             <motion.div
                                 key={msg._id}
                                 variants={staggerItem}

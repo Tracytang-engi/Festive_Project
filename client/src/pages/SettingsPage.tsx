@@ -42,6 +42,8 @@ const SettingsPage: React.FC = () => {
     // 个人主页：头像
     const currentAvatar = user?.avatar || DEFAULT_AVATAR;
     const [avatarLoading, setAvatarLoading] = useState(false);
+    const [avatarError, setAvatarError] = useState<string | null>(null);
+    const [avatarSuccess, setAvatarSuccess] = useState(false);
 
     // 个人主页：昵称
     const nicknameRemain = NICKNAME_CHANGE_LIMIT - (user?.nicknameChangeCount ?? 0);
@@ -189,7 +191,9 @@ const SettingsPage: React.FC = () => {
                 overflowY: 'auto',
                 background: mainBg,
                 color: 'white',
-                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+                position: 'relative',
+                zIndex: 60,
             }}>
                 <header style={{
                     display: 'flex',
@@ -234,14 +238,19 @@ const SettingsPage: React.FC = () => {
                                 <button
                                     key={emoji}
                                     type="button"
+                                    className="tap-scale"
                                     disabled={avatarLoading}
                                     onClick={async () => {
                                         setAvatarLoading(true);
+                                        setAvatarError(null);
+                                        setAvatarSuccess(false);
                                         try {
                                             await api.put('/users/profile/avatar', { avatar: emoji });
+                                            setAvatarSuccess(true);
                                             await checkAuth();
-                                        } catch {
-                                            // ignore
+                                        } catch (err: any) {
+                                            const msg = err?.response?.data?.message ?? err?.response?.data?.error ?? (theme === 'spring' ? '更新失败，请重试' : 'Update failed');
+                                            setAvatarError(msg);
                                         } finally {
                                             setAvatarLoading(false);
                                         }
@@ -260,6 +269,16 @@ const SettingsPage: React.FC = () => {
                                 </button>
                             ))}
                         </div>
+                        {avatarError && (
+                            <div className="ios-info-banner" style={{ marginTop: '10px', background: 'rgba(255,59,48,0.15)', borderColor: 'rgba(255,59,48,0.3)', color: '#c0392b' }}>
+                                {avatarError}
+                            </div>
+                        )}
+                        {avatarSuccess && (
+                            <div className="ios-info-banner" style={{ marginTop: '10px', background: 'rgba(52,199,89,0.15)', borderColor: 'rgba(52,199,89,0.3)', color: '#27ae60' }}>
+                                {theme === 'spring' ? '头像已更新 (Avatar updated)' : 'Avatar updated'}
+                            </div>
+                        )}
                     </div>
 
                     {/* 修改昵称 */}

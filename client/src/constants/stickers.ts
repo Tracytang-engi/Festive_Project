@@ -73,6 +73,10 @@ export function getStickersByCategory(categoryId: string): string[] {
 
 // ——— 圣诞贴纸（按场景，兼容旧逻辑） ———
 const CHRISTMAS_STICKERS = ['🎄', '🎅', '❄️', '🎁', '⛄'];
+/** 是否为圣诞 emoji 贴纸（无图片，用文字显示） */
+export function isChristmasSticker(stickerType: string): boolean {
+    return CHRISTMAS_STICKERS.includes(stickerType);
+}
 export const STICKERS_BY_CHRISTMAS_SCENE: Record<string, string[]> = {
     xmas_1: CHRISTMAS_STICKERS,
     xmas_2: CHRISTMAS_STICKERS,
