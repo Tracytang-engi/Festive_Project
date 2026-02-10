@@ -42,12 +42,15 @@ app.use(cors({
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
-// OPTIONS 预检必须在鉴权之前处理，否则浏览器预检会拿 401 并认为请求失败
-app.options('*', (req, res) => {
-    res.set('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-signature, x-timestamp');
-    res.status(204).end();
+// OPTIONS 预检必须在鉴权之前处理；app.options('*') 只匹配路径 '*'，故用中间件拦截所有 OPTIONS
+app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Origin', req.headers.origin || '*');
+        res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-signature, x-timestamp');
+        return res.status(204).end();
+    }
+    next();
 });
 
 // Database Connection
