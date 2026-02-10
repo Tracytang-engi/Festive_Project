@@ -4,7 +4,7 @@ export interface IUser extends Document {
     userId: string;           // 用户自定义 ID，用于登录
     nickname: string;         // 显示名称
     avatar?: string;          // 头像 emoji，如 '👤' '😊'
-    passwordHash: string;     // bcrypt 加密的密码
+    passwordHash: string;     // bcryptjs 加密的密码（与 bcrypt 兼容）
     loginAttempts: number;    // 登录失败次数
     lockedUntil?: Date;       // 账户冻结截止时间
     region?: string;

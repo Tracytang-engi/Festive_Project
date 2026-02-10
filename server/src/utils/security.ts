@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const ALERT_AES_KEY_MISSING = "AES_KEY environment variable is not set or valid (must be 32 bytes for AES-256)";
@@ -57,7 +57,7 @@ export const compareCode = async (code: string, hash: string): Promise<boolean> 
     return await bcrypt.compare(code, hash);
 };
 
-// 密码加密（bcrypt）
+// 密码加密（bcryptjs，与 bcrypt 算法兼容）
 export const hashPassword = async (password: string): Promise<string> => {
     const saltRounds = 10;
     return await bcrypt.hash(password, saltRounds);

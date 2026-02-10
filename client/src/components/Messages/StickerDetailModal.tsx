@@ -9,11 +9,14 @@ interface StickerDetailModalProps {
     onClose: () => void;
     /** 是否显示举报按钮（仅发送方或接收方可举报） */
     showReportButton?: boolean;
+    /** 提供则显示右上角红叉，点击后删除该贴纸并关闭弹窗 */
+    onDelete?: (messageId: string) => void | Promise<void>;
 }
 
-const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlocked, onClose, showReportButton = true }) => {
+const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlocked, onClose, showReportButton = true, onDelete }) => {
     const [reporting, setReporting] = useState(false);
     const [reported, setReported] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const handleReport = async () => {
         if (reported || reporting) return;
@@ -25,6 +28,20 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
             alert('举报失败，请重试');
         } finally {
             setReporting(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!onDelete || deleting) return;
+        if (!window.confirm('确定删除这张贴纸？')) return;
+        setDeleting(true);
+        try {
+            await onDelete(message._id);
+            onClose();
+        } catch {
+            alert('删除失败，请重试');
+        } finally {
+            setDeleting(false);
         }
     };
     const senderName = typeof message.sender === 'object' ? message.sender?.nickname : 'Unknown';
@@ -51,6 +68,7 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
             <div
                 className="ios-card tap-scale"
                 style={{
+                    position: 'relative',
                     background: 'white',
                     padding: '24px',
                     borderRadius: '16px',
@@ -61,11 +79,35 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
                 }}
                 onClick={e => e.stopPropagation()}
             >
+                {onDelete && (
+                    <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className="tap-scale"
+                        style={{
+                            position: 'absolute',
+                            top: '12px',
+                            right: '12px',
+                            padding: '8px 14px',
+                            borderRadius: '10px',
+                            border: 'none',
+                            background: '#FF3B30',
+                            color: 'white',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            cursor: deleting ? 'not-allowed' : 'pointer',
+                            opacity: deleting ? 0.7 : 1,
+                        }}
+                    >
+                        {deleting ? '删除中... (Deleting...)' : '删除贴纸 (Delete)'}
+                    </button>
+                )}
                 <div style={{ textAlign: 'center', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
                     {isUnlocked ? <StickerIcon stickerType={message.stickerType} size={180} /> : <span style={{ fontSize: '112px' }}>🔒</span>}
                 </div>
                 <div style={{ marginBottom: '8px', fontSize: '14px', color: '#8e8e93' }}>
-                    From: <strong style={{ color: '#333' }}>{senderName}</strong>
+                    来自 (From): <strong style={{ color: '#333' }}>{senderName}</strong>
                 </div>
                 <div style={{
                     background: '#f2f2f7',
@@ -98,7 +140,7 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
                                 fontSize: '15px',
                             }}
                         >
-                            {reported ? '已举报' : reporting ? '举报中...' : '举报'}
+                            {reported ? '已举报 (Reported)' : reporting ? '举报中... (Reporting...)' : '举报 (Report)'}
                         </button>
                     )}
                     <button
@@ -115,7 +157,7 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
                             fontSize: '16px',
                         }}
                     >
-                        Close
+                        关闭 (Close)
                     </button>
                 </div>
             </div>

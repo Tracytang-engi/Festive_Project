@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getFriends } from '../../api/friends';
 import { sendMessage } from '../../api/messages';
 import StickerIcon from '../StickerIcon';
-import { getStickersForScene } from '../../constants/stickers';
-import { SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName } from '../../constants/scenes';
+import { getStickersForScene, getStickersByCategory, SPRING_STICKER_CATEGORIES, SPRING_CATEGORY_ICONS } from '../../constants/stickers';
+import { CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName } from '../../constants/scenes';
 import type { User } from '../../types';
 
 interface ComposeModalProps {
@@ -16,14 +16,14 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
     const [friends, setFriends] = useState<User[]>([]);
     const [selectedFriend, setSelectedFriend] = useState<string>('');
     const [season, setSeason] = useState<'christmas' | 'spring'>(initialSeason);
-    /** First-level: chosen scene for this message. Null = show scene picker; set = show stickers for that scene. */
+    /** 圣诞：选中的场景 id。春节：选中的分类 id（eve_dinner/couplets/...），null = 显示一级菜单 */
     const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
     const [sticker, setSticker] = useState<string>('🎄');
     const [content, setContent] = useState('');
     const [isPrivate, setIsPrivate] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const sceneIds = season === 'spring' ? [...SPRING_SCENE_IDS] : [...CHRISTMAS_SCENE_IDS];
+    const sceneIds = season === 'spring' ? SPRING_STICKER_CATEGORIES.map(c => c.id) : [...CHRISTMAS_SCENE_IDS];
     const defaultSceneId = season === 'spring' ? 'spring_dinner' : 'xmas_1';
 
     useEffect(() => {
@@ -31,22 +31,26 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
             loadFriends();
             setSeason(initialSeason);
             setSelectedSceneId(null);
-            const firstScene = sceneIds[0];
-            const list = getStickersForScene(initialSeason, firstScene);
-            setSticker(list[0] ?? (initialSeason === 'spring' ? '🧧' : '🎄'));
+            if (initialSeason === 'spring') {
+                setSticker('');
+            } else {
+                const list = getStickersForScene('christmas', CHRISTMAS_SCENE_IDS[0]);
+                setSticker(list[0] ?? '🎄');
+            }
         }
     }, [isOpen, initialSeason]);
 
     useEffect(() => {
         if (!isOpen) return;
-        whenSeasonOrSceneChange();
+        if (season === 'spring') {
+            // 春节：进入分类时不自动选中任何贴纸，由用户点击选择
+            if (selectedSceneId) setSticker('');
+        } else {
+            const scene = selectedSceneId ?? CHRISTMAS_SCENE_IDS[0];
+            const list = getStickersForScene('christmas', scene);
+            setSticker(list[0] ?? '🎄');
+        }
     }, [season, selectedSceneId, isOpen]);
-
-    const whenSeasonOrSceneChange = () => {
-        const scene = selectedSceneId ?? sceneIds[0];
-        const list = getStickersForScene(season, scene);
-        setSticker(list[0] ?? (season === 'spring' ? '🧧' : '🎄'));
-    };
 
     const loadFriends = async () => {
         try {
@@ -58,10 +62,22 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
         }
     };
 
+    /** 春节分类 id → 后端 sceneId（用于发送） */
+    const springCategoryToSceneId: Record<string, string> = {
+        eve_dinner: 'spring_dinner',
+        couplets: 'spring_couplets',
+        temple_fair: 'spring_temple_fair',
+        fireworks: 'spring_firecrackers',
+        horse: 'spring_firecrackers',
+    };
+
     const handleSend = async () => {
         if (!selectedFriend) return alert("Select a friend first!");
         if (!content.trim()) return alert("Write a message!");
-        const sceneId = selectedSceneId ?? defaultSceneId;
+        if (season === 'spring' && (!selectedSceneId || !sticker)) return alert("请先选择分类并选择一张贴纸");
+        const sceneId = season === 'spring'
+            ? (selectedSceneId ? springCategoryToSceneId[selectedSceneId] ?? defaultSceneId : defaultSceneId)
+            : (selectedSceneId ?? defaultSceneId);
 
         setLoading(true);
         try {
@@ -85,47 +101,67 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
 
     if (!isOpen) return null;
 
-    const stickers = getStickersForScene(season, selectedSceneId ?? defaultSceneId);
     const showScenePicker = selectedSceneId === null;
+    const stickers = season === 'spring'
+        ? (selectedSceneId ? getStickersByCategory(selectedSceneId) : [])
+        : getStickersForScene(season, selectedSceneId ?? defaultSceneId);
 
     return (
         <div style={styles.overlay}>
             <div style={styles.modal}>
-                <h3 style={styles.title}>Send a Festive Greeting</h3>
+                <h3 style={styles.title}>发送节日祝福 (Send a Festive Greeting)</h3>
 
-                <label style={styles.label}>To</label>
+                <label style={styles.label}>发送给 (To)</label>
                 <select value={selectedFriend} onChange={e => setSelectedFriend(e.target.value)} className="ios-input" style={styles.input}>
                     {friends.map(f => (
                         <option key={f._id} value={f._id}>{f.nickname} ({f.region ?? '未设置地区'})</option>
                     ))}
                 </select>
 
-                <label style={styles.label}>Season</label>
+                <label style={styles.label}>季节 (Season)</label>
                 <div className="ios-segmented" style={styles.toggles}>
-                    <button className={season === 'christmas' ? 'active' : ''} onClick={() => { setSeason('christmas'); setSelectedSceneId(null); }}>Christmas</button>
-                    <button className={season === 'spring' ? 'active' : ''} onClick={() => { setSeason('spring'); setSelectedSceneId(null); }}>Spring Festival</button>
+                    <button className={season === 'christmas' ? 'active' : ''} onClick={() => { setSeason('christmas'); setSelectedSceneId(null); }}>圣诞 (Christmas)</button>
+                    <button className={season === 'spring' ? 'active' : ''} onClick={() => { setSeason('spring'); setSelectedSceneId(null); }}>春节 (Spring Festival)</button>
                 </div>
 
-                <label style={styles.label}>{showScenePicker ? (season === 'spring' ? '选择分类' : 'Choose Scene') : (season === 'spring' ? '选择贴纸' : 'Choose Sticker')}</label>
+                <label style={styles.label}>{showScenePicker ? '选择分类 (Choose Category)' : '选择贴纸 (Choose Sticker)'}</label>
                 {showScenePicker ? (
                     <div style={styles.sceneGrid}>
-                        {sceneIds.map(sid => (
-                            <button
-                                key={sid}
-                                type="button"
-                                className="tap-scale"
-                                style={styles.sceneBtn}
-                                onClick={() => setSelectedSceneId(sid)}
-                            >
-                                <span style={{ fontSize: '28px', marginBottom: '4px' }}>{SCENE_ICONS[sid] ?? '📁'}</span>
-                                <span style={{ fontSize: '12px', color: '#333' }}>{getSceneName(sid)}</span>
-                            </button>
-                        ))}
+                        {sceneIds.map(sid => {
+                            if (season === 'spring') {
+                                const cat = SPRING_STICKER_CATEGORIES.find(c => c.id === sid);
+                                if (!cat) return null;
+                                return (
+                                    <button
+                                        key={sid}
+                                        type="button"
+                                        className="tap-scale"
+                                        style={styles.sceneBtn}
+                                        onClick={() => setSelectedSceneId(sid)}
+                                    >
+                                        <span style={{ fontSize: '28px', marginBottom: '4px' }}>{SPRING_CATEGORY_ICONS[sid] ?? '📁'}</span>
+                                        <span style={{ fontSize: '12px', color: '#333' }}>{cat.name}</span>
+                                    </button>
+                                );
+                            }
+                            return (
+                                <button
+                                    key={sid}
+                                    type="button"
+                                    className="tap-scale"
+                                    style={styles.sceneBtn}
+                                    onClick={() => setSelectedSceneId(sid)}
+                                >
+                                    <span style={{ fontSize: '28px', marginBottom: '4px' }}>{SCENE_ICONS[sid] ?? '📁'}</span>
+                                    <span style={{ fontSize: '12px', color: '#333' }}>{getSceneName(sid)}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 ) : (
                     <>
                         <button type="button" onClick={() => setSelectedSceneId(null)} style={styles.backBtn}>
-                            ← {season === 'spring' ? '换分类' : 'Change scene'}
+                            ← 换分类 (Change category)
                         </button>
                         <div style={styles.stickersWrap}>
                             <div style={styles.stickers}>
@@ -153,20 +189,20 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                                 onChange={e => setIsPrivate(e.target.checked)}
                                 style={{ marginRight: '8px' }}
                             />
-                            私密消息（仅你和对方可见内容，贴纸对所有人可见）
+                            私密消息（仅你和对方可见内容，贴纸对所有人可见） (Private)
                         </label>
-                        <label style={styles.label}>Message</label>
+                        <label style={styles.label}>留言 (Message)</label>
                         <textarea
-                            placeholder="Write your warm wishes..."
+                            placeholder="写下祝福... (Write your warm wishes...)"
                             value={content}
                             onChange={e => setContent(e.target.value)}
                             style={styles.textarea}
                         />
 
                         <div style={styles.actions}>
-                            <button className="ios-btn tap-scale" onClick={onClose} style={styles.cancelBtn}>Cancel</button>
+                            <button className="ios-btn tap-scale" onClick={onClose} style={styles.cancelBtn}>取消 (Cancel)</button>
                             <button className="ios-btn tap-scale" onClick={handleSend} disabled={loading} style={styles.sendBtn}>
-                                {loading ? 'Sending...' : 'Send Wishes'}
+                                {loading ? '发送中... (Sending...)' : '发送祝福 (Send Wishes)'}
                             </button>
                         </div>
                     </>

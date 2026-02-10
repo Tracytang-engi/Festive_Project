@@ -19,6 +19,11 @@ router.get('/me', async (req: AuthRequest, res) => {
     }
 });
 
+// 转义正则特殊字符，防止用户输入导致 ReDoS 或逻辑错误
+function escapeRegex(s: string): string {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // GET /api/users/search?nickname=...
 // nickname 为空或 "*" 时返回所有用户（排除自己），方便浏览添加好友
 router.get('/search', async (req: AuthRequest, res) => {
@@ -27,8 +32,8 @@ router.get('/search', async (req: AuthRequest, res) => {
         const filter: any = { _id: { $ne: req.user?.id } }; // Exclude self
 
         if (nickname && String(nickname).trim() && String(nickname) !== '*') {
-            // Partial match, case insensitive
-            filter.nickname = { $regex: String(nickname).trim(), $options: 'i' };
+            const safe = escapeRegex(String(nickname).trim());
+            filter.nickname = { $regex: safe, $options: 'i' };
         }
         // else: empty or "*" = browse all users
 

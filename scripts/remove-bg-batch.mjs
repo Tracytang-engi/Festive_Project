@@ -68,15 +68,20 @@ async function main() {
         const outPath = path.join(outputBase, rel);
         const outDir = path.dirname(outPath);
         const basename = path.basename(rel, path.extname(rel)) + '.png';
+        const outFile = path.join(outDir, basename);
 
         fs.mkdirSync(outDir, { recursive: true });
 
+        if (fs.existsSync(outFile)) {
+            console.log('SKIP (已有)', rel);
+            continue;
+        }
+
         try {
             const png = await removeBg(inPath);
-            const outFile = path.join(outDir, basename);
             fs.writeFileSync(outFile, png);
             console.log('OK', rel);
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 1500));
         } catch (e) {
             console.error('FAIL', rel, e.message);
         }

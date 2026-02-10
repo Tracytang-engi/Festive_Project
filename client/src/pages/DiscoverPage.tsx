@@ -62,17 +62,17 @@ const DiscoverPage: React.FC = () => {
     const emptyStateConfig = {
         christmas: {
             icon: '🔍',
-            title: 'Find Your Friends',
-            description: 'Search for friends by nickname to send friend requests!',
-            placeholder: 'Enter nickname to search',
-            noResults: 'No users found. Try a different nickname or invite your friends!'
+            title: '寻找好友 (Find Your Friends)',
+            description: '输入昵称搜索好友，发送好友请求！ (Search by nickname to send friend requests!)',
+            placeholder: '输入昵称搜索 (Enter nickname to search)',
+            noResults: '未找到用户 (No users found). Try a different nickname or invite your friends!'
         },
         spring: {
             icon: '🔍',
-            title: '寻找好友',
-            description: '输入昵称搜索好友，发送好友请求！',
-            placeholder: '输入昵称搜索',
-            noResults: '未找到用户。尝试其他昵称，或邀请好友注册后搜索添加！'
+            title: '寻找好友 (Discover Friends)',
+            description: '输入昵称搜索好友，发送好友请求！ (Search by nickname and send friend requests)',
+            placeholder: '输入昵称搜索 (Search by nickname)',
+            noResults: '未找到用户。尝试其他昵称，或邀请好友注册后搜索添加！ (No users found. Try another nickname or invite friends to join.)'
         }
     };
 
@@ -159,7 +159,7 @@ const DiscoverPage: React.FC = () => {
                     {loading ? (
                         <div style={{ padding: '48px', textAlign: 'center' }}>
                             <div className="empty-state-icon" style={{ fontSize: '48px', marginBottom: '12px' }}>⏳</div>
-                            <p style={{ color: 'var(--ios-gray)', margin: 0 }}>Searching...</p>
+                            <p style={{ color: 'var(--ios-gray)', margin: 0 }}>搜索中... (Searching...)</p>
                         </div>
                     ) : hasSearched && results.length === 0 ? (
                         <motion.div variants={staggerItem} style={{ padding: '48px 24px', textAlign: 'center' }}>
@@ -220,7 +220,7 @@ const DiscoverPage: React.FC = () => {
                                         cursor: addingId === u._id ? 'not-allowed' : 'pointer',
                                     }}
                                 >
-                                    {addingId === u._id ? (theme === 'spring' ? '发送中...' : 'Sending...') : '+ 添加'}
+                                    {addingId === u._id ? '发送中... (Sending...)' : '+ 添加 (Add)'}
                                 </button>
                             </motion.div>
                         ))

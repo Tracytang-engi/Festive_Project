@@ -64,26 +64,25 @@ router.get('/:season', async (req: AuthRequest, res) => {
             year: currentYear
         }).populate('sender', 'nickname avatar');
 
-        // 2. Check Time Lock (China Time UTC+8)
-        // Christmas: Dec 25 00:00
-        // Spring Festival: (Hardcoded for 2024/2025 demo: Feb 10 2024, Jan 29 2025)
-        // Let's assume 2025 Spring Festival is Jan 29.
+        // 2. Check Time Lock (China Time UTC+8)：所有贴纸内容默认锁定，节日当天 00:00 后自动解锁
+        // Christmas: 12 月 25 日 00:00 起解锁
+        // Spring Festival: 春节当天 00:00 起解锁（示例：2025=1/29, 2026=2/17）
 
         const now = new Date();
         const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
         const chinaTime = new Date(utc + (3600000 * 8)); // UTC+8
+        const month = chinaTime.getMonth();
+        const date = chinaTime.getDate();
 
         let isUnlocked = false;
-
         if (season === 'christmas') {
-            // Unlocks Dec 25
-            if (chinaTime.getMonth() === 11 && chinaTime.getDate() >= 25) { // Month is 0-indexed
-                isUnlocked = true;
-            }
+            if (month === 11 && date >= 25) isUnlocked = true; // 12 月 25 日 00:00 起
         } else if (season === 'spring') {
-            // TODO: 正式上线时改回时间判断。暂时视为春节已到，可查看贴纸内容。
-            isUnlocked = true;
-            // if (chinaTime.getMonth() === 0 && chinaTime.getDate() >= 29) isUnlocked = true;
+            // 春节初一（按公历近似：2025=1/29, 2026=2/17）
+            if (currentYear === 2025 && month === 0 && date >= 29) isUnlocked = true;
+            else if (currentYear === 2026 && month === 1 && date >= 17) isUnlocked = true;
+            else if (currentYear === 2027 && month === 1 && date >= 6) isUnlocked = true;
+            else if (currentYear === 2024 && month === 1 && date >= 10) isUnlocked = true;
         }
 
         // DEBUG: Allow unlock via query param for testing ?unlock=true

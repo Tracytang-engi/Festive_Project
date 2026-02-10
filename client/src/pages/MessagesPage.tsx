@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getMessages } from '../api/messages';
+import { getMessages, deleteMessage } from '../api/messages';
 import type { Message } from '../types';
 import ComposeModal from '../components/Messages/ComposeModal';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
@@ -54,16 +54,16 @@ const MessagesPage: React.FC = () => {
     const emptyStateConfig = {
         christmas: {
             icon: '🎄',
-            title: 'No Messages Yet',
-            description: 'Send festive greetings to your friends and spread the holiday cheer!',
-            actionText: 'Write a Card',
+            title: 'No Messages Yet (暂无祝福消息)',
+            description: 'Send festive greetings to your friends and spread the holiday cheer! (向亲朋好友发送新春祝福)',
+            actionText: 'Write a Card (写贺卡)',
             emoji: '✉️'
         },
         spring: {
             icon: '🧧',
-            title: '暂无祝福消息',
-            description: '向亲朋好友发送新春祝福，传递温暖与祝福！',
-            actionText: '写贺卡',
+            title: '暂无祝福消息 (No Messages Yet)',
+            description: '向亲朋好友发送新春祝福，传递温暖与祝福！ (Send festive greetings to your friends!)',
+            actionText: '写贺卡 (Write a Card)',
             emoji: '🎉'
         }
     };
@@ -82,7 +82,7 @@ const MessagesPage: React.FC = () => {
             <PageTransition pageKey={`messages-${season}`}>
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
                 <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>
-                    {theme === 'christmas' ? 'My Mailbox 📬' : '我的邮箱 📬'}
+                    我的邮箱 (My Mailbox) 📬
                 </h1>
                 <button
                     className="ios-btn ios-btn-pill tap-scale"
@@ -95,16 +95,16 @@ const MessagesPage: React.FC = () => {
 
             <div className="ios-segmented" style={{ marginBottom: '24px' }}>
                 <button className={season === 'christmas' ? 'active' : ''} onClick={() => setSeason('christmas')}>
-                    Christmas 🎄
+                    圣诞 (Christmas) 🎄
                 </button>
                 <button className={season === 'spring' ? 'active' : ''} onClick={() => setSeason('spring')}>
-                    Spring Festival 🧧
+                    春节 (Spring Festival) 🧧
                 </button>
             </div>
 
             {!isUnlocked && messages.length > 0 && (
                 <div className="ios-info-banner" style={{ marginBottom: '24px' }}>
-                    🔒 Messages are locked until the festival day! You can see who sent them, but not the content.
+                    🔒 消息将在节日当天解锁 (Messages are locked until the festival day!)
                 </div>
             )}
 
@@ -208,6 +208,11 @@ const MessagesPage: React.FC = () => {
                     message={detailMessage}
                     isUnlocked={isUnlocked}
                     onClose={() => setDetailMessage(null)}
+                    onDelete={async (messageId) => {
+                        await deleteMessage(messageId);
+                        setMessages(prev => prev.filter(m => m._id !== messageId));
+                        setDetailMessage(null);
+                    }}
                 />
             )}
             </PageTransition>

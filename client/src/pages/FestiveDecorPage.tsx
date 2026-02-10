@@ -2,12 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { getMessages } from '../api/messages';
+import { getMessages, deleteMessage } from '../api/messages';
 import { saveSceneLayout } from '../api/scene';
-import { getSceneName, getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS } from '../constants/scenes';
+import { getSceneName, getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE, CHRISTMAS_SCENE_IDS, SCENE_ICONS } from '../constants/scenes';
+import { getStickerCategory, SPRING_STICKER_CATEGORIES, SPRING_CATEGORY_ICONS } from '../constants/stickers';
 import { SERVER_ORIGIN } from '../api/client';
 import ChineseHorseSticker from '../components/ChineseHorseSticker';
 import SantaSticker from '../components/SantaSticker';
+import WelcomeSticker, { WELCOME_STICKER_ID } from '../components/WelcomeSticker';
 import DraggableSticker from '../components/DraggableSticker';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import type { Message } from '../types';
@@ -42,15 +44,20 @@ const FestiveDecorPage: React.FC = () => {
     /** Left sidebar: 额外选中的分类（单选，仅一个框亮），无默认。当前主题场景始终显示。 */
     const [selectedSidebarSceneId, setSelectedSidebarSceneId] = useState<string | null>(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [welcomeStickerHidden, setWelcomeStickerHidden] = useState(false);
     const defaultSceneId = theme === 'spring' ? DEFAULT_SPRING_SCENE : 'xmas_1';
-    const sceneIds = theme === 'spring' ? [...SPRING_SCENE_IDS] : [...CHRISTMAS_SCENE_IDS];
+    const sceneIds = theme === 'spring' ? SPRING_STICKER_CATEGORIES.map(c => c.id) : [...CHRISTMAS_SCENE_IDS];
     const pageScene = user?.selectedScene ?? defaultSceneId;
     const defaultSpringBg = getSpringSceneBackgroundImage(user?.selectedScene || DEFAULT_SPRING_SCENE);
     const customBgPath = user?.customBackgrounds?.[pageScene];
     const backgroundImage = customBgPath ? `${SERVER_ORIGIN}${customBgPath}` : (theme === 'christmas' ? getChristmasSceneBackgroundImage(pageScene) : defaultSpringBg);
     const sceneTitle = getSceneName(pageScene);
-    /** 页面上显示：当前主题场景 + 至多一个左侧栏选中的分类（单选）。 */
+    /** 页面上显示：圣诞 = 当前场景 + 侧栏选中场景的贴纸；春节 = 仅侧栏选中的分类的贴纸（不按背景自动显示，未选分类则不显示任何贴纸）。 */
     const visibleMessages = messages.filter(m => {
+        if (theme === 'spring') {
+            if (!selectedSidebarSceneId) return false;
+            return getStickerCategory(m.stickerType) === selectedSidebarSceneId;
+        }
         const scene = m.sceneId || defaultSceneId;
         if (scene === pageScene) return true;
         if (selectedSidebarSceneId && scene === selectedSidebarSceneId) return true;
@@ -77,12 +84,12 @@ const FestiveDecorPage: React.FC = () => {
         fetch();
     }, [theme]);
 
-    // 用已保存的布置 + 默认位置初始化贴纸位置
     useEffect(() => {
-        if (messages.length === 0) {
-            setStickerPositions({});
-            return;
-        }
+        setWelcomeStickerHidden(localStorage.getItem('welcomeStickerHidden_' + theme) === 'true');
+    }, [theme]);
+
+    // 用已保存的布置 + 默认位置初始化贴纸位置（含官方欢迎贴纸）
+    useEffect(() => {
         const saved = (user?.sceneLayout && user.sceneLayout[theme]) ? user.sceneLayout[theme] : {};
         const next: Record<string, { left: number; top: number }> = {};
         messages.forEach((msg, i) => {
@@ -93,8 +100,13 @@ const FestiveDecorPage: React.FC = () => {
                 next[msg._id] = getRandomPosition(hash);
             }
         });
+        if (!welcomeStickerHidden) {
+            next[WELCOME_STICKER_ID] = (saved[WELCOME_STICKER_ID] && typeof saved[WELCOME_STICKER_ID].left === 'number')
+                ? saved[WELCOME_STICKER_ID]
+                : { left: 50, top: 50 };
+        }
         setStickerPositions(next);
-    }, [messages, theme, user?.sceneLayout]);
+    }, [messages, theme, user?.sceneLayout, welcomeStickerHidden]);
 
     // Intro 文字：2秒后淡出
     useEffect(() => {
@@ -112,6 +124,26 @@ const FestiveDecorPage: React.FC = () => {
     const handlePositionChange = useCallback((messageId: string, left: number, top: number) => {
         setStickerPositions(prev => ({ ...prev, [messageId]: { left, top } }));
     }, []);
+
+    const handleDeleteSticker = useCallback(async (messageId: string) => {
+        try {
+            await deleteMessage(messageId);
+            setMessages(prev => prev.filter(m => m._id !== messageId));
+            if (detailMessage?._id === messageId) setDetailMessage(null);
+        } catch {
+            alert(theme === 'spring' ? '删除失败，请重试' : 'Delete failed. Please try again.');
+        }
+    }, [theme, detailMessage?._id]);
+
+    const handleDeleteWelcomeSticker = useCallback(() => {
+        setWelcomeStickerHidden(true);
+        localStorage.setItem('welcomeStickerHidden_' + theme, 'true');
+        setStickerPositions(prev => {
+            const next = { ...prev };
+            delete next[WELCOME_STICKER_ID];
+            return next;
+        });
+    }, [theme]);
 
     const handleSaveLayout = useCallback(async () => {
         setSaving(true);
@@ -152,7 +184,7 @@ const FestiveDecorPage: React.FC = () => {
                     <>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexShrink: 0 }}>
                             <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.95)', fontWeight: 600 }}>
-                                {theme === 'spring' ? '场景分类' : 'By Scene'}
+                                分类 (Category)
                             </span>
                             <button
                                 type="button"
@@ -168,7 +200,7 @@ const FestiveDecorPage: React.FC = () => {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                 }}
-                                title={theme === 'spring' ? '收起' : 'Collapse'}
+                                title="收起 (Collapse)"
                             >
                                 <ChevronLeft size={18} />
                             </button>
@@ -181,8 +213,12 @@ const FestiveDecorPage: React.FC = () => {
                             alignContent: 'flex-start',
                         }}>
                             {sceneIds.map(sid => {
-                                const count = messages.filter(m => (m.sceneId || defaultSceneId) === sid).length;
+                                const count = theme === 'spring'
+                                    ? messages.filter(m => getStickerCategory(m.stickerType) === sid).length
+                                    : messages.filter(m => (m.sceneId || defaultSceneId) === sid).length;
                                 const isSelected = selectedSidebarSceneId === sid;
+                                const title = theme === 'spring' ? (SPRING_STICKER_CATEGORIES.find(c => c.id === sid)?.name ?? sid) : getSceneName(sid);
+                                const icon = theme === 'spring' ? (SPRING_CATEGORY_ICONS[sid] ?? '📁') : (SCENE_ICONS[sid] ?? '📁');
                                 return (
                                     <button
                                         key={sid}
@@ -204,9 +240,9 @@ const FestiveDecorPage: React.FC = () => {
                                             flexShrink: 0,
                                             boxSizing: 'border-box',
                                         }}
-                                        title={getSceneName(sid)}
+                                        title={title}
                                     >
-                                        {SCENE_ICONS[sid] ?? '📁'}
+                                        {icon}
                                         <span style={{
                                             position: 'absolute',
                                             bottom: '2px',
@@ -242,7 +278,7 @@ const FestiveDecorPage: React.FC = () => {
                             justifyContent: 'center',
                             padding: 0,
                         }}
-                        title={theme === 'spring' ? '展开分类' : 'Expand'}
+                        title="展开分类 (Expand)"
                     >
                         <ChevronRight size={18} />
                     </button>
@@ -271,6 +307,16 @@ const FestiveDecorPage: React.FC = () => {
                     overflow: 'hidden',
                 }}
             >
+                {/* 官方欢迎贴纸：与普通贴纸一致，可拖动、可删除、不可举报 */}
+                {!welcomeStickerHidden && stickerPositions[WELCOME_STICKER_ID] && (
+                    <WelcomeSticker
+                        initialLeft={stickerPositions[WELCOME_STICKER_ID].left}
+                        initialTop={stickerPositions[WELCOME_STICKER_ID].top}
+                        onPositionChange={(left, top) => handlePositionChange(WELCOME_STICKER_ID, left, top)}
+                        onDelete={handleDeleteWelcomeSticker}
+                    />
+                )}
+
                 {/* Horse/Santa: 停留 1s 后以 iOS 风格动画移至右下角 */}
                 <div
                     style={{
@@ -339,8 +385,8 @@ const FestiveDecorPage: React.FC = () => {
                     </>
                 )}
 
-                {/* 保存布置按钮 */}
-                {!loading && visibleMessages.length > 0 && (
+                {/* 保存布置按钮：有贴纸或欢迎贴纸未删除时显示 */}
+                {!loading && (visibleMessages.length > 0 || !welcomeStickerHidden) && (
                     <div style={{
                         position: 'absolute',
                         bottom: '24px',
@@ -364,11 +410,11 @@ const FestiveDecorPage: React.FC = () => {
                                 boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
                             }}
                         >
-                            {saving ? (theme === 'spring' ? '保存中...' : 'Saving...') : (theme === 'spring' ? '保存布置' : 'Save Layout')}
+                            {saving ? '保存中... (Saving...)' : '保存布置 (Save Layout)'}
                         </button>
                         {saveSuccess && (
                             <span style={{ marginLeft: '12px', color: 'rgba(255,255,255,0.95)', fontSize: '14px' }}>
-                                {theme === 'spring' ? '已保存' : 'Saved!'}
+                                已保存 (Saved!)
                             </span>
                         )}
                     </div>
@@ -381,7 +427,7 @@ const FestiveDecorPage: React.FC = () => {
                 )}
                 {!loading && messages.length > 0 && visibleMessages.length === 0 && !introVisible && (
                     <p style={{ fontSize: '1rem', opacity: 0.9 }}>
-                        {theme === 'spring' ? '该场景下暂无贴纸' : 'No stickers in this scene.'}
+                        请从左侧选择分类查看贴纸 (Select a category on the left to view stickers)
                     </p>
                 )}
             </div>
@@ -391,6 +437,7 @@ const FestiveDecorPage: React.FC = () => {
                     message={detailMessage}
                     isUnlocked={isUnlocked}
                     onClose={() => setDetailMessage(null)}
+                    onDelete={handleDeleteSticker}
                 />
             )}
 

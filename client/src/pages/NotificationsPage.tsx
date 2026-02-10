@@ -86,17 +86,17 @@ const NotificationsPage: React.FC = () => {
             )}
             <div style={styles.main}>
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                    <h1>🔔 Notifications</h1>
+                    <h1>🔔 通知 (Notifications)</h1>
                     {notifications.some(n => !n.isRead) && (
                         <button className="ios-btn ios-btn-pill" onClick={handleMarkRead} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.9)', color: '#333' }}>
-                            Mark all read
+                            全部已读 (Mark all read)
                         </button>
                     )}
                 </header>
 
-                {loading ? <p>Loading...</p> : (
+                {loading ? <p>加载中... (Loading...)</p> : (
                     <div style={styles.list}>
-                        {notifications.length === 0 ? <p>No new updates here!</p> : (
+                        {notifications.length === 0 ? <p>暂无新通知 (No new updates here!)</p> : (
                             notifications.map(note => (
                                 <div
                                     key={note._id}
@@ -110,8 +110,8 @@ const NotificationsPage: React.FC = () => {
                                     </div>
                                     <div>
                                         <div style={{ fontWeight: 'bold' }}>
-                                            {note.type === 'FRIEND_REQUEST' ? 'New Friend Request' :
-                                                note.type === 'NEW_MESSAGE' ? 'New Festive Message' : 'Friend Request Accepted'}
+                                            {note.type === 'FRIEND_REQUEST' ? '新好友请求 (New Friend Request)' :
+                                                note.type === 'NEW_MESSAGE' ? '新祝福消息 (New Festive Message)' : '已添加好友 (Friend Request Accepted)'}
                                         </div>
                                         <div style={{ fontSize: '14px', opacity: 0.9 }}>
                                             {note.type === 'FRIEND_REQUEST' ? `${note.relatedUser?.nickname} wants to be friends!` :

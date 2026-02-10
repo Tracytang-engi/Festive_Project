@@ -142,6 +142,20 @@ router.get('/:friendId/decor', async (req: AuthRequest, res) => {
             .select('_id stickerType sceneId isPrivate content sender createdAt')
             .populate('sender', 'nickname avatar')
             .lean();
+
+        // 贴纸内容锁定：节日当天 00:00（北京时间）后解锁，与 messages 接口一致
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const chinaTime = new Date(utc + (3600000 * 8));
+        const currentYear = chinaTime.getFullYear();
+        const month = chinaTime.getMonth();
+        const date = chinaTime.getDate();
+        let isUnlocked = false;
+        if (currentYear === 2025 && month === 0 && date >= 29) isUnlocked = true;
+        else if (currentYear === 2026 && month === 1 && date >= 17) isUnlocked = true;
+        else if (currentYear === 2027 && month === 1 && date >= 6) isUnlocked = true;
+        else if (currentYear === 2024 && month === 1 && date >= 10) isUnlocked = true;
+
         const messagesForClient = messages.map((m: any) => {
             const base = {
                 _id: m._id.toString(),
@@ -152,6 +166,9 @@ router.get('/:friendId/decor', async (req: AuthRequest, res) => {
             if (m.isPrivate) {
                 return base;
             }
+            if (!isUnlocked) {
+                return { ...base, content: 'LOCKED UNTIL FESTIVAL', sender: m.sender, createdAt: m.createdAt };
+            }
             return {
                 ...base,
                 content: m.content,
@@ -160,7 +177,7 @@ router.get('/:friendId/decor', async (req: AuthRequest, res) => {
             };
         });
 
-        res.json({ ...friend, messages: messagesForClient });
+        res.json({ ...friend, messages: messagesForClient, isUnlocked });
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
     }

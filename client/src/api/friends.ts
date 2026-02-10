@@ -53,6 +53,8 @@ export interface FriendDecor {
     sceneLayout?: Record<string, Record<string, { left: number; top: number }>>;
     /** 对方收到的春节贴纸列表，用于展示具体贴纸 */
     messages?: FriendDecorMessage[];
+    /** 贴纸内容是否已解锁（节日当天 00:00 后为 true） */
+    isUnlocked?: boolean;
 }
 
 // 查看好友的主题装饰页数据（仅好友可调）

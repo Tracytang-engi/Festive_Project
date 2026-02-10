@@ -90,7 +90,7 @@ const FriendDecorPage: React.FC = () => {
             <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
                 <Sidebar />
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f2f2f7' }}>
-                    <p style={{ fontSize: '16px', color: '#666' }}>加载中...</p>
+                    <p style={{ fontSize: '16px', color: '#666' }}>加载中... (Loading...)</p>
                 </div>
             </div>
         );
@@ -101,7 +101,7 @@ const FriendDecorPage: React.FC = () => {
             <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
                 <Sidebar />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f2f2f7', padding: '24px' }}>
-                    <p style={{ fontSize: '16px', color: '#c41e3a', marginBottom: '16px' }}>{error || '加载失败'}</p>
+                    <p style={{ fontSize: '16px', color: '#c41e3a', marginBottom: '16px' }}>{error || '加载失败 (Load failed)'}</p>
                     <button
                         type="button"
                         onClick={() => navigate('/friends')}
@@ -115,7 +115,7 @@ const FriendDecorPage: React.FC = () => {
                             fontSize: '15px',
                         }}
                     >
-                        返回好友
+                        返回好友 (Back to friends)
                     </button>
                 </div>
             </div>
@@ -168,7 +168,7 @@ const FriendDecorPage: React.FC = () => {
                                 cursor: 'pointer',
                                 boxShadow: 'var(--ios-shadow)',
                             }}
-                            title="返回好友"
+                            title="返回好友 (Back to friends)"
                         >
                             <ArrowLeft size={20} strokeWidth={2.5} />
                         </button>
@@ -180,7 +180,7 @@ const FriendDecorPage: React.FC = () => {
                             color: 'white',
                             textShadow: '0 2px 8px rgba(0,0,0,0.25)',
                         }}>
-                            选择场景
+                            选择场景 (Select scene)
                         </h1>
                     </div>
                     <p style={{
@@ -192,7 +192,7 @@ const FriendDecorPage: React.FC = () => {
                         color: 'rgba(255,255,255,0.88)',
                         textShadow: '0 1px 2px rgba(0,0,0,0.2)',
                     }}>
-                        查看 {decor.nickname} 的哪个春节场景
+                        查看 {decor.nickname} 的哪个春节场景 (Which scene to view)
                     </p>
 
                     {/* 场景列表 - iOS 分组卡片 */}
@@ -320,7 +320,7 @@ const FriendDecorPage: React.FC = () => {
                             cursor: 'pointer',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                         }}
-                        title="返回选择场景"
+                        title="返回选择场景 (Back to scenes)"
                     >
                         <ArrowLeft size={22} />
                     </button>
@@ -352,7 +352,7 @@ const FriendDecorPage: React.FC = () => {
                             filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))',
                         }}
                     >
-                        <StickerIcon stickerType={message.stickerType} size={72} />
+                        {decor?.isUnlocked ? <StickerIcon stickerType={message.stickerType} size={72} /> : <span style={{ fontSize: '56px' }}>🔒</span>}
                     </div>
                 ))}
 
@@ -382,7 +382,7 @@ const FriendDecorPage: React.FC = () => {
                 {detailMessage && (
                     <StickerDetailModal
                         message={detailMessage}
-                        isUnlocked={true}
+                        isUnlocked={decor?.isUnlocked ?? false}
                         onClose={() => setDetailMessage(null)}
                         showReportButton={false}
                     />

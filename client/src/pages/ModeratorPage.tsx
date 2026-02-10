@@ -59,9 +59,9 @@ const ModeratorPage: React.FC = () => {
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
             <Sidebar />
             <div style={{ flex: 1, padding: '24px', background: '#f2f2f7', overflowY: 'auto' }}>
-                <h1 style={{ margin: '0 0 24px', fontSize: '24px', fontWeight: 600 }}>举报审核</h1>
+                <h1 style={{ margin: '0 0 24px', fontSize: '24px', fontWeight: 600 }}>举报审核 (Reports)</h1>
 
-                {loading && <p>加载中...</p>}
+                {loading && <p>加载中... (Loading...)</p>}
                 {error && (
                     <div style={{ padding: '16px', background: '#ffebee', borderRadius: '12px', color: '#c62828', marginBottom: '16px' }}>
                         {error}
@@ -70,14 +70,14 @@ const ModeratorPage: React.FC = () => {
                                 onClick={() => navigate('/')}
                                 style={{ marginLeft: '12px', padding: '6px 12px', cursor: 'pointer' }}
                             >
-                                返回首页
+                                返回首页 (Back)
                             </button>
                         )}
                     </div>
                 )}
 
                 {!loading && !error && reports.length === 0 && (
-                    <p style={{ color: '#666' }}>暂无待审核举报</p>
+                    <p style={{ color: '#666' }}>暂无待审核举报 (No pending reports)</p>
                 )}
 
                 {!loading && reports.length > 0 && (
@@ -130,7 +130,7 @@ const ModeratorPage: React.FC = () => {
                                             fontSize: '14px',
                                         }}
                                     >
-                                        通过
+                                        通过 (Approve)
                                     </button>
                                     <button
                                         onClick={() => handleResolve(r._id, true)}
@@ -145,7 +145,7 @@ const ModeratorPage: React.FC = () => {
                                             fontSize: '14px',
                                         }}
                                     >
-                                        通过并删除消息
+                                        通过并删除消息 (Approve & delete)
                                     </button>
                                     <button
                                         onClick={() => handleDismiss(r._id)}
@@ -160,7 +160,7 @@ const ModeratorPage: React.FC = () => {
                                             fontSize: '14px',
                                         }}
                                     >
-                                        驳回
+                                        驳回 (Dismiss)
                                     </button>
                                 </div>
                             </div>
