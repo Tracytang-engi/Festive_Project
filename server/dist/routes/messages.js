@@ -17,9 +17,90 @@ const Message_1 = __importDefault(require("../models/Message"));
 const Report_1 = __importDefault(require("../models/Report"));
 const Friend_1 = __importDefault(require("../models/Friend"));
 const Notification_1 = __importDefault(require("../models/Notification"));
+const User_1 = __importDefault(require("../models/User"));
 const authMiddleware_1 = require("../middleware/authMiddleware");
+/** Pick a random position (percent) avoiding existing positions; fallback to simple random. */
+function randomPositionOnScene(existing) {
+    const positions = [];
+    for (let row = 15; row <= 85; row += 20) {
+        for (let col = 15; col <= 85; col += 18) {
+            positions.push({ left: col, top: row });
+        }
+    }
+    const used = new Set();
+    Object.values(existing).forEach(({ left, top }) => {
+        positions.forEach((p, i) => {
+            if (Math.abs(p.left - left) < 15 && Math.abs(p.top - top) < 15)
+                used.add(i);
+        });
+    });
+    const available = positions.filter((_, i) => !used.has(i));
+    if (available.length > 0) {
+        const p = available[Math.floor(Math.random() * available.length)];
+        return { left: p.left + (Math.random() * 8 - 4), top: p.top + (Math.random() * 8 - 4) };
+    }
+    return {
+        left: 15 + Math.random() * 70,
+        top: 15 + Math.random() * 70,
+    };
+}
 const router = express_1.default.Router();
 router.use(authMiddleware_1.authMiddleware);
+// GET /api/messages/detail/:id — single message detail for sender/recipient
+router.get('/detail/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const { id } = req.params;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        const msg = yield Message_1.default.findById(id).populate('sender', 'nickname avatar');
+        if (!msg)
+            return res.status(404).json({ error: "NOT_FOUND" });
+        const senderId = typeof msg.sender === 'object' && msg.sender !== null && '_id' in msg.sender
+            ? msg.sender._id.toString()
+            : msg.sender.toString();
+        const isSender = senderId === userId;
+        const isRecipient = msg.recipient.toString() === userId;
+        if (!isSender && !isRecipient) {
+            return res.status(403).json({ error: "FORBIDDEN", message: "仅发送方或接收方可查看该消息" });
+        }
+        // Time lock logic — mirror season inbox route
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const chinaTime = new Date(utc + (3600000 * 8)); // UTC+8
+        const month = chinaTime.getMonth();
+        const date = chinaTime.getDate();
+        const currentYear = chinaTime.getFullYear();
+        let isUnlocked = false;
+        if (msg.season === 'christmas') {
+            if (month === 11 && date >= 25)
+                isUnlocked = true;
+        }
+        else if (msg.season === 'spring') {
+            if (currentYear === 2025 && month === 0 && date >= 29)
+                isUnlocked = true;
+            else if (currentYear === 2026 && month === 1 && date >= 17)
+                isUnlocked = true;
+            else if (currentYear === 2027 && month === 1 && date >= 6)
+                isUnlocked = true;
+            else if (currentYear === 2024 && month === 1 && date >= 10)
+                isUnlocked = true;
+        }
+        if (req.query.unlock === 'true')
+            isUnlocked = true;
+        // Special viewer override: account ID 111111 or moderator can always view
+        if (!isUnlocked && userId) {
+            const viewer = yield User_1.default.findById(userId).select('userId role').lean();
+            if (viewer && (viewer.userId === '111111' || viewer.role === 'moderator')) {
+                isUnlocked = true;
+            }
+        }
+        const result = isUnlocked ? msg : Object.assign(Object.assign({}, msg.toObject()), { content: "LOCKED UNTIL FESTIVAL", stickerType: msg.stickerType });
+        res.json({ message: result, isUnlocked });
+    }
+    catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+}));
 // POST /api/messages
 router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -38,6 +119,18 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const message = yield Message_1.default.create(Object.assign(Object.assign({ sender: senderId, recipient: recipientId, stickerType,
             content,
             season, year: year || new Date().getFullYear() }, (sceneId && typeof sceneId === 'string' && { sceneId: sceneId.trim() })), { isPrivate: !!isPrivate }));
+        // Place sticker randomly on recipient's scene (spring only)
+        if (season === 'spring' && sceneId && typeof sceneId === 'string') {
+            const recipient = yield User_1.default.findById(recipientId).select('sceneLayout').lean();
+            const layout = (recipient === null || recipient === void 0 ? void 0 : recipient.sceneLayout) && typeof recipient.sceneLayout === 'object'
+                ? Object.assign({}, recipient.sceneLayout) : {};
+            const springLayout = layout.spring && typeof layout.spring === 'object'
+                ? Object.assign({}, layout.spring) : {};
+            const pos = randomPositionOnScene(springLayout);
+            springLayout[message._id.toString()] = pos;
+            layout.spring = springLayout;
+            yield User_1.default.findByIdAndUpdate(recipientId, { sceneLayout: layout });
+        }
         // Notify (include season so frontend can open correct mailbox)
         yield Notification_1.default.create({
             recipient: recipientId,
@@ -47,6 +140,56 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             season: season
         });
         res.json({ success: true });
+    }
+    catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+}));
+// PUT /api/messages/:id/position — sender updates where their sticker appears on recipient's scene
+router.put('/:id/position', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const { id: messageId } = req.params;
+        const { left, top } = req.body;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (typeof left !== 'number' || typeof top !== 'number') {
+            return res.status(400).json({ error: "INVALID_INPUT", message: "left and top (numbers) required" });
+        }
+        const message = yield Message_1.default.findById(messageId);
+        if (!message)
+            return res.status(404).json({ error: "NOT_FOUND" });
+        if (message.sender.toString() !== userId) {
+            return res.status(403).json({ error: "FORBIDDEN", message: "Only the sender can move this sticker" });
+        }
+        const recipientId = message.recipient.toString();
+        const recipient = yield User_1.default.findById(recipientId).select('sceneLayout').lean();
+        const layout = (recipient === null || recipient === void 0 ? void 0 : recipient.sceneLayout) && typeof recipient.sceneLayout === 'object'
+            ? Object.assign({}, recipient.sceneLayout) : {};
+        const springLayout = layout.spring && typeof layout.spring === 'object'
+            ? Object.assign({}, layout.spring) : {};
+        springLayout[messageId] = { left, top };
+        layout.spring = springLayout;
+        yield User_1.default.findByIdAndUpdate(recipientId, { sceneLayout: layout });
+        res.json({ success: true });
+    }
+    catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+}));
+// GET /api/messages/sent/:season — messages sent by current user (no year filter)
+router.get('/sent/:season', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const { season } = req.params;
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (season !== 'christmas' && season !== 'spring') {
+            return res.status(400).json({ error: "INVALID_SEASON" });
+        }
+        const messages = yield Message_1.default.find({
+            sender: userId,
+            season
+        }).sort({ createdAt: -1 }).populate('recipient', 'nickname avatar');
+        res.json({ messages });
     }
     catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
@@ -92,6 +235,13 @@ router.get('/:season', (req, res) => __awaiter(void 0, void 0, void 0, function*
         // DEBUG: Allow unlock via query param for testing ?unlock=true
         if (req.query.unlock === 'true')
             isUnlocked = true;
+        // Special viewer override: account ID 111111 or moderator can always view
+        if (!isUnlocked && userId) {
+            const viewer = yield User_1.default.findById(userId).select('userId role').lean();
+            if (viewer && (viewer.userId === '111111' || viewer.role === 'moderator')) {
+                isUnlocked = true;
+            }
+        }
         // 3. Mask content if locked
         const results = messages.map(msg => {
             if (isUnlocked)

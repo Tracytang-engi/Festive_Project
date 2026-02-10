@@ -90,8 +90,8 @@ router.put('/scene-layout', (req, res) => __awaiter(void 0, void 0, void 0, func
         res.status(500).json({ error: "SERVER_ERROR" });
     }
 }));
-// PUT /api/users/profile/avatar - 设置头像（emoji）
-router.put('/profile/avatar', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+// PUT /api/users/profile/avatar - 设置头像（emoji）（支持带/不带尾部斜杠）
+const handleAvatar = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
         const { avatar } = req.body;
@@ -102,7 +102,9 @@ router.put('/profile/avatar', (req, res) => __awaiter(void 0, void 0, void 0, fu
     catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
     }
-}));
+});
+router.put('/profile/avatar', handleAvatar);
+router.put('/profile/avatar/', handleAvatar);
 // PUT /api/users/profile/nickname - 改名字，每人限 3 次
 const NICKNAME_CHANGE_LIMIT = 3;
 router.put('/profile/nickname', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
