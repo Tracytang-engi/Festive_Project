@@ -43,6 +43,12 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const signature = generateSignature(payload, timestamp);
     config.headers['x-signature'] = signature;
 
+    // 排查头像 404：打印实际请求 URL（上线后可删）
+    if (config.url?.includes('profile/avatar')) {
+        const url = (config.baseURL || '') + (config.url || '');
+        console.warn('[Avatar API 请求]', url);
+    }
+
     return config;
 });
 
