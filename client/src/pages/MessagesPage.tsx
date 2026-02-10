@@ -93,10 +93,4 @@ const MessagesPage: React.FC = () => {
     );
 };
 
-const styles: { [key: string]: React.CSSProperties } = {
-    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' },
-    card: { background: 'rgba(255,255,255,0.95)', color: '#333', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', textAlign: 'center', transition: 'box-shadow 0.2s ease' },
-    content: { background: '#f2f2f7', padding: '14px', borderRadius: '10px', minHeight: '64px', fontSize: '15px', lineHeight: 1.45, color: '#333' }
-};
-
 export default MessagesPage;
