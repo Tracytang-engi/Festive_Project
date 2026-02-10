@@ -35,6 +35,11 @@ export interface FriendDecorMessage {
     _id: string;
     stickerType: string;
     sceneId?: string;
+    isPrivate?: boolean;
+    /** 公开消息才有，用于 StickerDetailModal */
+    content?: string;
+    sender?: { nickname: string; avatar?: string };
+    createdAt?: string;
 }
 
 /** 好友主题装饰（查看用，含场景、背景与布置） */

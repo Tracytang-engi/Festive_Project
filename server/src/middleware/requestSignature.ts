@@ -12,21 +12,6 @@ export const signatureMiddleware = (req: Request, res: Response, next: NextFunct
     const timestamp = req.headers['x-timestamp'] as string;
 
     if (!signature || !timestamp) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a6b28d35-4418-428e-ad64-f26ccc119f12', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sessionId: 'debug-session',
-                runId: 'pre-fix',
-                hypothesisId: 'H1',
-                location: 'server/src/middleware/requestSignature.ts:18',
-                message: 'Missing signature or timestamp',
-                data: { hasSignature: !!signature, hasTimestamp: !!timestamp, path: req.path, method: req.method },
-                timestamp: Date.now()
-            })
-        }).catch(() => { });
-        // #endregion
         return res.status(401).json({ error: "INVALID_SIGNATURE", message: "Missing signature or timestamp headers" });
     }
 
@@ -34,42 +19,12 @@ export const signatureMiddleware = (req: Request, res: Response, next: NextFunct
     const now = Date.now();
     const reqTime = parseInt(timestamp, 10);
     if (isNaN(reqTime) || now - reqTime > 2 * 60 * 1000 || now - reqTime < -5000) { // Allow 5s clock skew future
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a6b28d35-4418-428e-ad64-f26ccc119f12', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sessionId: 'debug-session',
-                runId: 'pre-fix',
-                hypothesisId: 'H2',
-                location: 'server/src/middleware/requestSignature.ts:22',
-                message: 'Expired or invalid timestamp',
-                data: { now, reqTime, delta: now - reqTime, path: req.path, method: req.method },
-                timestamp: Date.now()
-            })
-        }).catch(() => { });
-        // #endregion
         return res.status(401).json({ error: "INVALID_SIGNATURE", message: "Request expired" });
     }
 
     // Verify Signature
     if (!process.env.HMAC_SECRET) {
         console.error(ALERT_HMAC_SECRET_MISSING);
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a6b28d35-4418-428e-ad64-f26ccc119f12', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sessionId: 'debug-session',
-                runId: 'pre-fix',
-                hypothesisId: 'H3',
-                location: 'server/src/middleware/requestSignature.ts:28',
-                message: 'HMAC_SECRET missing on server',
-                data: { path: req.path, method: req.method },
-                timestamp: Date.now()
-            })
-        }).catch(() => { });
-        // #endregion
         return res.status(500).json({ error: "SERVER_ERROR" });
     }
 

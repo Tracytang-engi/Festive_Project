@@ -12,10 +12,15 @@ export const sendMessage = async (data: {
     content: string;
     season: string;
     sceneId?: string;
+    isPrivate?: boolean;
 }): Promise<void> => {
     await api.post('/messages', data);
 };
 
 export const deleteMessage = async (messageId: string): Promise<void> => {
     await api.delete(`/messages/${messageId}`);
+};
+
+export const reportMessage = async (messageId: string, reason?: string): Promise<void> => {
+    await api.post(`/messages/${messageId}/report`, { reason });
 };

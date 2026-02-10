@@ -1,14 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import StickerIcon from '../StickerIcon';
+import { reportMessage } from '../../api/messages';
 import type { Message } from '../../types';
 
 interface StickerDetailModalProps {
     message: Message;
     isUnlocked: boolean;
     onClose: () => void;
+    /** 是否显示举报按钮（仅发送方或接收方可举报） */
+    showReportButton?: boolean;
 }
 
-const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlocked, onClose }) => {
+const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlocked, onClose, showReportButton = true }) => {
+    const [reporting, setReporting] = useState(false);
+    const [reported, setReported] = useState(false);
+
+    const handleReport = async () => {
+        if (reported || reporting) return;
+        setReporting(true);
+        try {
+            await reportMessage(message._id);
+            setReported(true);
+        } catch {
+            alert('举报失败，请重试');
+        } finally {
+            setReporting(false);
+        }
+    };
     const senderName = typeof message.sender === 'object' ? message.sender?.nickname : 'Unknown';
     const content = isUnlocked ? message.content : `This message is sealed until the festival day!`;
     const timeStr = message.createdAt ? new Date(message.createdAt).toLocaleString() : '';
@@ -63,23 +81,43 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
                 {timeStr && (
                     <div style={{ fontSize: '13px', color: '#8e8e93' }}>{timeStr}</div>
                 )}
-                <button
-                    className="ios-btn tap-scale"
-                    onClick={onClose}
-                    style={{
-                        marginTop: '16px',
-                        width: '100%',
-                        padding: '12px',
-                        background: '#007AFF',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '10px',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                    }}
-                >
-                    Close
-                </button>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                    {showReportButton && (
+                        <button
+                            className="ios-btn tap-scale"
+                            onClick={handleReport}
+                            disabled={reporting || reported}
+                            style={{
+                                flex: 1,
+                                padding: '12px',
+                                background: reported ? '#34C759' : '#f2f2f7',
+                                color: reported ? 'white' : '#666',
+                                border: 'none',
+                                borderRadius: '10px',
+                                cursor: reported ? 'default' : 'pointer',
+                                fontSize: '15px',
+                            }}
+                        >
+                            {reported ? '已举报' : reporting ? '举报中...' : '举报'}
+                        </button>
+                    )}
+                    <button
+                        className="ios-btn tap-scale"
+                        onClick={onClose}
+                        style={{
+                            flex: showReportButton ? 1 : 1,
+                            padding: '12px',
+                            background: '#007AFF',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                        }}
+                    >
+                        Close
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -13,12 +13,21 @@ import NotificationsPage from './pages/NotificationsPage';
 import SettingsPage from './pages/SettingsPage';
 import FestiveDecorPage from './pages/FestiveDecorPage';
 import FriendDecorPage from './pages/FriendDecorPage';
+import ModeratorPage from './pages/ModeratorPage';
 import './index.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const token = localStorage.getItem('token');
   return (isAuthenticated || token) ? <>{children}</> : <Navigate to="/auth" />;
+};
+
+const ModeratorRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
+  const token = localStorage.getItem('token');
+  if (!(isAuthenticated || token)) return <Navigate to="/auth" />;
+  if (user && user.role !== 'moderator') return <Navigate to="/" replace />;
+  return <>{children}</>;
 };
 
 const AppRoutes = () => {
@@ -35,6 +44,7 @@ const AppRoutes = () => {
       <Route path="/history" element={<Navigate to="/" replace />} />
       <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/moderator" element={<ModeratorRoute><ModeratorPage /></ModeratorRoute>} />
     </Routes>
   );
 };

@@ -15,6 +15,7 @@ import friendRoutes from './routes/friends';
 import messageRoutes from './routes/messages';
 import notificationRoutes from './routes/notifications';
 import historyRoutes from './routes/history';
+import adminRoutes from './routes/admin';
 
 const app = express();
 
@@ -22,8 +23,19 @@ const app = express();
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
+const isProd = process.env.NODE_ENV === 'production';
+const allowedOrigins = isProd
+    ? (process.env.FRONTEND_ORIGIN
+        ? [process.env.FRONTEND_ORIGIN, 'https://festickers.com', 'https://www.festickers.com']
+        : ['https://festickers.com', 'https://www.festickers.com'])
+    : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000'];
 app.use(cors({
-    origin: '*', // Configure this strictly in production!
+    origin: (origin, cb) => {
+        if (!origin) cb(null, true);
+        else if (allowedOrigins.includes(origin)) cb(null, true);
+        else if (!isProd) cb(null, true);
+        else cb(null, false);
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-signature', 'x-timestamp']
 }));
@@ -43,6 +55,7 @@ app.use('/api/friends', friendRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/history', historyRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

@@ -35,14 +35,33 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const UserSchema = new mongoose_1.Schema({
-    encryptedPhone: { type: String, required: true, unique: true },
-    nickname: { type: String },
+    userId: { type: String, required: true, unique: true },
+    nickname: { type: String, required: true, unique: true },
+    avatar: { type: String },
+    passwordHash: { type: String, required: true },
+    loginAttempts: { type: Number, default: 0 },
+    lockedUntil: { type: Date },
     region: { type: String },
     gender: { type: String },
     age: { type: Number },
     selectedScene: { type: String },
     themePreference: { type: String, enum: ['christmas', 'spring'], default: 'christmas' },
     backgroundImage: { type: String },
+    customBackgrounds: { type: mongoose_1.Schema.Types.Mixed },
+    nicknameChangeCount: { type: Number, default: 0 },
+    passwordChangeCount: { type: Number, default: 0 },
+    sceneLayout: { type: mongoose_1.Schema.Types.Mixed },
+    email: { type: String, sparse: true, unique: true },
+    emailVerified: { type: Boolean, default: false },
+    role: { type: String, enum: ['user', 'moderator'], default: 'user' },
     createdAt: { type: Date, default: Date.now }
 });
+// 返回用户信息时排除敏感字段
+UserSchema.methods.toJSON = function () {
+    const obj = this.toObject();
+    delete obj.passwordHash;
+    delete obj.loginAttempts;
+    delete obj.lockedUntil;
+    return obj;
+};
 exports.default = mongoose_1.default.model('User', UserSchema);

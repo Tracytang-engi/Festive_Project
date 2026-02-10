@@ -1,5 +1,6 @@
 import express from 'express';
 import Message from '../models/Message';
+import Report from '../models/Report';
 import Friend from '../models/Friend';
 import Notification from '../models/Notification';
 import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
@@ -10,7 +11,7 @@ router.use(authMiddleware);
 // POST /api/messages
 router.post('/', async (req: AuthRequest, res) => {
     try {
-        const { recipientId, stickerType, content, season, year, sceneId } = req.body;
+        const { recipientId, stickerType, content, season, year, sceneId, isPrivate } = req.body;
         const senderId = req.user?.id;
 
         // Verify Friendship
@@ -30,7 +31,8 @@ router.post('/', async (req: AuthRequest, res) => {
             content,
             season,
             year: year || new Date().getFullYear(),
-            ...(sceneId && typeof sceneId === 'string' && { sceneId: sceneId.trim() })
+            ...(sceneId && typeof sceneId === 'string' && { sceneId: sceneId.trim() }),
+            isPrivate: !!isPrivate
         });
 
         // Notify (include season so frontend can open correct mailbox)
@@ -98,6 +100,33 @@ router.get('/:season', async (req: AuthRequest, res) => {
         });
 
         res.json({ messages: results, isUnlocked });
+    } catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
+// POST /api/messages/:id/report — 举报消息（仅发送方或接收方可举报）
+router.post('/:id/report', async (req: AuthRequest, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?.id;
+        const { reason } = req.body || {};
+        const msg = await Message.findById(id);
+        if (!msg) return res.status(404).json({ error: "NOT_FOUND" });
+        const isSender = msg.sender.toString() === userId;
+        const isRecipient = msg.recipient.toString() === userId;
+        if (!isSender && !isRecipient) {
+            return res.status(403).json({ error: "FORBIDDEN", message: "仅发送方或接收方可举报" });
+        }
+        const existing = await Report.findOne({ message: id, reporter: userId, status: 'pending' });
+        if (existing) return res.status(400).json({ error: "ALREADY_REPORTED", message: "已举报过该消息" });
+        await Report.create({
+            message: id,
+            reporter: userId,
+            reason: typeof reason === 'string' ? reason.trim().slice(0, 500) : undefined,
+            status: 'pending'
+        });
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
     }

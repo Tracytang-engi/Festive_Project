@@ -16,6 +16,7 @@ export interface User {
     passwordChangeCount?: number;
     /** 场景贴纸布置：{ christmas: { [messageId]: { left, top } }, spring: { ... } } */
     sceneLayout?: Record<string, Record<string, { left: number; top: number }>>;
+    role?: 'user' | 'moderator';
 }
 
 export interface Message {
@@ -28,6 +29,8 @@ export interface Message {
     year: number;
     /** 抵达场景，用于一级分类 */
     sceneId?: string;
+    /** 私密消息：贴纸所有人可见，内容仅发送方和接收方可见 */
+    isPrivate?: boolean;
     createdAt?: string;
 }
 

@@ -20,6 +20,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
     const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
     const [sticker, setSticker] = useState<string>('🎄');
     const [content, setContent] = useState('');
+    const [isPrivate, setIsPrivate] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const sceneIds = season === 'spring' ? [...SPRING_SCENE_IDS] : [...CHRISTMAS_SCENE_IDS];
@@ -70,6 +71,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                 content,
                 season,
                 sceneId,
+                isPrivate,
             });
             alert("Message sent!");
             onClose();
@@ -144,6 +146,15 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
 
                 {!showScenePicker && (
                     <>
+                        <label style={styles.label}>
+                            <input
+                                type="checkbox"
+                                checked={isPrivate}
+                                onChange={e => setIsPrivate(e.target.checked)}
+                                style={{ marginRight: '8px' }}
+                            />
+                            私密消息（仅你和对方可见内容，贴纸对所有人可见）
+                        </label>
                         <label style={styles.label}>Message</label>
                         <textarea
                             placeholder="Write your warm wishes..."

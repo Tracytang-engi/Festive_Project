@@ -19,6 +19,11 @@ export interface IUser extends Document {
     passwordChangeCount?: number;
     /** 场景贴纸布置：{ christmas: { [messageId]: { left, top } }, spring: { ... } }，百分比 */
     sceneLayout?: Record<string, Record<string, { left: number; top: number }>>;
+    /** 邮箱（下季度实现验证） */
+    email?: string;
+    emailVerified?: boolean;
+    /** 角色：user | moderator */
+    role?: 'user' | 'moderator';
     createdAt: Date;
 }
 
@@ -39,6 +44,9 @@ const UserSchema: Schema = new Schema({
     nicknameChangeCount: { type: Number, default: 0 },
     passwordChangeCount: { type: Number, default: 0 },
     sceneLayout: { type: Schema.Types.Mixed },
+    email: { type: String, sparse: true, unique: true },
+    emailVerified: { type: Boolean, default: false },
+    role: { type: String, enum: ['user', 'moderator'], default: 'user' },
     createdAt: { type: Date, default: Date.now }
 });
 

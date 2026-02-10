@@ -41,7 +41,9 @@ const MessageSchema = new mongoose_1.Schema({
     content: { type: String, required: true },
     season: { type: String, enum: ['christmas', 'spring'], required: true },
     year: { type: Number, required: true },
+    sceneId: { type: String },
     isOpened: { type: Boolean, default: false },
+    isPrivate: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 });
 exports.default = mongoose_1.default.model('Message', MessageSchema);

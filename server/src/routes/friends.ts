@@ -139,13 +139,26 @@ router.get('/:friendId/decor', async (req: AuthRequest, res) => {
         if (!friend) return res.status(404).json({ error: "USER_NOT_FOUND" });
 
         const messages = await Message.find({ recipient: friendId, season: 'spring' })
-            .select('_id stickerType sceneId')
+            .select('_id stickerType sceneId isPrivate content sender createdAt')
+            .populate('sender', 'nickname avatar')
             .lean();
-        const messagesForClient = messages.map((m: any) => ({
-            _id: m._id.toString(),
-            stickerType: m.stickerType,
-            sceneId: m.sceneId,
-        }));
+        const messagesForClient = messages.map((m: any) => {
+            const base = {
+                _id: m._id.toString(),
+                stickerType: m.stickerType,
+                sceneId: m.sceneId,
+                isPrivate: !!m.isPrivate,
+            };
+            if (m.isPrivate) {
+                return base;
+            }
+            return {
+                ...base,
+                content: m.content,
+                sender: m.sender,
+                createdAt: m.createdAt,
+            };
+        });
 
         res.json({ ...friend, messages: messagesForClient });
     } catch (err) {

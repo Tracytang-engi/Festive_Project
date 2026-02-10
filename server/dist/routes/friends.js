@@ -14,6 +14,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const Friend_1 = __importDefault(require("../models/Friend"));
+const User_1 = __importDefault(require("../models/User"));
+const Message_1 = __importDefault(require("../models/Message"));
 const Notification_1 = __importDefault(require("../models/Notification"));
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = express_1.default.Router();
@@ -114,8 +116,51 @@ router.get('/requests', (req, res) => __awaiter(void 0, void 0, void 0, function
         const requests = yield Friend_1.default.find({
             recipient: userId,
             status: 'pending'
-        }).populate('requester', 'nickname profile');
+        }).populate('requester', 'nickname region avatar');
         res.json(requests);
+    }
+    catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+}));
+// GET /api/friends/:friendId/decor — 查看好友的主题装饰（仅好友可看）
+router.get('/:friendId/decor', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        const { friendId } = req.params;
+        if (!friendId)
+            return res.status(400).json({ error: "FRIEND_ID_REQUIRED" });
+        const link = yield Friend_1.default.findOne({
+            $or: [
+                { requester: userId, recipient: friendId, status: 'accepted' },
+                { requester: friendId, recipient: userId, status: 'accepted' }
+            ]
+        });
+        if (!link)
+            return res.status(403).json({ error: "NOT_FRIENDS", message: "仅可查看好友的装饰" });
+        const friend = yield User_1.default.findById(friendId)
+            .select('nickname avatar selectedScene themePreference customBackgrounds sceneLayout')
+            .lean();
+        if (!friend)
+            return res.status(404).json({ error: "USER_NOT_FOUND" });
+        const messages = yield Message_1.default.find({ recipient: friendId, season: 'spring' })
+            .select('_id stickerType sceneId isPrivate content sender createdAt')
+            .populate('sender', 'nickname avatar')
+            .lean();
+        const messagesForClient = messages.map((m) => {
+            const base = {
+                _id: m._id.toString(),
+                stickerType: m.stickerType,
+                sceneId: m.sceneId,
+                isPrivate: !!m.isPrivate,
+            };
+            if (m.isPrivate) {
+                return base;
+            }
+            return Object.assign(Object.assign({}, base), { content: m.content, sender: m.sender, createdAt: m.createdAt });
+        });
+        res.json(Object.assign(Object.assign({}, friend), { messages: messagesForClient }));
     }
     catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
@@ -131,8 +176,8 @@ router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 { requester: userId, status: 'accepted' },
                 { recipient: userId, status: 'accepted' }
             ]
-        }).populate('requester', 'nickname profile')
-            .populate('recipient', 'nickname profile');
+        }).populate('requester', 'nickname region avatar')
+            .populate('recipient', 'nickname region avatar');
         // Transform to return the *other* user
         const result = friends.map(f => {
             const isRequester = f.requester._id.toString() === userId;

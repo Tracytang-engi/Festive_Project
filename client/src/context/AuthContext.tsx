@@ -13,6 +13,7 @@ interface User {
     nicknameChangeCount?: number;
     passwordChangeCount?: number;
     sceneLayout?: Record<string, Record<string, { left: number; top: number }>>;
+    role?: 'user' | 'moderator';
 }
 
 interface AuthContextType {

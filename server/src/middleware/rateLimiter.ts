@@ -16,7 +16,6 @@ const rateLimiterPhone = new RateLimiterMemory({
 });
 
 export const ipLimiterMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    return next(); // Rate limit disabled for local testing - re-enable for production
     rateLimiterIp.consume(req.ip || 'unknown')
         .then(() => next())
         .catch(() => {
@@ -25,7 +24,6 @@ export const ipLimiterMiddleware = (req: Request, res: Response, next: NextFunct
 };
 
 export const phoneLimiterMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    return next(); // Rate limit disabled for local testing - re-enable for production
     const { phoneNumber } = req.body;
     if (!phoneNumber) return next();
 

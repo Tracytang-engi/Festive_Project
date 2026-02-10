@@ -34,13 +34,11 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const NotificationSchema = new mongoose_1.Schema({
-    recipient: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    type: { type: String, enum: ['FRIEND_REQUEST', 'CONNECTION_SUCCESS', 'NEW_MESSAGE'], required: true },
-    relatedUser: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
-    relatedEntityId: { type: mongoose_1.Schema.Types.ObjectId },
-    season: { type: String, enum: ['christmas', 'spring'] },
-    isRead: { type: Boolean, default: false },
+const ReportSchema = new mongoose_1.Schema({
+    message: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Message', required: true },
+    reporter: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    reason: { type: String },
+    status: { type: String, enum: ['pending', 'resolved', 'dismissed'], default: 'pending' },
     createdAt: { type: Date, default: Date.now }
 });
-exports.default = mongoose_1.default.model('Notification', NotificationSchema);
+exports.default = mongoose_1.default.model('Report', ReportSchema);

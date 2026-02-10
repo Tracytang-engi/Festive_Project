@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Layout/Sidebar';
-import { getFriendDecor, type FriendDecor } from '../api/friends';
+import { getFriendDecor, type FriendDecor, type FriendDecorMessage } from '../api/friends';
 import { getSceneName, getSpringSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, SCENE_ICONS } from '../constants/scenes';
 import { SERVER_ORIGIN } from '../api/client';
 import StickerIcon from '../components/StickerIcon';
+import StickerDetailModal from '../components/Messages/StickerDetailModal';
+import PrivateMessagePlaceholderModal from '../components/Messages/PrivateMessagePlaceholderModal';
 import { themeConfig } from '../constants/theme';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import type { Message } from '../types';
 
 const FriendDecorPage: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
@@ -20,6 +23,9 @@ const FriendDecorPage: React.FC = () => {
     const [viewingSceneId, setViewingSceneId] = useState<string | null>(null);
     /** 场景名称弹窗是否显示，进入场景后 1s 渐变消失 */
     const [sceneCardVisible, setSceneCardVisible] = useState(true);
+    /** 点击贴纸：私密占位弹窗 或 公开消息详情 */
+    const [showPrivatePlaceholder, setShowPrivatePlaceholder] = useState(false);
+    const [detailMessage, setDetailMessage] = useState<Message | null>(null);
 
     useEffect(() => {
         if (!userId) {
@@ -70,6 +76,14 @@ const FriendDecorPage: React.FC = () => {
         .filter(m => (m.sceneId || defaultSceneId) === pageScene)
         .map(m => ({ message: m, pos: springLayout[m._id] }))
         .filter(({ pos }) => pos && typeof pos.left === 'number' && typeof pos.top === 'number');
+
+    const handleStickerClick = (message: FriendDecorMessage) => {
+        if (message.isPrivate) {
+            setShowPrivatePlaceholder(true);
+        } else if (message.content !== undefined && message.sender) {
+            setDetailMessage(message as Message);
+        }
+    };
 
     if (loading) {
         return (
@@ -315,10 +329,14 @@ const FriendDecorPage: React.FC = () => {
                     </h1>
                 </div>
 
-                {/* 对方在该场景的布置：按 sceneLayout 位置显示具体贴纸 */}
+                {/* 对方在该场景的布置：按 sceneLayout 位置显示具体贴纸，可点击 */}
                 {stickersInScene.map(({ message, pos }) => (
                     <div
                         key={message._id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleStickerClick(message)}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleStickerClick(message); }}
                         style={{
                             position: 'absolute',
                             left: `${pos.left}%`,
@@ -329,7 +347,7 @@ const FriendDecorPage: React.FC = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            pointerEvents: 'none',
+                            cursor: 'pointer',
                             zIndex: 10,
                             filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))',
                         }}
@@ -357,6 +375,18 @@ const FriendDecorPage: React.FC = () => {
                         TA的春节场景与布置
                     </p>
                 </div>
+
+                {showPrivatePlaceholder && (
+                    <PrivateMessagePlaceholderModal onClose={() => setShowPrivatePlaceholder(false)} />
+                )}
+                {detailMessage && (
+                    <StickerDetailModal
+                        message={detailMessage}
+                        isUnlocked={true}
+                        onClose={() => setDetailMessage(null)}
+                        showReportButton={false}
+                    />
+                )}
             </div>
         </div>
     );
