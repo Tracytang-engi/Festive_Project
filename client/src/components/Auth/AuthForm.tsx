@@ -182,10 +182,12 @@ const AuthForm: React.FC = () => {
                         {step === 1 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
+                                    <label htmlFor="auth-userid" style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
                                         ID 号码
                                     </label>
                                     <input
+                                        id="auth-userid"
+                                        name="userId"
                                         type="text"
                                         className="ios-input"
                                         placeholder="1～10位数字或字母"
@@ -216,10 +218,12 @@ const AuthForm: React.FC = () => {
                                     ← 返回
                                 </button>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
+                                    <label htmlFor="auth-login-password" style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
                                         密码
                                     </label>
                                     <input
+                                        id="auth-login-password"
+                                        name="password"
                                         type="password"
                                         className="ios-input"
                                         placeholder="6位密码"
@@ -272,10 +276,12 @@ const AuthForm: React.FC = () => {
                             <div style={{ fontSize: '12px', color: 'var(--ios-gray)' }}>当前：<span style={{ fontSize: '20px' }}>{avatar}</span></div>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
+                            <label htmlFor="auth-register-nickname" style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
                                 名称
                             </label>
                             <input
+                                id="auth-register-nickname"
+                                name="nickname"
                                 type="text"
                                 className="ios-input"
                                 placeholder="设置您的显示名称"
@@ -285,10 +291,12 @@ const AuthForm: React.FC = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
+                            <label htmlFor="auth-register-region" style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
                                 地区
                             </label>
                             <select
+                                id="auth-register-region"
+                                name="region"
                                 className="ios-input"
                                 value={region}
                                 onChange={e => { setRegion(e.target.value); setError(''); }}
@@ -308,10 +316,12 @@ const AuthForm: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
+                            <label htmlFor="auth-register-userid" style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
                                 ID 号码
                             </label>
                             <input
+                                id="auth-register-userid"
+                                name="userId"
                                 type="text"
                                 className="ios-input"
                                 placeholder="1～10位数字或字母"
@@ -322,10 +332,12 @@ const AuthForm: React.FC = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
+                            <label htmlFor="auth-register-password" style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
                                 密码
                             </label>
                             <input
+                                id="auth-register-password"
+                                name="password"
                                 type="password"
                                 className="ios-input"
                                 placeholder="6位密码"

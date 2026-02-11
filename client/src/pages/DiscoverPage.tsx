@@ -135,6 +135,8 @@ const DiscoverPage: React.FC = () => {
                     style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '24px' }}
                 >
                     <input
+                        id="discover-search"
+                        name="discover-search"
                         type="text"
                         className="ios-input"
                         value={query}
@@ -142,6 +144,7 @@ const DiscoverPage: React.FC = () => {
                         onKeyDown={e => e.key === 'Enter' && handleSearch()}
                         placeholder={currentConfig.placeholder}
                         style={{ width: '300px', maxWidth: '100%', padding: '14px 18px', fontSize: '16px' }}
+                        aria-label={currentConfig.placeholder}
                     />
                     <button
                         className="ios-btn ios-btn-primary tap-scale"

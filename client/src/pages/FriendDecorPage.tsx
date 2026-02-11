@@ -41,8 +41,8 @@ const FriendDecorPage: React.FC = () => {
         if (SPRING_STICKER_CATEGORIES.some(c => c.id === scene)) return categoryToSceneId[scene] ?? DEFAULT_SPRING_SCENE;
         return null;
     };
-    /** 当前要查看的场景；null 表示在选场景步骤。从 URL ?scene= 初始化以便直接进入场景+发祝福。 */
-    const [viewingSceneId, setViewingSceneId] = useState<string | null>(() => resolveSceneFromUrl(new URLSearchParams(window.location.search).get('scene')));
+    /** 当前要查看的场景；null 表示在选场景步骤。无 URL scene 时默认进默认场景，直接看到对方贴纸。 */
+    const [viewingSceneId, setViewingSceneId] = useState<string | null>(() => resolveSceneFromUrl(new URLSearchParams(window.location.search).get('scene')) ?? DEFAULT_SPRING_SCENE);
     /** 场景名称弹窗是否显示，进入场景后 1s 渐变消失 */
     const [sceneCardVisible, setSceneCardVisible] = useState(true);
     /** 点击贴纸：私密占位弹窗 或 公开消息详情 */
@@ -448,7 +448,7 @@ const FriendDecorPage: React.FC = () => {
                 hideFriendSelect={true}
                 fixedSceneId={searchParams.get('compose') === '1' ? (searchParams.get('scene') ?? undefined) : undefined}
                 onSceneChosen={searchParams.get('compose') !== '1' ? (sceneId) => { navigate(`/friend/${userId}/decor?scene=${sceneId}&compose=1`); setShowComposeModal(false); } : undefined}
-                onSentSuccess={userId ? () => getFriendDecor(userId, { bustCache: true }).then(setDecor).catch(() => {}) : undefined}
+                onSentSuccess={userId ? (sceneId) => { getFriendDecor(userId, { bustCache: true }).then(setDecor).then(() => { if (sceneId) setViewingSceneId(sceneId); }).catch(() => {}); } : undefined}
             />
         </>
         );
@@ -630,7 +630,7 @@ const FriendDecorPage: React.FC = () => {
                     hideFriendSelect={true}
                     fixedSceneId={searchParams.get('compose') === '1' ? (searchParams.get('scene') ?? undefined) : undefined}
                     onSceneChosen={searchParams.get('compose') !== '1' ? (sceneId) => { navigate(`/friend/${userId}/decor?scene=${sceneId}&compose=1`); setShowComposeModal(false); } : undefined}
-                    onSentSuccess={userId ? () => getFriendDecor(userId, { bustCache: true }).then(setDecor).catch(() => {}) : undefined}
+                    onSentSuccess={userId ? (sceneId) => { getFriendDecor(userId, { bustCache: true }).then(setDecor).then(() => { if (sceneId) setViewingSceneId(sceneId); }).catch(() => {}); } : undefined}
                 />
             </div>
         </div>

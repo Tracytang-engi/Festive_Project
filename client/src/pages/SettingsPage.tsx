@@ -285,7 +285,7 @@ const SettingsPage: React.FC = () => {
 
                     {/* 修改昵称 */}
                     <div style={{ marginBottom: '24px' }}>
-                        <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, marginBottom: '8px' }}>
+                        <label htmlFor="settings-nickname" style={{ display: 'block', fontSize: '15px', fontWeight: 600, marginBottom: '8px' }}>
                             修改昵称 <span className="bilingual-en">Edit nickname</span>
                         </label>
                         <p style={{ margin: '0 0 8px', fontSize: '13px', color: '#666' }}>
@@ -293,6 +293,8 @@ const SettingsPage: React.FC = () => {
                         </p>
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                             <input
+                                id="settings-nickname"
+                                name="nickname"
                                 type="text"
                                 value={nicknameInput}
                                 onChange={(e) => setNicknameInput(e.target.value)}
@@ -346,7 +348,10 @@ const SettingsPage: React.FC = () => {
                             剩余修改次数 <span className="bilingual-en">Remaining</span>：{Math.max(0, passwordRemain)}/{PASSWORD_CHANGE_LIMIT}（每人限 1 次 <span className="bilingual-en">once per user</span>）
                         </p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <label htmlFor="settings-current-password" style={{ fontSize: '13px', color: '#666' }}>当前密码 <span className="bilingual-en">Current password</span></label>
                             <input
+                                id="settings-current-password"
+                                name="currentPassword"
                                 type="password"
                                 value={currentPassword}
                                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -359,7 +364,10 @@ const SettingsPage: React.FC = () => {
                                     fontSize: '15px'
                                 }}
                             />
+                            <label htmlFor="settings-new-password" style={{ fontSize: '13px', color: '#666' }}>新密码 6 位 <span className="bilingual-en">New password, 6 digits</span></label>
                             <input
+                                id="settings-new-password"
+                                name="newPassword"
                                 type="password"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
@@ -461,11 +469,14 @@ const SettingsPage: React.FC = () => {
                         onClick={() => fileInputRef.current?.click()}
                     >
                         <input
+                            id="custom-bg-file"
+                            name="customBackground"
                             ref={fileInputRef}
                             type="file"
                             accept="image/*"
                             onChange={handleFileChange}
                             style={{ display: 'none' }}
+                            aria-label="上传场景背景 Upload scene background"
                         />
                         {preview && (
                             <img

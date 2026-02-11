@@ -19,8 +19,8 @@ interface ComposeModalProps {
     fixedSceneId?: string;
     /** When user chooses a scene (category) from the first step, call this then close (navigate to friend's scene). */
     onSceneChosen?: (sceneId: string) => void;
-    /** 发送成功后调用（用于好友页刷新场景数据，让发送者看到刚发的贴纸） */
-    onSentSuccess?: () => void;
+    /** 发送成功后调用（用于好友页刷新场景数据，让发送者看到刚发的贴纸）；可选传入本次发送的场景 id，便于自动进入该场景视图 */
+    onSentSuccess?: (sceneId?: string) => void;
 }
 
 const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSeason = 'christmas', preselectedFriendId, hideFriendSelect = false, fixedSceneId, onSceneChosen, onSentSuccess }) => {
@@ -128,7 +128,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                 sceneId,
                 isPrivate,
             });
-            onSentSuccess?.();
+            onSentSuccess?.(sceneId);
             setContent('');
             setShowSentSuccess(true);
         } catch (err: any) {
@@ -299,6 +299,8 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                     <>
                         <label style={styles.label}>
                             <input
+                                id="compose-private"
+                                name="compose-private"
                                 type="checkbox"
                                 checked={isPrivate}
                                 onChange={e => setIsPrivate(e.target.checked)}
@@ -306,8 +308,10 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                             />
                             私密消息（仅你和对方可见内容，贴纸对所有人可见） <span className="bilingual-en">Private</span>
                         </label>
-                        <label style={styles.label}>留言 <span className="bilingual-en">Message</span></label>
+                        <label htmlFor="compose-message" style={styles.label}>留言 <span className="bilingual-en">Message</span></label>
                         <textarea
+                            id="compose-message"
+                            name="compose-message"
                             placeholder="写下祝福... Write your warm wishes..."
                             value={content}
                             onChange={e => setContent(e.target.value)}
