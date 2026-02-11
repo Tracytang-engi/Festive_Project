@@ -63,7 +63,8 @@ const NotificationsPage: React.FC = () => {
             setSelectedDetail({ message: data.message, isUnlocked: data.isUnlocked });
         } catch (err) {
             console.error(err);
-            setTip({ show: true, message: '无法加载贺卡详情，请稍后再试 Failed to load card. Please try again.' });
+            // 用与「未解锁」相同的「祝福已封存」弹窗，替代 403/错误提示框
+            setSelectedDetail({ message: {} as Message, isUnlocked: false });
         } finally {
             setDetailLoading(false);
         }
