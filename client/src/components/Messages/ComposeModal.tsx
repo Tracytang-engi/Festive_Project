@@ -111,8 +111,9 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
         if (season === 'spring' && (!selectedSceneId || !sticker)) {
             return setTip({ show: true, message: '请先选择分类并选择一张贴纸 Choose a category and a sticker first.' });
         }
+        // 后端与展示均用场景 id（spring_dinner 等）；fixedSceneId 来自 URL 可能是分类 id（eve_dinner），需转换
         const sceneId = fixedSceneId
-            ? fixedSceneId
+            ? (springCategoryToSceneId[fixedSceneId] ?? fixedSceneId)
             : season === 'spring'
                 ? (selectedSceneId ? springCategoryToSceneId[selectedSceneId] ?? defaultSceneId : defaultSceneId)
                 : (selectedSceneId ?? defaultSceneId);

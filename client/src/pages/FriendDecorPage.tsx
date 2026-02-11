@@ -4,7 +4,7 @@ import Sidebar from '../components/Layout/Sidebar';
 import { getFriendDecor, type FriendDecor, type FriendDecorMessage } from '../api/friends';
 import { updateMessagePosition, deleteMessage } from '../api/messages';
 import { getSceneName, getSpringSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, SCENE_ICONS } from '../constants/scenes';
-import { hasStickerImage } from '../constants/stickers';
+import { hasStickerImage, SPRING_STICKER_CATEGORIES } from '../constants/stickers';
 import { SERVER_ORIGIN } from '../api/client';
 import StickerIcon from '../components/StickerIcon';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
@@ -28,11 +28,21 @@ const FriendDecorPage: React.FC = () => {
     const [decor, setDecor] = useState<FriendDecor | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    /** 春节分类 id → 场景 id（与 ComposeModal 一致），用于 URL ?scene= 解析 */
+    const categoryToSceneId: Record<string, string> = {
+        eve_dinner: 'spring_dinner',
+        couplets: 'spring_couplets',
+        temple_fair: 'spring_temple_fair',
+        fireworks: 'spring_firecrackers',
+    };
+    const resolveSceneFromUrl = (scene: string | null): string | null => {
+        if (!scene) return null;
+        if (SPRING_SCENE_IDS.includes(scene)) return scene;
+        if (SPRING_STICKER_CATEGORIES.some(c => c.id === scene)) return categoryToSceneId[scene] ?? DEFAULT_SPRING_SCENE;
+        return null;
+    };
     /** 当前要查看的场景；null 表示在选场景步骤。从 URL ?scene= 初始化以便直接进入场景+发祝福。 */
-    const [viewingSceneId, setViewingSceneId] = useState<string | null>(() => {
-        const scene = new URLSearchParams(window.location.search).get('scene');
-        return scene && SPRING_SCENE_IDS.includes(scene) ? scene : null;
-    });
+    const [viewingSceneId, setViewingSceneId] = useState<string | null>(() => resolveSceneFromUrl(new URLSearchParams(window.location.search).get('scene')));
     /** 场景名称弹窗是否显示，进入场景后 1s 渐变消失 */
     const [sceneCardVisible, setSceneCardVisible] = useState(true);
     /** 点击贴纸：私密占位弹窗 或 公开消息详情 */
@@ -83,12 +93,9 @@ const FriendDecorPage: React.FC = () => {
     useEffect(() => {
         const scene = searchParams.get('scene');
         const compose = searchParams.get('compose');
-        if (scene && SPRING_SCENE_IDS.includes(scene)) {
-            setViewingSceneId(scene);
-        }
-        if (compose === '1') {
-            setShowComposeModal(true);
-        }
+        const resolved = resolveSceneFromUrl(scene);
+        if (resolved) setViewingSceneId(resolved);
+        if (compose === '1') setShowComposeModal(true);
     }, [searchParams]);
 
     useEffect(() => {
@@ -106,9 +113,12 @@ const FriendDecorPage: React.FC = () => {
     const springLayout = decor?.sceneLayout?.spring ?? {};
     const friendMessages = decor?.messages ?? [];
     const defaultSceneId = DEFAULT_SPRING_SCENE;
+    // 消息可能是场景 id（spring_dinner）或历史存的分类 id（eve_dinner），都算属于当前场景
+    const messageBelongsToScene = (msgSceneId: string | undefined) =>
+        (msgSceneId || defaultSceneId) === pageScene || categoryToSceneId[msgSceneId as string] === pageScene;
     const stickersInScene = friendMessages
         .filter(m => hasStickerImage(m.stickerType))
-        .filter(m => (m.sceneId || defaultSceneId) === pageScene)
+        .filter(m => messageBelongsToScene(m.sceneId))
         .map(m => ({ message: m, pos: springLayout[m._id] }))
         .filter(({ pos }) => pos && typeof pos.left === 'number' && typeof pos.top === 'number');
 
