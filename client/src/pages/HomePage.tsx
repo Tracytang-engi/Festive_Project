@@ -48,7 +48,7 @@ const HomePage: React.FC = () => {
             setMessages(prev => prev.filter(m => m._id !== messageId));
             if (detailMessage?._id === messageId) setDetailMessage(null);
         } catch {
-            alert(theme === 'spring' ? '删除失败，请重试' : 'Delete failed. Please try again.');
+            // 错误由 StickerDetailModal 内 TipModal 展示
         }
     };
 
@@ -85,7 +85,7 @@ const HomePage: React.FC = () => {
                         <>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexShrink: 0 }}>
                                 <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.95)', fontWeight: 600 }}>
-                                    收到的贴纸 (Stickers Received)
+                                    收到的贴纸 <span className="bilingual-en">Stickers Received</span>
                                 </span>
                                 <button
                                     type="button"
@@ -101,7 +101,7 @@ const HomePage: React.FC = () => {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                     }}
-                                    title="收起 (Collapse)"
+                                    title="收起 Collapse"
                                 >
                                     <ChevronLeft size={18} />
                                 </button>
@@ -194,7 +194,7 @@ const HomePage: React.FC = () => {
                                                         justifyContent: 'center',
                                                         boxSizing: 'border-box',
                                                     }}
-                                                    title={isUnlocked ? (theme === 'spring' ? '点击查看' : 'Click to view') : (theme === 'spring' ? '节日当天解锁' : 'Festival day unlock')}
+                                                    title={isUnlocked ? (theme === 'spring' ? '点击查看 Click to view' : 'Click to view') : (theme === 'spring' ? '节日当天解锁 Festival day unlock' : 'Festival day unlock')}
                                                 >
                                                     {isUnlocked ? <StickerIcon stickerType={msg.stickerType} size={44} /> : <span style={{ fontSize: '28px' }}>🔒</span>}
                                                 </button>
@@ -219,7 +219,7 @@ const HomePage: React.FC = () => {
                                                         justifyContent: 'center',
                                                         padding: 0,
                                                     }}
-                                                    title="删除 (Delete)"
+                                                    title="删除 Delete"
                                                 >
                                                     ×
                                                 </button>
@@ -252,7 +252,7 @@ const HomePage: React.FC = () => {
                                 justifyContent: 'center',
                                 padding: 0,
                             }}
-                            title="展开贴纸 (Expand stickers)"
+                            title="展开贴纸 Expand stickers"
                         >
                             <ChevronRight size={18} />
                         </button>

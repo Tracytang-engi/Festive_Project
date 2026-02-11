@@ -24,10 +24,16 @@ export const searchUsers = async (nickname: string): Promise<User[]> => {
     return response.data;
 };
 
-// Get pending friend requests
+// Get pending friend requests (received by me)
 export const getFriendRequests = async (): Promise<any[]> => {
     const response = await api.get('/friends/requests');
     return response.data;
+};
+
+/** 我发出的、待对方处理的好友请求对应的用户 ID 列表（发现页灰显「已发送」用） */
+export const getSentFriendRequestIds = async (): Promise<string[]> => {
+    const response = await api.get<string[]>('/friends/requests/sent');
+    return Array.isArray(response.data) ? response.data : [];
 };
 
 /** 好友的贴纸消息（仅用于展示布置） */

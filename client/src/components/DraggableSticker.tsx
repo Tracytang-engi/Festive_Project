@@ -80,7 +80,7 @@ const DraggableSticker: React.FC<DraggableStickerProps> = ({
             className="sticker-hover"
             title="Drag to move, click to view"
         >
-            <StickerIcon stickerType={message.stickerType} size={96} />
+            <StickerIcon stickerType={message.stickerType} size={144} />
         </div>
     );
 };

@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
+import TipModal from '../components/TipModal';
 import { getMessageDetail } from '../api/messages';
 import type { Message } from '../types';
 
@@ -18,6 +19,7 @@ const NotificationsPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [selectedDetail, setSelectedDetail] = useState<{ message: Message; isUnlocked: boolean } | null>(null);
     const [detailLoading, setDetailLoading] = useState(false);
+    const [tip, setTip] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
     useEffect(() => {
         const init = async () => {
@@ -61,7 +63,7 @@ const NotificationsPage: React.FC = () => {
             setSelectedDetail({ message: data.message, isUnlocked: data.isUnlocked });
         } catch (err) {
             console.error(err);
-            alert('无法加载贺卡详情，请稍后再试。');
+            setTip({ show: true, message: '无法加载贺卡详情，请稍后再试 Failed to load card. Please try again.' });
         } finally {
             setDetailLoading(false);
         }
@@ -85,7 +87,7 @@ const NotificationsPage: React.FC = () => {
     const styles: { [key: string]: React.CSSProperties } = {
         container: { display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' },
         main: {
-            flex: 1, padding: '32px 40px', color: 'white', overflowY: 'auto',
+            flex: 1, minWidth: 0, padding: 'var(--page-padding-y) var(--page-padding-x)', color: 'white', overflowY: 'auto',
             background: themeConfig[theme].mainBg,
             fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
             position: 'relative' as const,
@@ -111,17 +113,17 @@ const NotificationsPage: React.FC = () => {
             )}
             <div style={styles.main}>
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                    <h1>🔔 通知 (Notifications)</h1>
+                    <h1>🔔 通知 <span className="bilingual-en">Notifications</span></h1>
                     {notifications.some(n => !n.isRead) && (
                         <button className="ios-btn ios-btn-pill" onClick={handleMarkRead} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.9)', color: '#333' }}>
-                            全部已读 (Mark all read)
+                            全部已读 <span className="bilingual-en">Mark all read</span>
                         </button>
                     )}
                 </header>
 
-                {loading ? <p>加载中... (Loading...)</p> : (
+                {loading ? <p>加载中... <span className="bilingual-en">Loading...</span></p> : (
                     <div style={styles.list}>
-                        {notifications.length === 0 ? <p>暂无新通知 (No new updates here!)</p> : (
+                        {notifications.length === 0 ? <p>暂无新通知 <span className="bilingual-en">No new updates here!</span></p> : (
                             notifications.map(note => (
                                 <div
                                     key={note._id}
@@ -135,8 +137,8 @@ const NotificationsPage: React.FC = () => {
                                     </div>
                                     <div>
                                         <div style={{ fontWeight: 'bold' }}>
-                                            {note.type === 'FRIEND_REQUEST' ? '新好友请求 (New Friend Request)' :
-                                                note.type === 'NEW_MESSAGE' ? '新祝福消息 (New Festive Message)' : '已添加好友 (Friend Request Accepted)'}
+                                            {note.type === 'FRIEND_REQUEST' ? <>新好友请求 <span className="bilingual-en">New Friend Request</span></> :
+                                                note.type === 'NEW_MESSAGE' ? <>新祝福消息 <span className="bilingual-en">New Festive Message</span></> : <>已添加好友 <span className="bilingual-en">Friend Request Accepted</span></>}
                                         </div>
                                         <div style={{ fontSize: '14px', opacity: 0.9 }}>
                                             {note.type === 'FRIEND_REQUEST' ? `${note.relatedUser?.nickname} wants to be friends!` :
@@ -187,7 +189,7 @@ const NotificationsPage: React.FC = () => {
                         >
                             <div style={{ fontSize: '56px', marginBottom: '16px', lineHeight: 1 }}>🧧</div>
                             <h2 style={{ margin: '0 0 12px', fontSize: '20px', fontWeight: 700, color: '#b8860b' }}>
-                                祝福已封存 (Blessing sealed)
+                                祝福已封存 <span className="bilingual-en">Blessing sealed</span>
                             </h2>
                             <p style={{ margin: '0 0 24px', fontSize: '16px', lineHeight: 1.6, color: '#5c4a00' }}>
                                 这份心意要留到新年再拆开哦～ 届时再来打开，惊喜加倍！
@@ -209,7 +211,7 @@ const NotificationsPage: React.FC = () => {
                                     fontWeight: 600,
                                 }}
                             >
-                                返回 (Return)
+                                返回 <span className="bilingual-en">Return</span>
                             </button>
                         </div>
                     </div>
@@ -232,10 +234,11 @@ const NotificationsPage: React.FC = () => {
                         zIndex: 1500,
                         fontSize: '16px'
                     }}>
-                        正在打开贺卡... (Opening card...)
+                        正在打开贺卡... <span className="bilingual-en">Opening card...</span>
                     </div>
                 )}
             </div>
+            <TipModal show={tip.show} message={tip.message} onClose={() => setTip(prev => ({ ...prev, show: false }))} />
         </div>
     );
 };

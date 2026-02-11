@@ -7,12 +7,16 @@ import type { HistoryItem, HistorySceneData } from '../api/history';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import StickerIcon from '../components/StickerIcon';
+import TipModal from '../components/TipModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 const HistoryPage: React.FC = () => {
     const { theme } = useTheme();
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [selectedScene, setSelectedScene] = useState<HistorySceneData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [tip, setTip] = useState<{ show: boolean; message: string; isSuccess?: boolean }>({ show: false, message: '' });
+    const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
     useEffect(() => {
         loadHistory();
@@ -35,21 +39,21 @@ const HistoryPage: React.FC = () => {
             const data = await getHistoryDetail(id);
             setSelectedScene(data);
         } catch {
-            alert("Failed to load details");
+            setTip({ show: true, message: '加载详情失败，请稍后再试 Failed to load details.' });
         }
     };
 
-    const handleSimulateArchive = async () => {
+    const handleArchiveClick = () => setShowArchiveConfirm(true);
+
+    const handleArchiveConfirm = async () => {
+        setShowArchiveConfirm(false);
         const year = new Date().getFullYear();
-        const c = confirm(`Archive all messages for ${theme} ${year}? This will move them from your Inbox to History.`);
-        if (c) {
-            try {
-                await archiveSeason(year, theme);
-                alert("Archived! Check the list.");
-                loadHistory();
-            } catch {
-                alert("Archive failed (maybe empty? or server error)");
-            }
+        try {
+            await archiveSeason(year, theme);
+            setTip({ show: true, message: '已归档，请查看列表 Archived! Check the list.', isSuccess: true });
+            loadHistory();
+        } catch {
+            setTip({ show: true, message: '归档失败（可能为空或服务器错误） Archive failed.' });
         }
     };
 
@@ -65,7 +69,8 @@ const HistoryPage: React.FC = () => {
             )}
             <div style={{
                 flex: 1,
-                padding: '32px 40px',
+                minWidth: 0,
+                padding: 'var(--page-padding-y) var(--page-padding-x)',
                 overflowY: 'auto',
                 background: mainBg,
                 color: 'white',
@@ -82,10 +87,10 @@ const HistoryPage: React.FC = () => {
                     </h1>
                     <button
                         className="ios-btn ios-btn-pill tap-scale"
-                        onClick={handleSimulateArchive}
+                        onClick={handleArchiveClick}
                         style={{ background: '#FF9500', color: 'white', padding: '12px 24px' }}
                     >
-                        Archive Current Season
+                        归档本季 Archive Current Season
                     </button>
                 </header>
 
@@ -131,6 +136,16 @@ const HistoryPage: React.FC = () => {
                 </div>
             </div>
 
+            <TipModal show={tip.show} message={tip.message} isSuccess={tip.isSuccess} onClose={() => setTip(prev => ({ ...prev, show: false }))} />
+            <ConfirmModal
+                show={showArchiveConfirm}
+                message={`将本季（${theme} ${new Date().getFullYear()}）收件箱的贴纸归档到历史？ Archive to History?`}
+                confirmLabel="确定归档"
+                confirmLabelEn="Archive"
+                danger={false}
+                onConfirm={handleArchiveConfirm}
+                onCancel={() => setShowArchiveConfirm(false)}
+            />
             {selectedScene && (
                 <div
                     style={{

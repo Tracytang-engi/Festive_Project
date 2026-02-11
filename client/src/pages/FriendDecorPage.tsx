@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/Layout/Sidebar';
 import { getFriendDecor, type FriendDecor, type FriendDecorMessage } from '../api/friends';
-import { updateMessagePosition } from '../api/messages';
+import { updateMessagePosition, deleteMessage } from '../api/messages';
 import { getSceneName, getSpringSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, SCENE_ICONS } from '../constants/scenes';
 import { hasStickerImage } from '../constants/stickers';
 import { SERVER_ORIGIN } from '../api/client';
@@ -161,12 +161,23 @@ const FriendDecorPage: React.FC = () => {
         }
     };
 
+    const isOwner = !!(currentUser?._id && userId && currentUser._id === userId);
+    const handleDeleteSticker = useCallback(async (messageId: string) => {
+        try {
+            await deleteMessage(messageId);
+            setDetailMessage(null);
+            if (userId) getFriendDecor(userId).then(setDecor).catch(() => {});
+        } catch {
+            if (userId) getFriendDecor(userId).then(setDecor).catch(() => {});
+        }
+    }, [userId]);
+
     if (loading) {
         return (
             <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
                 <Sidebar />
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f2f2f7' }}>
-                    <p style={{ fontSize: '16px', color: '#666' }}>加载中... (Loading...)</p>
+                    <p style={{ fontSize: '16px', color: '#666' }}>加载中... <span className="bilingual-en">Loading...</span></p>
                 </div>
             </div>
         );
@@ -177,7 +188,7 @@ const FriendDecorPage: React.FC = () => {
             <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
                 <Sidebar />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f2f2f7', padding: '24px' }}>
-                    <p style={{ fontSize: '16px', color: '#c41e3a', marginBottom: '16px' }}>{error || '加载失败 (Load failed)'}</p>
+                    <p style={{ fontSize: '16px', color: '#c41e3a', marginBottom: '16px' }}>{error || <>加载失败 <span className="bilingual-en">Load failed</span></>}</p>
                     <button
                         type="button"
                         onClick={() => navigate('/friends')}
@@ -191,7 +202,7 @@ const FriendDecorPage: React.FC = () => {
                             fontSize: '15px',
                         }}
                     >
-                        返回好友 (Back to friends)
+                        返回好友 <span className="bilingual-en">Back to friends</span>
                     </button>
                 </div>
             </div>
@@ -245,7 +256,7 @@ const FriendDecorPage: React.FC = () => {
                                 cursor: 'pointer',
                                 boxShadow: 'var(--ios-shadow)',
                             }}
-                            title="返回好友 (Back to friends)"
+                            title="返回好友 Back to friends"
                         >
                             <ArrowLeft size={20} strokeWidth={2.5} />
                         </button>
@@ -257,7 +268,7 @@ const FriendDecorPage: React.FC = () => {
                             color: 'white',
                             textShadow: '0 2px 8px rgba(0,0,0,0.25)',
                         }}>
-                            选择场景 (Select scene)
+                            选择场景 <span className="bilingual-en">Select scene</span>
                         </h1>
                     </div>
                     <p style={{
@@ -269,7 +280,7 @@ const FriendDecorPage: React.FC = () => {
                         color: 'rgba(255,255,255,0.88)',
                         textShadow: '0 1px 2px rgba(0,0,0,0.2)',
                     }}>
-                        先选择一个场景，再进入对方页面 (First choose a scene, then view their page)
+                        先选择一个场景，再进入对方页面 <span className="bilingual-en">First choose a scene, then view their page</span>
                     </p>
 
                     {/* 先显示一个「选择场景查看」按钮，点击后再展开四个具体场景 */}
@@ -295,7 +306,7 @@ const FriendDecorPage: React.FC = () => {
                                 cursor: 'pointer',
                             }}
                         >
-                            <span style={{ display: 'block', width: '100%', textAlign: 'center' }}>选择场景查看 (Select scene to view)</span>
+                            <span style={{ display: 'block', width: '100%', textAlign: 'center' }}>选择场景查看 <span className="bilingual-en">Select scene to view</span></span>
                             <span style={{ position: 'absolute', right: '24px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', color: 'var(--ios-gray)' }}>→</span>
                         </button>
                     ) : (
@@ -412,7 +423,7 @@ const FriendDecorPage: React.FC = () => {
                             gap: '8px',
                         }}
                     >
-                        ✉️ 给 TA 发祝福 (Send a wish)
+                        ✉️ 给 TA 发祝福 <span className="bilingual-en">Send a wish</span>
                     </button>
                 </div>
             </div>
@@ -427,6 +438,7 @@ const FriendDecorPage: React.FC = () => {
                 hideFriendSelect={true}
                 fixedSceneId={searchParams.get('compose') === '1' ? (searchParams.get('scene') ?? undefined) : undefined}
                 onSceneChosen={searchParams.get('compose') !== '1' ? (sceneId) => { navigate(`/friend/${userId}/decor?scene=${sceneId}&compose=1`); setShowComposeModal(false); } : undefined}
+                onSentSuccess={userId ? () => getFriendDecor(userId).then(setDecor).catch(() => {}) : undefined}
             />
         </>
         );
@@ -488,7 +500,7 @@ const FriendDecorPage: React.FC = () => {
                             cursor: 'pointer',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                         }}
-                        title="返回选择场景 (Back to scenes)"
+                        title="返回选择场景 Back to scenes"
                     >
                         <ArrowLeft size={22} />
                     </button>
@@ -519,9 +531,11 @@ const FriendDecorPage: React.FC = () => {
                     </button>
                 </div>
 
-                {/* 对方在该场景的布置：按 sceneLayout 位置显示具体贴纸，可点击；发送者可拖拽自己的贴纸改位置 */}
+                {/* 该场景布置：过年之前发送方与房主可拖；过年之后仅房主可拖；点击查看详情 */}
                 {stickersInScene.map(({ message, pos }) => {
                     const isMySticker = currentUser?._id && message.sender?._id && message.sender._id === currentUser._id;
+                    const afterFestival = !!decor?.isUnlocked;
+                    const canDrag = isOwner || (isMySticker && !afterFestival);
                     const displayPos = draggingSticker?.messageId === message._id
                         ? { left: draggingSticker.left, top: draggingSticker.top }
                         : pos;
@@ -537,27 +551,27 @@ const FriendDecorPage: React.FC = () => {
                                     justDraggedRef.current = false;
                                     return;
                                 }
-                                if (!isMySticker) handleStickerClick(message);
+                                handleStickerClick(message);
                             }}
-                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { if (!isMySticker) handleStickerClick(message); } }}
-                            onMouseDown={isMySticker ? (e) => { e.preventDefault(); setDraggingSticker({ messageId: message._id, left: pos.left, top: pos.top }); } : undefined}
+                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleStickerClick(message); }}
+                            onMouseDown={canDrag ? (e) => { e.preventDefault(); setDraggingSticker({ messageId: message._id, left: pos.left, top: pos.top }); } : undefined}
                             style={{
                                 position: 'absolute',
                                 left: `${displayPos.left}%`,
                                 top: `${displayPos.top}%`,
                                 transform: 'translate(-50%, -50%)',
-                                width: 'clamp(48px, 7vw, 80px)',
-                                height: 'clamp(48px, 7vw, 80px)',
+                                width: 'clamp(96px, 14vw, 160px)',
+                                height: 'clamp(96px, 14vw, 160px)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                cursor: isMySticker ? (draggingSticker?.messageId === message._id ? 'grabbing' : 'grab') : 'pointer',
+                                cursor: canDrag ? (draggingSticker?.messageId === message._id ? 'grabbing' : 'grab') : 'pointer',
                                 zIndex: draggingSticker?.messageId === message._id ? 20 : 10,
                                 filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))',
                                 userSelect: 'none',
                             }}
                         >
-                            <StickerIcon stickerType={message.stickerType} size={72} />
+                            <StickerIcon stickerType={message.stickerType} size={144} />
                         </div>
                     );
                 })}
@@ -591,6 +605,7 @@ const FriendDecorPage: React.FC = () => {
                         isUnlocked={(decor?.isUnlocked ?? false) || !!(currentUser?._id && (detailMessage as FriendDecorMessage).sender?._id === currentUser._id)}
                         onClose={() => setDetailMessage(null)}
                         showReportButton={false}
+                        onDelete={isOwner ? handleDeleteSticker : undefined}
                     />
                 )}
                 <ComposeModal
@@ -598,13 +613,14 @@ const FriendDecorPage: React.FC = () => {
                     onClose={() => {
                         setShowComposeModal(false);
                         if (searchParams.get('compose') === '1') navigate(`/friend/${userId}/decor`, { replace: true });
-                        if (viewingSceneId && decor) getFriendDecor(userId!).then(setDecor).catch(() => {});
+                        if (viewingSceneId && userId) getFriendDecor(userId).then(setDecor).catch(() => {});
                     }}
                     initialSeason="spring"
                     preselectedFriendId={userId ?? undefined}
                     hideFriendSelect={true}
                     fixedSceneId={searchParams.get('compose') === '1' ? (searchParams.get('scene') ?? undefined) : undefined}
                     onSceneChosen={searchParams.get('compose') !== '1' ? (sceneId) => { navigate(`/friend/${userId}/decor?scene=${sceneId}&compose=1`); setShowComposeModal(false); } : undefined}
+                    onSentSuccess={userId ? () => getFriendDecor(userId).then(setDecor).catch(() => {}) : undefined}
                 />
             </div>
         </div>

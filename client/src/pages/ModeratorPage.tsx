@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Layout/Sidebar';
+import TipModal from '../components/TipModal';
 import { getReports, resolveReport, dismissReport, type ReportItem } from '../api/admin';
 
 const ModeratorPage: React.FC = () => {
@@ -9,6 +10,7 @@ const ModeratorPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [actingId, setActingId] = useState<string | null>(null);
+    const [tip, setTip] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
     const fetchReports = async () => {
         setLoading(true);
@@ -37,7 +39,7 @@ const ModeratorPage: React.FC = () => {
             await resolveReport(reportId, deleteMessage);
             setReports(prev => prev.filter(r => r._id !== reportId));
         } catch {
-            alert('操作失败');
+            setTip({ show: true, message: '操作失败，请重试 Operation failed. Please try again.' });
         } finally {
             setActingId(null);
         }
@@ -49,7 +51,7 @@ const ModeratorPage: React.FC = () => {
             await dismissReport(reportId);
             setReports(prev => prev.filter(r => r._id !== reportId));
         } catch {
-            alert('操作失败');
+            setTip({ show: true, message: '操作失败，请重试 Operation failed. Please try again.' });
         } finally {
             setActingId(null);
         }
@@ -59,9 +61,9 @@ const ModeratorPage: React.FC = () => {
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
             <Sidebar />
             <div style={{ flex: 1, padding: '24px', background: '#f2f2f7', overflowY: 'auto' }}>
-                <h1 style={{ margin: '0 0 24px', fontSize: '24px', fontWeight: 600 }}>举报审核 (Reports)</h1>
+                <h1 style={{ margin: '0 0 24px', fontSize: '24px', fontWeight: 600 }}>举报审核 <span className="bilingual-en">Reports</span></h1>
 
-                {loading && <p>加载中... (Loading...)</p>}
+                {loading && <p>加载中... <span className="bilingual-en">Loading...</span></p>}
                 {error && (
                     <div style={{ padding: '16px', background: '#ffebee', borderRadius: '12px', color: '#c62828', marginBottom: '16px' }}>
                         {error}
@@ -70,14 +72,14 @@ const ModeratorPage: React.FC = () => {
                                 onClick={() => navigate('/')}
                                 style={{ marginLeft: '12px', padding: '6px 12px', cursor: 'pointer' }}
                             >
-                                返回首页 (Back)
+                                返回首页 <span className="bilingual-en">Back</span>
                             </button>
                         )}
                     </div>
                 )}
 
                 {!loading && !error && reports.length === 0 && (
-                    <p style={{ color: '#666' }}>暂无待审核举报 (No pending reports)</p>
+                    <p style={{ color: '#666' }}>暂无待审核举报 <span className="bilingual-en">No pending reports</span></p>
                 )}
 
                 {!loading && reports.length > 0 && (
@@ -130,7 +132,7 @@ const ModeratorPage: React.FC = () => {
                                             fontSize: '14px',
                                         }}
                                     >
-                                        通过 (Approve)
+                                        通过 <span className="bilingual-en">Approve</span>
                                     </button>
                                     <button
                                         onClick={() => handleResolve(r._id, true)}
@@ -145,7 +147,7 @@ const ModeratorPage: React.FC = () => {
                                             fontSize: '14px',
                                         }}
                                     >
-                                        通过并删除消息 (Approve & delete)
+                                        通过并删除消息 <span className="bilingual-en">Approve & delete</span>
                                     </button>
                                     <button
                                         onClick={() => handleDismiss(r._id)}
@@ -160,7 +162,7 @@ const ModeratorPage: React.FC = () => {
                                             fontSize: '14px',
                                         }}
                                     >
-                                        驳回 (Dismiss)
+                                        驳回 <span className="bilingual-en">Dismiss</span>
                                     </button>
                                 </div>
                             </div>
@@ -168,6 +170,7 @@ const ModeratorPage: React.FC = () => {
                     </div>
                 )}
             </div>
+            <TipModal show={tip.show} message={tip.message} onClose={() => setTip(prev => ({ ...prev, show: false }))} />
         </div>
     );
 };

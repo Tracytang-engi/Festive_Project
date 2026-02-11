@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StickerIcon from '../StickerIcon';
+import TipModal from '../TipModal';
+import ConfirmModal from '../ConfirmModal';
 import { reportMessage } from '../../api/messages';
 import type { Message } from '../../types';
+
+type OpenPhase = 'shake' | 'reveal';
 
 interface StickerDetailModalProps {
     message: Message;
@@ -17,6 +21,30 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
     const [reporting, setReporting] = useState(false);
     const [reported, setReported] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [openPhase, setOpenPhase] = useState<OpenPhase>(isUnlocked ? 'shake' : 'reveal');
+    const [showFirework, setShowFirework] = useState(false);
+    const [tip, setTip] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    // 打开贴纸：先抖两下，再进入内容并播放烟花
+    useEffect(() => {
+        if (!isUnlocked) {
+            setOpenPhase('reveal');
+            setShowFirework(false);
+            return;
+        }
+        setOpenPhase('shake');
+        setShowFirework(false);
+        const t1 = setTimeout(() => {
+            setOpenPhase('reveal');
+            setShowFirework(true);
+        }, 650);
+        const t2 = setTimeout(() => setShowFirework(false), 1100);
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+        };
+    }, [message._id, isUnlocked]);
 
     const handleReport = async () => {
         if (reported || reporting) return;
@@ -25,21 +53,26 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
             await reportMessage(message._id);
             setReported(true);
         } catch {
-            alert('举报失败，请重试');
+            setTip({ show: true, message: '举报失败，请重试 Report failed. Please try again.' });
         } finally {
             setReporting(false);
         }
     };
 
-    const handleDelete = async () => {
+    const handleDeleteClick = () => {
         if (!onDelete || deleting) return;
-        if (!window.confirm('确定删除这张贴纸？')) return;
+        setShowDeleteConfirm(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!onDelete || deleting) return;
+        setShowDeleteConfirm(false);
         setDeleting(true);
         try {
             await onDelete(message._id);
             onClose();
         } catch {
-            alert('删除失败，请重试');
+            setTip({ show: true, message: '删除失败，请重试 Delete failed. Please try again.' });
         } finally {
             setDeleting(false);
         }
@@ -79,10 +112,10 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
                 }}
                 onClick={e => e.stopPropagation()}
             >
-                {onDelete && (
+                {onDelete && openPhase === 'reveal' && (
                     <button
                         type="button"
-                        onClick={handleDelete}
+                        onClick={handleDeleteClick}
                         disabled={deleting}
                         className="tap-scale"
                         style={{
@@ -100,14 +133,49 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
                             opacity: deleting ? 0.7 : 1,
                         }}
                     >
-                        {deleting ? '删除中... (Deleting...)' : '删除贴纸 (Delete)'}
+                        {deleting ? <>删除中... <span className="bilingual-en">Deleting...</span></> : <>删除贴纸 <span className="bilingual-en">Delete</span></>}
                     </button>
                 )}
-                <div style={{ textAlign: 'center', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
-                    {isUnlocked ? <StickerIcon stickerType={message.stickerType} size={180} /> : <span style={{ fontSize: '112px' }}>🔒</span>}
+                {/* 打开贴纸：先抖两下，再进入内容 + 烟花绽放 */}
+                <div style={{ textAlign: 'center', marginBottom: '16px', display: 'flex', justifyContent: 'center', position: 'relative', minHeight: openPhase === 'reveal' && isUnlocked ? '200px' : 'auto' }}>
+                    {openPhase === 'reveal' && showFirework && (
+                        <div className="sticker-firework-wrap" aria-hidden>
+                            <span className="sticker-firework-core" />
+                            {Array.from({ length: 24 }, (_, i) => {
+                                const angle = (i / 24) * 2 * Math.PI - Math.PI / 2;
+                                const r = 72 + (i % 3) * 18;
+                                const endX = Math.cos(angle) * r;
+                                const endY = Math.sin(angle) * r + 22;
+                                const hue = (i * 19 + 12) % 360;
+                                const deg = (angle * 180) / Math.PI;
+                                return (
+                                    <span
+                                        key={i}
+                                        className="sticker-firework-spark"
+                                        style={{
+                                            '--fw-x': `${endX}px`,
+                                            '--fw-y': `${endY}px`,
+                                            '--fw-deg': `${deg}deg`,
+                                            '--fw-hue': hue,
+                                            animationDelay: `${(i % 8) * 0.015}s`,
+                                        } as React.CSSProperties}
+                                    />
+                                );
+                            })}
+                        </div>
+                    )}
+                    {isUnlocked ? (
+                        <div className={openPhase === 'shake' ? 'sticker-open-shake' : 'sticker-reveal-content'} style={{ position: 'relative', zIndex: 1 }}>
+                            <StickerIcon stickerType={message.stickerType} size={180} />
+                        </div>
+                    ) : (
+                        <span style={{ fontSize: '112px' }}>🔒</span>
+                    )}
                 </div>
+                {(openPhase === 'reveal' || !isUnlocked) && (
+                    <>
                 <div style={{ marginBottom: '8px', fontSize: '14px', color: '#8e8e93' }}>
-                    来自 (From): <strong style={{ color: '#333' }}>{senderName}</strong>
+                    来自 <span className="bilingual-en">From</span>: <strong style={{ color: '#333' }}>{senderName}</strong>
                 </div>
                 <div style={{
                     background: '#f2f2f7',
@@ -140,7 +208,7 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
                                 fontSize: '15px',
                             }}
                         >
-                            {reported ? '已举报 (Reported)' : reporting ? '举报中... (Reporting...)' : '举报 (Report)'}
+                            {reported ? <>已举报 <span className="bilingual-en">Reported</span></> : reporting ? <>举报中... <span className="bilingual-en">Reporting...</span></> : <>举报 <span className="bilingual-en">Report</span></>}
                         </button>
                     )}
                     <button
@@ -157,10 +225,19 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
                             fontSize: '16px',
                         }}
                     >
-                        关闭 (Close)
+                        关闭 <span className="bilingual-en">Close</span>
                     </button>
                 </div>
+                    </>
+                )}
             </div>
+            <TipModal show={tip.show} message={tip.message} onClose={() => setTip(prev => ({ ...prev, show: false }))} />
+            <ConfirmModal
+                show={showDeleteConfirm}
+                message="确定删除这张贴纸？ Delete this sticker?"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setShowDeleteConfirm(false)}
+            />
         </div>
     );
 };

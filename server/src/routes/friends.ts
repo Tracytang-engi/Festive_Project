@@ -59,7 +59,7 @@ router.post('/respond', async (req: AuthRequest, res) => {
 
         // Verify recipient is current user
         if (request.recipient.toString() !== userId) {
-            return res.status(403).json({ error: "Unauthorized" });
+            return res.status(403).json({ error: "UNAUTHORIZED", message: "无权操作此请求 Unauthorized to respond to this request." });
         }
 
         if (action === 'accept') {
@@ -103,6 +103,20 @@ router.get('/check/:targetId', async (req: AuthRequest, res) => {
     }
 });
 
+// GET /api/friends/requests/sent — 我发出的、待对方处理的好友请求（用于发现页灰显「已发送」）
+router.get('/requests/sent', async (req: AuthRequest, res) => {
+    try {
+        const userId = req.user?.id;
+        const list = await Friend.find({ requester: userId, status: 'pending' })
+            .select('recipient')
+            .lean();
+        const sentToIds = list.map((r: any) => r.recipient.toString());
+        res.json(sentToIds);
+    } catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
 // GET /api/friends/requests
 router.get('/requests', async (req: AuthRequest, res) => {
     try {
@@ -131,7 +145,7 @@ router.get('/:friendId/decor', async (req: AuthRequest, res) => {
                 { requester: friendId, recipient: userId, status: 'accepted' }
             ]
         });
-        if (!link) return res.status(403).json({ error: "NOT_FRIENDS", message: "仅可查看好友的装饰" });
+        if (!link) return res.status(403).json({ error: "NOT_FRIENDS", message: "仅可查看好友的装饰 Only friends can view this decor." });
 
         const friend = await User.findById(friendId)
             .select('nickname avatar selectedScene themePreference customBackgrounds sceneLayout')
@@ -155,6 +169,13 @@ router.get('/:friendId/decor', async (req: AuthRequest, res) => {
         else if (currentYear === 2026 && month === 1 && date >= 17) isUnlocked = true;
         else if (currentYear === 2027 && month === 1 && date >= 6) isUnlocked = true;
         else if (currentYear === 2024 && month === 1 && date >= 10) isUnlocked = true;
+        // 测试账号可提前预览好友页贴纸
+        if (!isUnlocked && userId) {
+            const viewer = await User.findById(userId).select('userId role').lean();
+            if (viewer && (viewer.userId === '111111' || viewer.userId === '20070421' || viewer.role === 'moderator')) {
+                isUnlocked = true;
+            }
+        }
 
         const messagesForClient = messages.map((m: any) => {
             const base = {

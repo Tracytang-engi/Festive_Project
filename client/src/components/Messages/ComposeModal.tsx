@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getFriends } from '../../api/friends';
 import { sendMessage } from '../../api/messages';
 import StickerIcon from '../StickerIcon';
+import TipModal from '../TipModal';
 import { getStickersForScene, getStickersByCategory, SPRING_STICKER_CATEGORIES, SPRING_CATEGORY_ICONS } from '../../constants/stickers';
 import { CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName } from '../../constants/scenes';
 import type { User } from '../../types';
@@ -18,9 +19,11 @@ interface ComposeModalProps {
     fixedSceneId?: string;
     /** When user chooses a scene (category) from the first step, call this then close (navigate to friend's scene). */
     onSceneChosen?: (sceneId: string) => void;
+    /** 发送成功后调用（用于好友页刷新场景数据，让发送者看到刚发的贴纸） */
+    onSentSuccess?: () => void;
 }
 
-const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSeason = 'christmas', preselectedFriendId, hideFriendSelect = false, fixedSceneId, onSceneChosen }) => {
+const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSeason = 'christmas', preselectedFriendId, hideFriendSelect = false, fixedSceneId, onSceneChosen, onSentSuccess }) => {
     const [friends, setFriends] = useState<User[]>([]);
     const [selectedFriend, setSelectedFriend] = useState<string>('');
     const [season, setSeason] = useState<'christmas' | 'spring'>(initialSeason);
@@ -30,12 +33,15 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
     const [content, setContent] = useState('');
     const [isPrivate, setIsPrivate] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [showSentSuccess, setShowSentSuccess] = useState(false);
+    const [tip, setTip] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
     const sceneIds = season === 'spring' ? SPRING_STICKER_CATEGORIES.map(c => c.id) : [...CHRISTMAS_SCENE_IDS];
     const defaultSceneId = season === 'spring' ? 'spring_dinner' : 'xmas_1';
 
     useEffect(() => {
         if (isOpen) {
+            setShowSentSuccess(false);
             loadFriends();
             setSeason(initialSeason);
             if (fixedSceneId && sceneIdToCategory[fixedSceneId]) {
@@ -92,12 +98,19 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
 
     const handleSend = async () => {
         if (!selectedFriend) {
-            return alert(friends.length === 0
-                ? (season === 'spring' ? '请先添加好友 (Add friends first)' : 'Please add friends first.')
-                : (season === 'spring' ? '请先选择一位好友' : 'Select a friend first!'));
+            return setTip({
+                show: true,
+                message: friends.length === 0
+                    ? '请先添加好友 Add friends first.'
+                    : '请先选择一位好友 Select a friend first.',
+            });
         }
-        if (!content.trim()) return alert(season === 'spring' ? '请写一句祝福 (Write a message!)' : "Write a message!");
-        if (season === 'spring' && (!selectedSceneId || !sticker)) return alert("请先选择分类并选择一张贴纸");
+        if (!content.trim()) {
+            return setTip({ show: true, message: '请写一句祝福 Write a message!' });
+        }
+        if (season === 'spring' && (!selectedSceneId || !sticker)) {
+            return setTip({ show: true, message: '请先选择分类并选择一张贴纸 Choose a category and a sticker first.' });
+        }
         const sceneId = fixedSceneId
             ? fixedSceneId
             : season === 'spring'
@@ -114,11 +127,12 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                 sceneId,
                 isPrivate,
             });
-            alert("Message sent!");
-            onClose();
+            onSentSuccess?.();
             setContent('');
-        } catch {
-            alert("Failed to send message.");
+            setShowSentSuccess(true);
+        } catch (err: any) {
+            const msg = err?.response?.data?.message || err?.response?.data?.error || '发送失败，请重试';
+            setTip({ show: true, message: typeof msg === 'string' ? msg : '发送失败，请重试 Send failed. Please try again.' });
         } finally {
             setLoading(false);
         }
@@ -137,8 +151,30 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
     return (
         <div style={styles.overlay}>
             <div style={styles.modal}>
+                {showSentSuccess ? (
+                    <>
+                        <div style={{ textAlign: 'center', padding: '24px 0 16px' }}>
+                            <div style={{ fontSize: '48px', marginBottom: '16px', lineHeight: 1 }}>✅</div>
+                            <p style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#333' }}>
+                                发送成功！ <span className="bilingual-en">Sent!</span>
+                            </p>
+                            <p style={{ margin: '14px 0 0', padding: '12px 14px', background: 'rgba(0,122,255,0.08)', borderRadius: '10px', fontSize: '15px', fontWeight: 500, color: '#007AFF', lineHeight: 1.5 }}>
+                                可以在好友页面装饰贴纸 <span className="bilingual-en">You can decorate stickers on the friend's page</span>
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            className="ios-btn tap-scale"
+                            onClick={() => { setShowSentSuccess(false); onClose(); }}
+                            style={{ width: '100%', padding: '12px', background: 'var(--ios-blue)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', cursor: 'pointer', fontWeight: 500 }}
+                        >
+                            知道了 <span className="bilingual-en">Got it</span>
+                        </button>
+                    </>
+                ) : (
+                <>
                 <div style={styles.headerRow}>
-                    <h3 style={styles.title}>发送节日祝福 (Send a Festive Greeting)</h3>
+                    <h3 style={styles.title}>发送节日祝福 <span className="bilingual-en">Send a Festive Greeting</span></h3>
                     <button
                         type="button"
                         onClick={onClose}
@@ -150,7 +186,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
 
                 {!hideFriendSelect && (
                     <>
-                        <label style={styles.label}>发送给 (To)</label>
+                        <label style={styles.label}>发送给 <span className="bilingual-en">To</span></label>
                         <select value={selectedFriend} onChange={e => setSelectedFriend(e.target.value)} className="ios-input" style={styles.input}>
                             {friends.map(f => (
                                 <option key={f._id} value={f._id}>{f.nickname} ({f.region ?? '未设置地区'})</option>
@@ -160,23 +196,23 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                 )}
                 {hideFriendSelect && friends.length > 0 && (
                     <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
-                        发送给 (To): <strong>{friends.find(f => f._id === selectedFriend)?.nickname ?? selectedFriend}</strong>
+                        发送给 <span className="bilingual-en">To</span>: <strong>{friends.find(f => f._id === selectedFriend)?.nickname ?? selectedFriend}</strong>
                     </p>
                 )}
 
                 {!sceneOnlyStep && !fixedSceneId && (
                     <>
-                        <label style={styles.label}>季节 (Season)</label>
-                        <div className="ios-segmented" style={styles.toggles}>
-                            <button className={season === 'christmas' ? 'active' : ''} onClick={() => { setSeason('christmas'); setSelectedSceneId(null); }}>圣诞 (Christmas)</button>
-                            <button className={season === 'spring' ? 'active' : ''} onClick={() => { setSeason('spring'); setSelectedSceneId(null); }}>春节 (Spring Festival)</button>
+                        <label style={styles.label}>季节 Season</label>
+                        <div className="ios-segmented ios-segmented-bilingual" style={styles.toggles}>
+                            <button className={season === 'christmas' ? 'active' : ''} onClick={() => { setSeason('christmas'); setSelectedSceneId(null); }}>圣诞 <span className="tab-en">Christmas</span></button>
+                            <button className={season === 'spring' ? 'active' : ''} onClick={() => { setSeason('spring'); setSelectedSceneId(null); }}>春节 <span className="tab-en">Spring</span></button>
                         </div>
                     </>
                 )}
 
                 {sceneOnlyStep ? (
                     <>
-                        <label style={styles.label}>选择场景 (Choose the scene to give stickers)</label>
+                        <label style={styles.label}>选择场景 <span className="bilingual-en">Choose the scene to give stickers</span></label>
                         <div style={styles.sceneGrid}>
                             {SPRING_STICKER_CATEGORIES.map(cat => (
                                 <button
@@ -198,7 +234,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                     </>
                 ) : (
                     <>
-                        <label style={styles.label}>{showScenePicker ? '选择分类 (Choose Category)' : '选择贴纸 (Choose Sticker)'}</label>
+                        <label style={styles.label}>{showScenePicker ? <>选择分类 <span className="bilingual-en">Choose Category</span></> : <>选择贴纸 <span className="bilingual-en">Choose Sticker</span></>}</label>
                         {showScenePicker ? (
                             <div style={styles.sceneGrid}>
                                 {sceneIds.map(sid => {
@@ -236,7 +272,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                             <>
                                 {!fixedSceneId && (
                                     <button type="button" onClick={() => setSelectedSceneId(null)} style={styles.backBtn}>
-                                        ← 换分类 (Change category)
+                                        ← 换分类 <span className="bilingual-en">Change category</span>
                                     </button>
                                 )}
                                 <div style={styles.stickersWrap}>
@@ -267,25 +303,28 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, initialSea
                                 onChange={e => setIsPrivate(e.target.checked)}
                                 style={{ marginRight: '8px' }}
                             />
-                            私密消息（仅你和对方可见内容，贴纸对所有人可见） (Private)
+                            私密消息（仅你和对方可见内容，贴纸对所有人可见） <span className="bilingual-en">Private</span>
                         </label>
-                        <label style={styles.label}>留言 (Message)</label>
+                        <label style={styles.label}>留言 <span className="bilingual-en">Message</span></label>
                         <textarea
-                            placeholder="写下祝福... (Write your warm wishes...)"
+                            placeholder="写下祝福... Write your warm wishes..."
                             value={content}
                             onChange={e => setContent(e.target.value)}
                             style={styles.textarea}
                         />
 
                         <div style={styles.actions}>
-                            <button className="ios-btn tap-scale" onClick={onClose} style={styles.cancelBtn}>取消 (Cancel)</button>
+                            <button className="ios-btn tap-scale" onClick={onClose} style={styles.cancelBtn}>取消 <span className="bilingual-en">Cancel</span></button>
                             <button className="ios-btn tap-scale" onClick={handleSend} disabled={loading} style={styles.sendBtn}>
-                                {loading ? '发送中... (Sending...)' : '发送祝福 (Send Wishes)'}
+                                {loading ? <>发送中... <span className="bilingual-en">Sending...</span></> : <>发送祝福 <span className="bilingual-en">Send Wishes</span></>}
                             </button>
                         </div>
                     </>
                 )}
+                </>
+                )}
             </div>
+            <TipModal show={tip.show} message={tip.message} onClose={() => setTip(prev => ({ ...prev, show: false }))} />
         </div>
     );
 };

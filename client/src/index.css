@@ -1,3 +1,8 @@
+/* 全局盒模型与移动端防错位 */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 :root {
   --christmas-red: #c41e3a;
   --christmas-green: #2f5a28;
@@ -32,6 +37,9 @@
   --icon-lg: clamp(31px, 3.4vw, 45px);
   --icon-xl: clamp(40px, 4.5vw, 63px);
 
+  /* 移动端主内容区内边距 */
+  --page-padding-x: 40px;
+  --page-padding-y: 32px;
 }
 
 /* 主题切换区域 - iOS 风格 */
@@ -69,11 +77,23 @@
   color: #333;
   opacity: 0.7;
   letter-spacing: 0.3px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+}
+.theme-switcher-item .theme-label-en {
+  display: block;
+  font-size: 9px;
+  font-weight: 400;
+  opacity: 0.85;
 }
 .theme-switcher-item.active .theme-label {
   opacity: 1;
   font-weight: 600;
   color: #000;
+}
+.theme-switcher-item.active .theme-label-en {
+  opacity: 1;
 }
 
 /* 响应式图标 - lucide SVG 继承父级 font-size */
@@ -157,18 +177,37 @@
   transform: scale(1.04) !important;
 }
 
-/* 发现页列表项点击 */
+/* 发现页列表项点击 + 手机端防错位 */
 .discover-item {
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .discover-item:active {
   transform: scale(1.01);
 }
+/* 列表项内文字区域可收缩、自动换行，避免撑出横向滚动 */
+.discover-item > div:first-of-type {
+  min-width: 0;
+  overflow: hidden;
+}
+.discover-item > div:first-of-type > div {
+  min-width: 0;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+.discover-item strong,
+.discover-item .ios-btn {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 
 html {
   overflow-x: hidden;
   overflow-y: auto;
   min-height: 100%;
+  /* 防止手机端浏览器自动调整字号导致文字错位 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -181,12 +220,19 @@ body {
   overflow-y: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* 防止长文本/长单词撑破布局，避免手机端错位 */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  /* 统一行高，减轻手机端中英混排换行错位 */
+  line-height: 1.5;
 }
 
 #root {
   min-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* iOS 风格卡片 */
@@ -249,6 +295,34 @@ body {
   color: #000;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* 中英对照 tab：英文略小、无括号、完整显示 */
+.ios-segmented-bilingual button {
+  padding: 8px 14px;
+  font-size: 15px;
+  white-space: normal;
+  min-width: 0;
+}
+.ios-segmented-bilingual button .tab-en {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.9;
+  margin-left: 2px;
+}
+.ios-segmented-bilingual button.active .tab-en {
+  opacity: 1;
+}
+
+/* 通用中英对照：英文略小、无括号，用于各处 label/button 等；移动端对齐防错位 */
+.bilingual-en {
+  font-size: 0.82em;
+  font-weight: 400;
+  opacity: 0.92;
+  vertical-align: baseline;
+  display: inline;
+  white-space: normal;
+  word-break: normal;
 }
 
 /* iOS 信息横幅 */
@@ -461,4 +535,137 @@ body {
   width: 8px;
   height: 8px;
   animation: confetti-fall 4s linear infinite;
+}
+
+/* 手机端：减小内边距、防止错位与横向溢出 */
+@media (max-width: 768px) {
+  :root {
+    --page-padding-x: 16px;
+    --page-padding-y: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --page-padding-x: 12px;
+    --page-padding-y: 16px;
+  }
+}
+
+/* 主内容区使用变量内边距，便于移动端统一缩小 */
+.page-content {
+  padding: var(--page-padding-y) var(--page-padding-x) !important;
+}
+
+/* 主内容区在 flex 布局中可收缩，防止手机端横向错位 */
+.page-main {
+  min-width: 0;
+}
+
+/* 发现页/列表行：右侧按钮不压缩，左侧文字可换行收缩 */
+.discover-item .ios-btn-pill {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 贴纸打开：抖两下 + 进入内容时烟花绽放 */
+@keyframes sticker-shake {
+  0%, 100% { transform: translateY(0); }
+  12% { transform: translateY(-10px); }
+  25% { transform: translateY(0); }
+  37% { transform: translateY(8px); }
+  50% { transform: translateY(0); }
+  62% { transform: translateY(-10px); }
+  75% { transform: translateY(0); }
+  87% { transform: translateY(8px); }
+}
+@keyframes sticker-reveal-pop {
+  0% { transform: scale(0.92); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+/* 烟花：中心闪光 + 带尾迹粒子 + 重力下坠感 */
+@keyframes sticker-firework-core {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  35% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+@keyframes sticker-firework-burst {
+  0% {
+    transform: translate(0, 0) rotate(var(--fw-deg)) scaleY(1);
+    opacity: 1;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--fw-x), var(--fw-y)) rotate(var(--fw-deg)) scaleY(0.4);
+    opacity: 0;
+  }
+}
+
+.sticker-open-shake {
+  display: inline-block;
+  animation: sticker-shake 0.6s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  will-change: transform;
+}
+.sticker-reveal-content {
+  animation: sticker-reveal-pop 0.4s cubic-bezier(0.34, 1.2, 0.64, 1) forwards;
+  will-change: transform;
+}
+
+.sticker-firework-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  margin-left: 0;
+  margin-top: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+/* 绽放瞬间中心亮斑 */
+.sticker-firework-core {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+  margin-top: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #ffec8b 25%, rgba(255, 180, 80, 0.6) 55%, transparent 75%);
+  box-shadow: 0 0 30px 8px rgba(255, 220, 100, 0.7);
+  animation: sticker-firework-core 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+/* 粒子：细长尾迹，沿爆发方向旋转，带重力下坠与渐隐 */
+.sticker-firework-spark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 18px;
+  margin-left: -1.5px;
+  margin-top: -9px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    hsl(var(--fw-hue), 90%, 75%) 25%,
+    hsl(var(--fw-hue), 95%, 60%) 55%,
+    #fff 85%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  box-shadow: 0 0 6px 1px hsl(var(--fw-hue), 85%, 70%);
+  transform-origin: center center;
+  animation: sticker-firework-burst 0.7s cubic-bezier(0.15, 0.9, 0.35, 1) forwards;
+  opacity: 0;
 }

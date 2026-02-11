@@ -29,7 +29,7 @@ const ModeratorRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   if (token && user === null) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f2f2f7', fontFamily: '-apple-system, sans-serif' }}>
-        加载中... (Loading...)
+        加载中... <span className="bilingual-en">Loading...</span>
       </div>
     );
   }

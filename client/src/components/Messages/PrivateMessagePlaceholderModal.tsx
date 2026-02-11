@@ -46,7 +46,7 @@ const PrivateMessagePlaceholderModal: React.FC<PrivateMessagePlaceholderModalPro
                     marginBottom: '20px',
                     color: '#333',
                 }}>
-                    看起来这是一条私密消息 (This is a private message)
+                    看起来这是一条私密消息 <span className="bilingual-en">This is a private message</span>
                 </div>
                 <button
                     className="ios-btn tap-scale"
@@ -62,7 +62,7 @@ const PrivateMessagePlaceholderModal: React.FC<PrivateMessagePlaceholderModalPro
                         fontSize: '16px',
                     }}
                 >
-                    知道了 (Got it)
+                    知道了 <span className="bilingual-en">Got it</span>
                 </button>
             </div>
         </div>

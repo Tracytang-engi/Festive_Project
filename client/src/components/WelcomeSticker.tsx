@@ -3,11 +3,11 @@ import React, { useState, useCallback } from 'react';
 /** 官方欢迎贴纸：与普通贴纸一致——可拖动、可删除、点开显示简介与功能，不可举报 */
 const WELCOME_IMAGE = '/welcome_sticker.png';
 
-const INTRO = '节日祝福装饰墙 (Festive Greeting Wall) — 与亲友互换祝福贴纸，装扮你的节日场景。';
+const INTRO_DESC = '和亲友互送暖心祝福，一起装点超有年味的节日场景～';
 const FEATURES = [
-    '发送祝福 (Send stickers) · 选择分类与贴纸，写给好友',
-    '布置场景 (Decorate) · 拖拽贴纸位置，保存你的布置',
-    '查看好友 (Friends) · 浏览好友的装饰与祝福',
+    '✨ 送祝福・挑选精美贴纸，写下心意送给好友',
+    '🎊 扮场景・随心拖拽布置，打造专属节日美景',
+    '👀 逛好友・打卡亲友的祝福装饰，收获满满温暖',
 ];
 
 export const WELCOME_STICKER_ID = '__welcome__';
@@ -94,7 +94,7 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
                     transition: dragging ? 'none' : 'transform 0.2s ease',
                 }}
                 className="sticker-hover"
-                title="拖拽移动，点击查看 (Drag to move, click to view)"
+                title="拖拽移动，点击查看 Drag to move, click to view"
             >
                 <img
                     src={WELCOME_IMAGE}
@@ -159,7 +159,7 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
                                 cursor: 'pointer',
                             }}
                         >
-                            删除贴纸 (Delete)
+                            删除贴纸 <span className="bilingual-en">Delete</span>
                         </button>
 
                         <div style={{ textAlign: 'center', marginBottom: 16 }}>
@@ -169,8 +169,11 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
                                 style={{ width: 320, height: 320, objectFit: 'contain', display: 'block', margin: '0 auto' }}
                             />
                         </div>
-                        <p style={{ margin: '0 0 12px', fontSize: 15, lineHeight: 1.5, fontWeight: 600 }}>
-                            {INTRO}
+                        <p style={{ margin: '0 0 6px', fontSize: 15, lineHeight: 1.5, fontWeight: 600 }}>
+                            节日祝福欢乐墙 <span className="bilingual-en">Festive Greeting Wall</span>
+                        </p>
+                        <p style={{ margin: '0 0 12px', fontSize: 14, lineHeight: 1.5, color: '#555' }}>
+                            {INTRO_DESC}
                         </p>
                         <ul style={{ margin: '0 0 16px', paddingLeft: 20, fontSize: 14, lineHeight: 1.6 }}>
                             {FEATURES.map((line, i) => (
@@ -192,7 +195,7 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
                                 fontSize: 16,
                             }}
                         >
-                            关闭 (Close)
+                            关闭 <span className="bilingual-en">Close</span>
                         </button>
                     </div>
                 </div>

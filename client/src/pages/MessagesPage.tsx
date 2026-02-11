@@ -20,9 +20,9 @@ const MessagesPage: React.FC = () => {
 
     const boxConfig = {
         icon: '🧧',
-        title: '暂无祝福消息 (No Messages Yet)',
-        description: '向亲朋好友发送新春祝福，传递温暖与祝福！ (Send festive greetings to your friends!)',
-        actionText: '写贺卡 (Write a Card)',
+        title: '暂无祝福消息 No Messages Yet',
+        description: '向亲朋好友发送新春祝福，传递温暖与祝福！ Send festive greetings to your friends!',
+        actionText: '写贺卡 Write a Card',
         emoji: '🎉'
     };
 
@@ -34,14 +34,14 @@ const MessagesPage: React.FC = () => {
             ) : (
                 <SpringFestivalEffects showSnow={true} intensity="moderate" />
             )}
-            <div style={{ flex: 1, padding: '32px 40px', overflowY: 'auto', background: mainBg, color: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', position: 'relative', zIndex: 60 }}>
+            <div style={{ flex: 1, minWidth: 0, padding: 'var(--page-padding-y) var(--page-padding-x)', overflowY: 'auto', background: mainBg, color: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', position: 'relative', zIndex: 60 }}>
             <PageTransition pageKey={`messages-${season}`}>
             <header style={{ marginBottom: '28px' }}>
                 <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>
-                    写贺卡 (Write a Card)
+                    写贺卡 <span className="bilingual-en">Write a Card</span>
                 </h1>
                 <p style={{ margin: '8px 0 0', fontSize: '15px', color: 'rgba(255,255,255,0.9)' }}>
-                    当前页面：春节贺卡 (Spring Festival cards)
+                    当前页面：春节贺卡 <span className="bilingual-en">Spring Festival cards</span>
                 </p>
             </header>
 

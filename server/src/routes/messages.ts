@@ -48,7 +48,7 @@ router.get('/detail/:id', async (req: AuthRequest, res) => {
         const isSender = senderId === userId;
         const isRecipient = msg.recipient.toString() === userId;
         if (!isSender && !isRecipient) {
-            return res.status(403).json({ error: "FORBIDDEN", message: "仅发送方或接收方可查看该消息" });
+            return res.status(403).json({ error: "FORBIDDEN", message: "仅发送方或接收方可查看该消息 Only sender or recipient can view this message." });
         }
 
         // Time lock logic — mirror season inbox route
@@ -70,10 +70,10 @@ router.get('/detail/:id', async (req: AuthRequest, res) => {
         }
         if (req.query.unlock === 'true') isUnlocked = true;
 
-        // Special viewer override: account ID 111111 or moderator can always view
+        // Special viewer override: 测试账号或审核员可提前预览
         if (!isUnlocked && userId) {
             const viewer = await User.findById(userId).select('userId role').lean();
-            if (viewer && (viewer.userId === '111111' || viewer.role === 'moderator')) {
+            if (viewer && (viewer.userId === '111111' || viewer.userId === '20070421' || viewer.role === 'moderator')) {
                 isUnlocked = true;
             }
         }
@@ -104,7 +104,7 @@ router.post('/', async (req: AuthRequest, res) => {
             ]
         });
 
-        if (!isFriend) return res.status(403).json({ error: "Not friends" });
+        if (!isFriend) return res.status(403).json({ error: "NOT_FRIENDS", message: "仅好友可发送祝福 Only friends can send messages." });
 
         const message = await Message.create({
             sender: senderId,
@@ -117,17 +117,15 @@ router.post('/', async (req: AuthRequest, res) => {
             isPrivate: !!isPrivate
         });
 
-        // Place sticker randomly on recipient's scene (spring only)
+        // Place sticker randomly on recipient's scene (spring only)，原子写入避免与拖拽位置并发覆盖
         if (season === 'spring' && sceneId && typeof sceneId === 'string') {
             const recipient = await User.findById(recipientId).select('sceneLayout').lean();
-            const layout = recipient?.sceneLayout && typeof recipient.sceneLayout === 'object'
-                ? { ...recipient.sceneLayout } : {};
-            const springLayout = layout.spring && typeof layout.spring === 'object'
-                ? { ...layout.spring } : {};
+            const springLayout = recipient?.sceneLayout?.spring && typeof recipient.sceneLayout.spring === 'object'
+                ? { ...recipient.sceneLayout.spring } : {};
             const pos = randomPositionOnScene(springLayout);
-            springLayout[message._id.toString()] = pos;
-            layout.spring = springLayout;
-            await User.findByIdAndUpdate(recipientId, { sceneLayout: layout });
+            await User.findByIdAndUpdate(recipientId, {
+                $set: { [`sceneLayout.spring.${message._id.toString()}`]: pos },
+            });
         }
 
         // Notify (include season so frontend can open correct mailbox)
@@ -145,29 +143,35 @@ router.post('/', async (req: AuthRequest, res) => {
     }
 });
 
-// PUT /api/messages/:id/position — sender updates where their sticker appears on recipient's scene
+// PUT /api/messages/:id/position — 过年之前：发送方与接收方均可移动；过年之后：仅接收方（房主）可移动
 router.put('/:id/position', async (req: AuthRequest, res) => {
     try {
         const { id: messageId } = req.params;
         const { left, top } = req.body;
         const userId = req.user?.id;
         if (typeof left !== 'number' || typeof top !== 'number') {
-            return res.status(400).json({ error: "INVALID_INPUT", message: "left and top (numbers) required" });
+            return res.status(400).json({ error: "INVALID_INPUT", message: "left 和 top 须为数字 left and top (numbers) required." });
         }
         const message = await Message.findById(messageId);
         if (!message) return res.status(404).json({ error: "NOT_FOUND" });
-        if (message.sender.toString() !== userId) {
-            return res.status(403).json({ error: "FORBIDDEN", message: "Only the sender can move this sticker" });
+        const isSender = message.sender.toString() === userId;
+        const isRecipient = message.recipient.toString() === userId;
+        if (!isSender && !isRecipient) {
+            return res.status(403).json({ error: "FORBIDDEN", message: "仅发送方或房主可移动该贴纸 Only the sender or the page owner can move this sticker." });
+        }
+        // 过年之后（节日当天 00:00 北京时间起）仅接收方可移动
+        const now = new Date();
+        const chinaTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 8));
+        const y = chinaTime.getFullYear(), m = chinaTime.getMonth(), d = chinaTime.getDate();
+        const isAfterFestival = (y === 2025 && m === 0 && d >= 29) || (y === 2026 && m === 1 && d >= 17) || (y === 2027 && m === 1 && d >= 6) || (y === 2024 && m === 1 && d >= 10);
+        if (isAfterFestival && isSender) {
+            return res.status(403).json({ error: "FORBIDDEN", message: "过年之后仅房主可移动贴纸 After the festival only the page owner can move stickers." });
         }
         const recipientId = message.recipient.toString();
-        const recipient = await User.findById(recipientId).select('sceneLayout').lean();
-        const layout = recipient?.sceneLayout && typeof recipient.sceneLayout === 'object'
-            ? { ...recipient.sceneLayout } : {};
-        const springLayout = layout.spring && typeof layout.spring === 'object'
-            ? { ...layout.spring } : {};
-        springLayout[messageId] = { left, top };
-        layout.spring = springLayout;
-        await User.findByIdAndUpdate(recipientId, { sceneLayout: layout });
+        // 只更新该贴纸位置，避免多人/多标签同时拖不同贴纸时互相覆盖（原子更新）
+        await User.findByIdAndUpdate(recipientId, {
+            $set: { [`sceneLayout.spring.${messageId}`]: { left, top } },
+        });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
@@ -230,10 +234,10 @@ router.get('/:season', async (req: AuthRequest, res) => {
         // DEBUG: Allow unlock via query param for testing ?unlock=true
         if (req.query.unlock === 'true') isUnlocked = true;
 
-        // Special viewer override: account ID 111111 or moderator can always view
+        // Special viewer override: 测试账号或审核员可提前预览
         if (!isUnlocked && userId) {
             const viewer = await User.findById(userId).select('userId role').lean();
-            if (viewer && (viewer.userId === '111111' || viewer.role === 'moderator')) {
+            if (viewer && (viewer.userId === '111111' || viewer.userId === '20070421' || viewer.role === 'moderator')) {
                 isUnlocked = true;
             }
         }
@@ -265,10 +269,10 @@ router.post('/:id/report', async (req: AuthRequest, res) => {
         const isSender = msg.sender.toString() === userId;
         const isRecipient = msg.recipient.toString() === userId;
         if (!isSender && !isRecipient) {
-            return res.status(403).json({ error: "FORBIDDEN", message: "仅发送方或接收方可举报" });
+            return res.status(403).json({ error: "FORBIDDEN", message: "仅发送方或接收方可举报 Only sender or recipient can report." });
         }
         const existing = await Report.findOne({ message: id, reporter: userId, status: 'pending' });
-        if (existing) return res.status(400).json({ error: "ALREADY_REPORTED", message: "已举报过该消息" });
+        if (existing) return res.status(400).json({ error: "ALREADY_REPORTED", message: "已举报过该消息 You have already reported this message." });
         await Report.create({
             message: id,
             reporter: userId,
@@ -281,7 +285,7 @@ router.post('/:id/report', async (req: AuthRequest, res) => {
     }
 });
 
-// DELETE /api/messages/:id — 仅收件人可删除自己收到的贴纸
+// DELETE /api/messages/:id — 仅收件人可删除自己收到的贴纸，并清理其 sceneLayout 中该贴纸位置
 router.delete('/:id', async (req: AuthRequest, res) => {
     try {
         const { id } = req.params;
@@ -289,9 +293,11 @@ router.delete('/:id', async (req: AuthRequest, res) => {
         const msg = await Message.findById(id);
         if (!msg) return res.status(404).json({ error: "NOT_FOUND" });
         if (msg.recipient.toString() !== userId) {
-            return res.status(403).json({ error: "FORBIDDEN", message: "只能删除自己收到的贴纸" });
+            return res.status(403).json({ error: "FORBIDDEN", message: "只能删除自己收到的贴纸 Only the recipient can delete this sticker." });
         }
+        const recipientId = msg.recipient.toString();
         await Message.findByIdAndDelete(id);
+        await User.findByIdAndUpdate(recipientId, { $unset: { [`sceneLayout.spring.${id}`]: 1 } });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });

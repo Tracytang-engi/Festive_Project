@@ -62,10 +62,10 @@ const Sidebar: React.FC = () => {
                         opacity: theme === 'christmas' ? 1 : 0.5,
                         transform: theme === 'christmas' ? 'scale(1.1)' : 'scale(1)'
                     }}
-                    title="圣诞主题 (Christmas Theme)"
+                    title="圣诞主题 Christmas Theme"
                 >
                     <span className="theme-emoji">🎄</span>
-                    <span className="theme-label">圣诞 (Christmas)</span>
+                    <span className="theme-label">圣诞 <span className="theme-label-en">Christmas</span></span>
                 </div>
                 <div
                     className={`theme-switcher-item theme-tap ${theme === 'spring' ? 'active' : ''}`}
@@ -74,34 +74,34 @@ const Sidebar: React.FC = () => {
                         opacity: theme === 'spring' ? 1 : 0.5,
                         transform: theme === 'spring' ? 'scale(1.1)' : 'scale(1)'
                     }}
-                    title="春节主题 (Spring Festival Theme)"
+                    title="春节主题 Spring Festival Theme"
                 >
                     <span className="theme-emoji">🧧</span>
-                    <span className="theme-label">春节 (Spring)</span>
+                    <span className="theme-label">春节 <span className="theme-label-en">Spring</span></span>
                 </div>
             </div>
 
             {/* Nav Items - 与主题切换一致：未选中微微虚化(0.5)，选中清晰+放大(1.2)，点击时变清晰并放大 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', flex: 1 }}>
-                <div className="sidebar-nav-icon theme-tap icon-responsive" title="通知 (Notifications)" onClick={() => navigate('/notifications')} style={{ opacity: isActive('/notifications') ? 1 : 0.5, transform: isActive('/notifications') ? 'scale(1.2)' : 'scale(1)', position: 'relative' }}>
+                <div className="sidebar-nav-icon theme-tap icon-responsive" title="通知 Notifications" onClick={() => navigate('/notifications')} style={{ opacity: isActive('/notifications') ? 1 : 0.5, transform: isActive('/notifications') ? 'scale(1.2)' : 'scale(1)', position: 'relative' }}>
                     <Bell size={24} />
                     {hasUnread && <span className="notification-badge" />}
                 </div>
-                <div className="sidebar-nav-icon theme-tap icon-responsive" title="发现好友 (Discover Friends)" onClick={() => navigate('/discover')} style={{ opacity: isActive('/discover') ? 1 : 0.5, transform: isActive('/discover') ? 'scale(1.2)' : 'scale(1)' }}>
+                <div className="sidebar-nav-icon theme-tap icon-responsive" title="发现好友 Discover Friends" onClick={() => navigate('/discover')} style={{ opacity: isActive('/discover') ? 1 : 0.5, transform: isActive('/discover') ? 'scale(1.2)' : 'scale(1)' }}>
                     <UserPlus size={24} />
                 </div>
-                <div className="sidebar-nav-icon theme-tap icon-responsive" title="我的好友 (My Friends)" onClick={() => navigate('/friends')} style={{ opacity: isActive('/friends') ? 1 : 0.5, transform: isActive('/friends') ? 'scale(1.2)' : 'scale(1)' }}>
+                <div className="sidebar-nav-icon theme-tap icon-responsive" title="我的好友 My Friends" onClick={() => navigate('/friends')} style={{ opacity: isActive('/friends') ? 1 : 0.5, transform: isActive('/friends') ? 'scale(1.2)' : 'scale(1)' }}>
                     <Heart size={24} />
                 </div>
-                <div className="sidebar-nav-icon theme-tap icon-responsive" title="写贺卡 (Write a Card)" onClick={() => navigate('/messages')} style={{ opacity: isActive('/messages') ? 1 : 0.5, transform: isActive('/messages') ? 'scale(1.2)' : 'scale(1)' }}>
+                <div className="sidebar-nav-icon theme-tap icon-responsive" title="写贺卡 Write a Card" onClick={() => navigate('/messages')} style={{ opacity: isActive('/messages') ? 1 : 0.5, transform: isActive('/messages') ? 'scale(1.2)' : 'scale(1)' }}>
                     <PenSquare size={24} />
                 </div>
-                <div className="sidebar-nav-icon theme-tap icon-responsive" title="设置 (Settings)" onClick={() => navigate('/settings')} style={{ opacity: isActive('/settings') ? 1 : 0.5, transform: isActive('/settings') ? 'scale(1.2)' : 'scale(1)' }}>
+                <div className="sidebar-nav-icon theme-tap icon-responsive" title="设置 Settings" onClick={() => navigate('/settings')} style={{ opacity: isActive('/settings') ? 1 : 0.5, transform: isActive('/settings') ? 'scale(1.2)' : 'scale(1)' }}>
                     <Settings size={24} />
                 </div>
             </div>
 
-            <div className="sidebar-nav-icon theme-tap icon-responsive" title="退出登录 (Logout)" onClick={logout} style={{ opacity: 0.5, transform: 'scale(1)', marginTop: 'auto', marginBottom: '50px' }}>
+            <div className="sidebar-nav-icon theme-tap icon-responsive" title="退出登录 Logout" onClick={logout} style={{ opacity: 0.5, transform: 'scale(1)', marginTop: 'auto', marginBottom: '50px' }}>
                 <LogOut size={24} />
             </div>
         </div>
