@@ -116,11 +116,19 @@ const FriendDecorPage: React.FC = () => {
     // 消息可能是场景 id（spring_dinner）或历史存的分类 id（eve_dinner），都算属于当前场景
     const messageBelongsToScene = (msgSceneId: string | undefined) =>
         (msgSceneId || defaultSceneId) === pageScene || categoryToSceneId[msgSceneId as string] === pageScene;
-    const stickersInScene = friendMessages
+    const messagesInThisScene = friendMessages
         .filter(m => hasStickerImage(m.stickerType))
-        .filter(m => messageBelongsToScene(m.sceneId))
-        .map(m => ({ message: m, pos: springLayout[m._id] }))
-        .filter(({ pos }) => pos && typeof pos.left === 'number' && typeof pos.top === 'number');
+        .filter(m => messageBelongsToScene(m.sceneId));
+    // 无 sceneLayout 位置时用默认位置兜底，避免历史贴纸或漏写位置的不显示
+    const stickersInScene = messagesInThisScene
+        .map((m, i) => {
+            const pos = springLayout[m._id];
+            const hasPos = pos && typeof pos.left === 'number' && typeof pos.top === 'number';
+            if (hasPos) return { message: m, pos: pos as { left: number; top: number } };
+            const defaultLeft = 15 + (i % 4) * 26;
+            const defaultTop = 20 + Math.floor(i / 4) * 22;
+            return { message: m, pos: { left: Math.min(defaultLeft, 85), top: Math.min(defaultTop, 75) } };
+        });
 
     const justDraggedRef = useRef(false);
     const dragPositionRef = useRef({ left: 0, top: 0 });
