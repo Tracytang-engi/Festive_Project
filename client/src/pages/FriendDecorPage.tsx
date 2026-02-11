@@ -551,7 +551,10 @@ const FriendDecorPage: React.FC = () => {
 
                 {/* 该场景布置：过年之前发送方与房主可拖；过年之后仅房主可拖；点击查看详情 */}
                 {stickersInScene.map(({ message, pos }) => {
-                    const isMySticker = currentUser?._id && message.sender?._id && message.sender._id === currentUser._id;
+                    const senderId = typeof message.sender === 'object' && message.sender && '_id' in message.sender
+                        ? (message.sender as { _id?: string })._id
+                        : (message as { sender?: string }).sender;
+                    const isMySticker = !!(currentUser?._id && senderId && String(currentUser._id) === String(senderId));
                     const afterFestival = !!decor?.isUnlocked;
                     const canDrag = isOwner || (isMySticker && !afterFestival);
                     const displayPos = draggingSticker?.messageId === message._id
