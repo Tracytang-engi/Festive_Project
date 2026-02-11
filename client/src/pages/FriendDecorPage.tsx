@@ -116,7 +116,7 @@ const FriendDecorPage: React.FC = () => {
     const dragPositionRef = useRef({ left: 0, top: 0 });
 
     const refetchDecor = useCallback(() => {
-        if (userId) getFriendDecor(userId).then(setDecor).catch(() => {});
+        if (userId) getFriendDecor(userId, { bustCache: true }).then(setDecor).catch(() => {});
     }, [userId]);
 
     useEffect(() => {
@@ -438,7 +438,7 @@ const FriendDecorPage: React.FC = () => {
                 hideFriendSelect={true}
                 fixedSceneId={searchParams.get('compose') === '1' ? (searchParams.get('scene') ?? undefined) : undefined}
                 onSceneChosen={searchParams.get('compose') !== '1' ? (sceneId) => { navigate(`/friend/${userId}/decor?scene=${sceneId}&compose=1`); setShowComposeModal(false); } : undefined}
-                onSentSuccess={userId ? () => getFriendDecor(userId).then(setDecor).catch(() => {}) : undefined}
+                onSentSuccess={userId ? () => getFriendDecor(userId, { bustCache: true }).then(setDecor).catch(() => {}) : undefined}
             />
         </>
         );
@@ -613,14 +613,14 @@ const FriendDecorPage: React.FC = () => {
                     onClose={() => {
                         setShowComposeModal(false);
                         if (searchParams.get('compose') === '1') navigate(`/friend/${userId}/decor`, { replace: true });
-                        if (viewingSceneId && userId) getFriendDecor(userId).then(setDecor).catch(() => {});
+                        if (viewingSceneId && userId) getFriendDecor(userId, { bustCache: true }).then(setDecor).catch(() => {});
                     }}
                     initialSeason="spring"
                     preselectedFriendId={userId ?? undefined}
                     hideFriendSelect={true}
                     fixedSceneId={searchParams.get('compose') === '1' ? (searchParams.get('scene') ?? undefined) : undefined}
                     onSceneChosen={searchParams.get('compose') !== '1' ? (sceneId) => { navigate(`/friend/${userId}/decor?scene=${sceneId}&compose=1`); setShowComposeModal(false); } : undefined}
-                    onSentSuccess={userId ? () => getFriendDecor(userId).then(setDecor).catch(() => {}) : undefined}
+                    onSentSuccess={userId ? () => getFriendDecor(userId, { bustCache: true }).then(setDecor).catch(() => {}) : undefined}
                 />
             </div>
         </div>

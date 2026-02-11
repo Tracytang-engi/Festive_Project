@@ -64,7 +64,9 @@ export interface FriendDecor {
 }
 
 // 查看好友的主题装饰页数据（仅好友可调）
-export const getFriendDecor = async (friendId: string): Promise<FriendDecor> => {
-    const response = await api.get(`/friends/${friendId}/decor`);
+// bustCache: 发送贴纸后 refetch 时传 true，避免浏览器/CDN 返回旧缓存导致发送者看不到新贴纸
+export const getFriendDecor = async (friendId: string, options?: { bustCache?: boolean }): Promise<FriendDecor> => {
+    const params = options?.bustCache ? { _t: Date.now() } : undefined;
+    const response = await api.get(`/friends/${friendId}/decor`, { params });
     return response.data;
 };

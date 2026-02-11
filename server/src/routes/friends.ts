@@ -203,6 +203,7 @@ router.get('/:friendId/decor', async (req: AuthRequest, res) => {
             };
         });
 
+        res.set('Cache-Control', 'no-store');
         res.json({ ...friend, messages: messagesForClient, isUnlocked });
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
