@@ -7,9 +7,10 @@ import { SERVER_ORIGIN } from '../api/client';
 import StickerIcon from '../components/StickerIcon';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import PrivateMessagePlaceholderModal from '../components/Messages/PrivateMessagePlaceholderModal';
+import ComposeSidebar from '../components/Messages/ComposeSidebar';
 import { themeConfig } from '../constants/theme';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Message } from '../types';
 
@@ -26,6 +27,25 @@ const FriendDecorPage: React.FC = () => {
     /** 点击贴纸：私密占位弹窗 或 公开消息详情 */
     const [showPrivatePlaceholder, setShowPrivatePlaceholder] = useState(false);
     const [detailMessage, setDetailMessage] = useState<Message | null>(null);
+    /** 发祝福侧边栏 */
+    const [isComposeOpen, setIsComposeOpen] = useState(false);
+
+    const loadDecor = React.useCallback(async () => {
+        if (!userId) return;
+        try {
+            const data = await getFriendDecor(userId);
+            setDecor(data);
+            setError(null);
+        } catch (err: any) {
+            const msg = err.response?.data?.error === 'NOT_FRIENDS'
+                ? '仅可查看好友的装饰'
+                : (err.response?.data?.message || err.message || '加载失败');
+            setError(msg);
+            setDecor(null);
+        } finally {
+            setLoading(false);
+        }
+    }, [userId]);
 
     useEffect(() => {
         if (!userId) {
@@ -33,29 +53,9 @@ const FriendDecorPage: React.FC = () => {
             setLoading(false);
             return;
         }
-        let cancelled = false;
-        const fetchDecor = async () => {
-            try {
-                const data = await getFriendDecor(userId);
-                if (!cancelled) {
-                    setDecor(data);
-                    setError(null);
-                }
-            } catch (err: any) {
-                if (!cancelled) {
-                    const msg = err.response?.data?.error === 'NOT_FRIENDS'
-                        ? '仅可查看好友的装饰'
-                        : (err.response?.data?.message || err.message || '加载失败');
-                    setError(msg);
-                    setDecor(null);
-                }
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        };
-        fetchDecor();
-        return () => { cancelled = true; };
-    }, [userId]);
+        setLoading(true);
+        loadDecor();
+    }, [userId, loadDecor]);
 
     useEffect(() => {
         if (viewingSceneId === null) return;
@@ -289,7 +289,7 @@ const FriendDecorPage: React.FC = () => {
                     overflow: 'hidden',
                 }}
             >
-                {/* 顶部：返回选择场景 + 标题 */}
+                {/* 顶部：返回选择场景 + 标题 + 发祝福 */}
                 <div
                     style={{
                         position: 'absolute',
@@ -299,34 +299,62 @@ const FriendDecorPage: React.FC = () => {
                         zIndex: 100,
                         display: 'flex',
                         alignItems: 'center',
+                        justifyContent: 'space-between',
                         gap: '12px',
                         padding: '16px 24px',
                         background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), transparent)',
                     }}
                 >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                        <button
+                            type="button"
+                            onClick={() => setViewingSceneId(null)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                border: 'none',
+                                background: 'rgba(255,255,255,0.9)',
+                                color: '#333',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                flexShrink: 0,
+                            }}
+                            title="返回选择场景"
+                        >
+                            <ArrowLeft size={22} />
+                        </button>
+                        <h1 style={{ margin: 0, fontSize: 'clamp(18px, 2.5vw, 24px)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {decor.nickname} 的春节页面 · {sceneTitle}
+                        </h1>
+                    </div>
                     <button
                         type="button"
-                        onClick={() => setViewingSceneId(null)}
+                        onClick={() => setIsComposeOpen(true)}
+                        className="tap-scale"
                         style={{
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
+                            gap: '8px',
+                            padding: '10px 18px',
+                            borderRadius: '12px',
                             border: 'none',
-                            background: 'rgba(255,255,255,0.9)',
+                            background: 'rgba(255,255,255,0.95)',
                             color: '#333',
                             cursor: 'pointer',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                            fontSize: '15px',
+                            fontWeight: 600,
+                            flexShrink: 0,
                         }}
-                        title="返回选择场景"
+                        title="发送节日祝福"
                     >
-                        <ArrowLeft size={22} />
+                        <Mail size={18} />
+                        发祝福
                     </button>
-                    <h1 style={{ margin: 0, fontSize: 'clamp(18px, 2.5vw, 24px)', fontWeight: 600 }}>
-                        {decor.nickname} 的春节页面 · {sceneTitle}
-                    </h1>
                 </div>
 
                 {/* 对方在该场景的布置：按 sceneLayout 位置显示具体贴纸，可点击 */}
@@ -375,6 +403,18 @@ const FriendDecorPage: React.FC = () => {
                         TA的春节场景与布置
                     </p>
                 </div>
+
+                <ComposeSidebar
+                    isOpen={isComposeOpen}
+                    onClose={() => {
+                        setIsComposeOpen(false);
+                        loadDecor();
+                    }}
+                    initialSceneId={pageScene}
+                    recipientId={userId!}
+                    recipientNickname={decor.nickname}
+                    initialSeason="spring"
+                />
 
                 {showPrivatePlaceholder && (
                     <PrivateMessagePlaceholderModal onClose={() => setShowPrivatePlaceholder(false)} />
