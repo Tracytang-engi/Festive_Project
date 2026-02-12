@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { sendMessage } from '../../api/messages';
 import StickerIcon from '../StickerIcon';
-import { getStickersForScene } from '../../constants/stickers';
+import { getStickersForScene, getStickersByCategory } from '../../constants/stickers';
 
 interface ComposeSidebarProps {
     isOpen: boolean;
@@ -16,6 +16,14 @@ interface ComposeSidebarProps {
     initialSeason?: 'christmas' | 'spring';
 }
 
+/** 春节场景 id → 贴纸分类 id（getStickersByCategory 用） */
+const SPRING_SCENE_TO_CATEGORY: Record<string, string> = {
+    spring_dinner: 'eve_dinner',
+    spring_couplets: 'couplets',
+    spring_temple_fair: 'temple_fair',
+    spring_firecrackers: 'fireworks',
+};
+
 const ComposeSidebar: React.FC<ComposeSidebarProps> = ({
     isOpen,
     onClose,
@@ -24,22 +32,29 @@ const ComposeSidebar: React.FC<ComposeSidebarProps> = ({
     recipientNickname,
     initialSeason = 'spring',
 }) => {
-    const [sticker, setSticker] = useState<string>('🧧');
+    const [sticker, setSticker] = useState<string>('');
     const [content, setContent] = useState('');
     const [isPrivate, setIsPrivate] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const stickers = getStickersForScene(initialSeason, initialSceneId);
+    const stickers =
+        initialSeason === 'spring'
+            ? getStickersByCategory(SPRING_SCENE_TO_CATEGORY[initialSceneId] ?? 'eve_dinner')
+            : getStickersForScene(initialSeason, initialSceneId);
 
     useEffect(() => {
         if (isOpen) {
             setContent('');
-            const list = getStickersForScene(initialSeason, initialSceneId);
-            setSticker(list[0] ?? '🧧');
+            const list =
+                initialSeason === 'spring'
+                    ? getStickersByCategory(SPRING_SCENE_TO_CATEGORY[initialSceneId] ?? 'eve_dinner')
+                    : getStickersForScene(initialSeason, initialSceneId);
+            setSticker(list[0] ?? '');
         }
     }, [isOpen, initialSceneId, initialSeason]);
 
     const handleSend = async () => {
+        if (!sticker) return alert(initialSeason === 'spring' ? '请先选择贴纸' : 'Please select a sticker first.');
         if (!content.trim()) return alert(initialSeason === 'spring' ? '请写上祝福语！' : 'Write a message!');
 
         setLoading(true);
@@ -95,13 +110,17 @@ const ComposeSidebar: React.FC<ComposeSidebarProps> = ({
                         {stickers.map(s => (
                             <span
                                 key={s}
+                                role="button"
+                                tabIndex={0}
                                 className="tap-scale"
                                 style={{
                                     ...styles.sticker,
-                                    border: sticker === s ? '2px solid #007AFF' : 'none',
-                                    background: sticker === s ? 'rgba(0,122,255,0.08)' : 'transparent',
+                                    border: sticker === s ? '2px solid #007AFF' : '1px solid rgba(0,0,0,0.08)',
+                                    background: sticker === s ? 'rgba(0,122,255,0.12)' : 'rgba(0,0,0,0.04)',
+                                    boxShadow: sticker === s ? '0 0 0 2px rgba(0,122,255,0.3)' : 'none',
                                 }}
                                 onClick={() => setSticker(s)}
+                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setSticker(s); }}
                             >
                                 <StickerIcon stickerType={s} size={64} />
                             </span>
@@ -209,9 +228,10 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontWeight: 500,
     },
     stickersWrap: {
-        maxHeight: '180px',
+        minHeight: '80px',
+        maxHeight: '220px',
         overflowY: 'auto',
-        padding: '4px 0',
+        padding: '8px 0',
     },
     stickers: {
         display: 'flex',
