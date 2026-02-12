@@ -20,7 +20,7 @@ const HomePage: React.FC = () => {
     const defaultBg = theme === 'christmas' ? getChristmasSceneBackgroundImage(pageSceneId) : getSpringSceneBackgroundImage(pageSceneId);
     const customBgPath = user?.customBackgrounds?.[pageSceneId];
     const backgroundImage = customBgPath ? `${SERVER_ORIGIN}${customBgPath}` : defaultBg;
-    const [messages, setMessages] = useState<Message[]>([]);
+    const [, setMessages] = useState<Message[]>([]);
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [detailMessage, setDetailMessage] = useState<Message | null>(null);
 
