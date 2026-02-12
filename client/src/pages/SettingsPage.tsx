@@ -22,7 +22,7 @@ const ALL_SCENES = [
 ];
 
 const SettingsPage: React.FC = () => {
-    const { user, checkAuth } = useAuth();
+    const { user, checkAuth, logout } = useAuth();
     const { theme } = useTheme();
     const navigate = useNavigate();
     const [selectedSceneId, setSelectedSceneId] = useState<string>(SPRING_SCENE_IDS[0]);
@@ -402,6 +402,26 @@ const SettingsPage: React.FC = () => {
                                 密码已更新 <span className="bilingual-en">Password updated</span>
                             </div>
                         )}
+                        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+                            <button
+                                type="button"
+                                className="ios-btn tap-scale"
+                                onClick={logout}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 20px',
+                                    background: 'rgba(255,59,48,0.12)',
+                                    color: '#c0392b',
+                                    border: '1px solid rgba(255,59,48,0.3)',
+                                    borderRadius: 10,
+                                    fontSize: '15px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                退出登录 <span className="bilingual-en">Log out</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
