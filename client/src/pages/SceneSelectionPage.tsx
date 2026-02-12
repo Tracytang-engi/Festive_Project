@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useChristmasMessage } from '../context/ChristmasMessageContext';
 import Sidebar from '../components/Layout/Sidebar';
+import TipModal from '../components/TipModal';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import { SCENE_NAMES, SPRING_SCENE_IDS } from '../constants/scenes';
@@ -13,6 +14,7 @@ const SceneSelector: React.FC = () => {
     const { theme: currentTheme } = useTheme();
     const navigate = useNavigate();
     const { showChristmasUnavailable } = useChristmasMessage();
+    const [tip, setTip] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
     useEffect(() => {
         if (currentTheme === 'christmas') {
@@ -35,7 +37,7 @@ const SceneSelector: React.FC = () => {
             navigate('/festive-decor');
         } catch (err) {
             console.error("Failed to update scene", err);
-            alert("Failed to save selection. Please try again.");
+            setTip({ show: true, message: '保存失败，请重试 Failed to save selection. Please try again.' });
         }
     };
 
@@ -68,6 +70,7 @@ const SceneSelector: React.FC = () => {
                 ))}
             </div>
             </div>
+            <TipModal show={tip.show} message={tip.message} onClose={() => setTip(prev => ({ ...prev, show: false }))} />
         </div>
     );
 };

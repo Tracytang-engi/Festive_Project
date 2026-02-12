@@ -1,2 +1,14 @@
 # User uploads (do not commit)
 server/uploads/
+
+# Dependencies and build
+node_modules/
+server/node_modules/
+client/node_modules/
+# server/dist/ 暂时保留在仓库内，供 api.festickers.com 部署使用（若部署时会执行 npm run build 可再取消注释）
+client/dist/
+
+# Environment
+.env
+.env.*
+!.env.example

@@ -1,24 +1,49 @@
 /**
- * Sticker emoji/key → processed image path (remove.bg output under public/sticker_processed).
- * Spring Festival uses custom images; Christmas keeps emoji for now.
+ * 春节贴纸：一级菜单为四分类（年夜饭/贴对联/逛庙会/放烟花），
+ * 对应文件夹 eve_dinner / couplets / temple_fair / fireworks，
+ * 每类下为多张图片，stickerType 格式为 category_N（如 couplets_1）。
+ * 圣诞保持原有 emoji 贴纸逻辑。
  */
 const P = '/sticker_processed';
 
-export const STICKER_IMAGE_URL: Record<string, string> = {
-    '🧧': `${P}/red_packet/97eebfe6cd8b42ac844ab2dab6545bf7.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    '🏮': `${P}/lantern/4ec39237cb5e43e69a3a6fc913480dd2.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    '🐴': `${P}/horse/3975126abb5b44828806a588746036f4.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    '🥟': `${P}/fu/5120453fc28143ae9f16da977593b88a.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    '🎇': `${P}/firecracker/7403d8c86c7a46af88d3a9f77a853157.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    'peach': `${P}/peach/1d19e4c24909416a9f2aaa5c153c116b.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    'couplets': `${P}/couplets/3660b150d86544589085d9fae8514273.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    'paper_cutting': `${P}/paper_cutting/173819cedad14e09abd6cdab7cd61be6.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    'clouds': `${P}/clouds/4d832f220b5f42d4b30228402f6d7aa1.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    'coin': `${P}/coin/5fe9ee6b3f6049e9b452cd8e73105617.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    'chinese_knotting': `${P}/chinese_knotting/b5f7564b435d411d999971541d2daac6.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    'painting': `${P}/painting/1aa34e2d12204abb94c5e66cb8d3d6bc.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
-    'loong': `${P}/loong/0fa8178342b54141bc0babb12628af25.jpeg~tplv-a9rns2rl98-downsize_watermark_1_5_b.png`,
+/** 春节贴纸四分类：id 对应 public/sticker_processed 下文件夹名 */
+export const SPRING_STICKER_CATEGORIES: { id: string; name: string }[] = [
+    { id: 'eve_dinner', name: '年夜饭' },
+    { id: 'couplets', name: '贴对联' },
+    { id: 'temple_fair', name: '逛庙会' },
+    { id: 'fireworks', name: '放烟花' },
+];
+
+/** 春节分类在列表中的图标（一级菜单/侧栏用） */
+export const SPRING_CATEGORY_ICONS: Record<string, string> = {
+    eve_dinner: '🥟',
+    couplets: '🧧',
+    temple_fair: '🏮',
+    fireworks: '🎇',
 };
+
+/** 每个分类下的贴纸数量（与 sticker_processed 下各文件夹内文件数一致）。含 horse 仅用于已有贴纸展示。 */
+const SPRING_CATEGORY_COUNTS: Record<string, number> = {
+    eve_dinner: 8,
+    couplets: 9,
+    temple_fair: 7,
+    fireworks: 4,
+    horse: 5, // legacy: 不再在分类选择中显示，已有马年贴纸仍可展示
+};
+
+/** 生成 STICKER_IMAGE_URL：所有春节贴纸 type → 图片路径（含已下架分类以便已有贴纸仍可展示） */
+function buildSpringStickerImageUrls(): Record<string, string> {
+    const urls: Record<string, string> = {};
+    for (const id of Object.keys(SPRING_CATEGORY_COUNTS)) {
+        const n = SPRING_CATEGORY_COUNTS[id] ?? 0;
+        for (let i = 1; i <= n; i++) {
+            urls[`${id}_${i}`] = `${P}/${id}/${id}_${i}.png`;
+        }
+    }
+    return urls;
+}
+
+export const STICKER_IMAGE_URL: Record<string, string> = buildSpringStickerImageUrls();
 
 export function getStickerImageUrl(stickerType: string): string | null {
     return STICKER_IMAGE_URL[stickerType] ?? null;
@@ -28,31 +53,39 @@ export function hasStickerImage(stickerType: string): boolean {
     return stickerType in STICKER_IMAGE_URL;
 }
 
-/** Spring scene id → sticker types for that scene (e.g. 年夜饭 → 菜肴贴纸). */
-export const STICKERS_BY_SPRING_SCENE: Record<string, string[]> = {
-    spring_dinner: ['🥟', 'peach', 'coin', '🏮', 'chinese_knotting'],
-    spring_temple_fair: ['🏮', 'painting', 'paper_cutting', 'loong', 'chinese_knotting', 'coin'],
-    spring_couplets: ['couplets', '🥟', 'paper_cutting', 'clouds', '🏮'],
-    spring_firecrackers: ['🎇', '🧧', 'coin', '🏮', 'loong'],
-};
+/** 根据 stickerType 得到所属分类 id（如 eve_dinner_3 → eve_dinner） */
+export function getStickerCategory(stickerType: string): string | null {
+    for (const { id } of SPRING_STICKER_CATEGORIES) {
+        if (stickerType === id || stickerType.startsWith(id + '_')) return id;
+    }
+    return null;
+}
 
+/** 获取某分类下的所有贴纸 type */
+export function getStickersByCategory(categoryId: string): string[] {
+    const n = SPRING_CATEGORY_COUNTS[categoryId] ?? 0;
+    const list: string[] = [];
+    for (let i = 1; i <= n; i++) list.push(`${categoryId}_${i}`);
+    return list;
+}
+
+// ——— 圣诞贴纸（按场景，兼容旧逻辑） ———
 const CHRISTMAS_STICKERS = ['🎄', '🎅', '❄️', '🎁', '⛄'];
-
-/** Christmas scene → stickers (same set for all for now). */
+/** 是否为圣诞 emoji 贴纸（无图片，用文字显示） */
+export function isChristmasSticker(stickerType: string): boolean {
+    return CHRISTMAS_STICKERS.includes(stickerType);
+}
 export const STICKERS_BY_CHRISTMAS_SCENE: Record<string, string[]> = {
     xmas_1: CHRISTMAS_STICKERS,
     xmas_2: CHRISTMAS_STICKERS,
     xmas_3: CHRISTMAS_STICKERS,
 };
 
-/** Get sticker options for a season; for spring/christmas, filter by sceneId if provided. */
+/** 圣诞：按 sceneId 取贴纸；春节：不按场景，仅用 getStickersByCategory 按分类取，此处返回空避免误用 */
 export function getStickersForScene(season: 'christmas' | 'spring', sceneId?: string): string[] {
     if (season === 'christmas') {
         if (sceneId && STICKERS_BY_CHRISTMAS_SCENE[sceneId]) return STICKERS_BY_CHRISTMAS_SCENE[sceneId];
         return CHRISTMAS_STICKERS;
     }
-    if (sceneId && STICKERS_BY_SPRING_SCENE[sceneId]) {
-        return STICKERS_BY_SPRING_SCENE[sceneId];
-    }
-    return ['🧧', '🏮', '🐴', '🥟', '🎇', 'peach', 'couplets', 'paper_cutting', 'clouds', 'coin', 'chinese_knotting', 'painting', 'loong'];
+    return [];
 }

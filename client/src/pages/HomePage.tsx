@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Layout/Sidebar';
 import { getMessages, deleteMessage } from '../api/messages';
 import type { Message } from '../types';
-import { getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE, SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName } from '../constants/scenes';
+import { getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName } from '../constants/scenes';
+import { getStickerCategory, hasStickerImage, isChristmasSticker, SPRING_STICKER_CATEGORIES, SPRING_CATEGORY_ICONS } from '../constants/stickers';
 import { SERVER_ORIGIN } from '../api/client';
 
 import SantaSticker from '../components/SantaSticker';
@@ -47,14 +48,17 @@ const HomePage: React.FC = () => {
             setMessages(prev => prev.filter(m => m._id !== messageId));
             if (detailMessage?._id === messageId) setDetailMessage(null);
         } catch {
-            alert(theme === 'spring' ? '删除失败，请重试' : 'Delete failed. Please try again.');
+            // 错误由 StickerDetailModal 内 TipModal 展示
         }
     };
 
-    const sceneIds = theme === 'spring' ? [...SPRING_SCENE_IDS] : [...CHRISTMAS_SCENE_IDS];
+    const sceneIds = theme === 'spring' ? SPRING_STICKER_CATEGORIES.map(c => c.id) : [...CHRISTMAS_SCENE_IDS];
     const defaultSceneId = theme === 'spring' ? 'spring_dinner' : 'xmas_1';
+    const displayable = (m: Message) => hasStickerImage(m.stickerType) || isChristmasSticker(m.stickerType);
     const messagesInScene = selectedSceneId
-        ? messages.filter(m => (m.sceneId || defaultSceneId) === selectedSceneId)
+        ? (theme === 'spring'
+            ? messages.filter(m => displayable(m) && getStickerCategory(m.stickerType) === selectedSceneId)
+            : messages.filter(m => displayable(m) && (m.sceneId || defaultSceneId) === selectedSceneId))
         : [];
 
     return (
@@ -81,7 +85,7 @@ const HomePage: React.FC = () => {
                         <>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexShrink: 0 }}>
                                 <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.95)', fontWeight: 600 }}>
-                                    {theme === 'christmas' ? 'Stickers Received' : '收到的贴纸'}
+                                    收到的贴纸 <span className="bilingual-en">Stickers Received</span>
                                 </span>
                                 <button
                                     type="button"
@@ -97,7 +101,7 @@ const HomePage: React.FC = () => {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                     }}
-                                    title={theme === 'spring' ? '收起' : 'Collapse'}
+                                    title="收起 Collapse"
                                 >
                                     <ChevronLeft size={18} />
                                 </button>
@@ -111,10 +115,13 @@ const HomePage: React.FC = () => {
                                 marginBottom: '12px',
                             }}>
                                 {sceneIds.map(sceneId => {
-                                    const count = messages.filter(m => (m.sceneId || defaultSceneId) === sceneId).length;
+                                    const count = theme === 'spring'
+                                        ? messages.filter(m => displayable(m) && getStickerCategory(m.stickerType) === sceneId).length
+                                        : messages.filter(m => displayable(m) && (m.sceneId || defaultSceneId) === sceneId).length;
                                     if (count === 0) return null;
                                     const isSelected = selectedSceneId === sceneId;
-                                    const icon = SCENE_ICONS[sceneId] ?? '📁';
+                                    const icon = theme === 'spring' ? (SPRING_CATEGORY_ICONS[sceneId] ?? '📁') : (SCENE_ICONS[sceneId] ?? '📁');
+                                    const title = theme === 'spring' ? (SPRING_STICKER_CATEGORIES.find(c => c.id === sceneId)?.name ?? sceneId) : getSceneName(sceneId);
                                     return (
                                         <button
                                             key={sceneId}
@@ -136,7 +143,7 @@ const HomePage: React.FC = () => {
                                                 flexShrink: 0,
                                                 boxSizing: 'border-box',
                                             }}
-                                            title={getSceneName(sceneId)}
+                                            title={title}
                                         >
                                             {icon}
                                             <span style={{
@@ -154,7 +161,8 @@ const HomePage: React.FC = () => {
                             {selectedSceneId != null && (
                                 <>
                                     <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.95)', fontWeight: 600, marginBottom: '10px', flexShrink: 0 }}>
-                                        {SCENE_ICONS[selectedSceneId]} {getSceneName(selectedSceneId)}
+                                        {theme === 'spring' ? (SPRING_CATEGORY_ICONS[selectedSceneId] ?? '') : (SCENE_ICONS[selectedSceneId] ?? '')}{' '}
+                                        {theme === 'spring' ? (SPRING_STICKER_CATEGORIES.find(c => c.id === selectedSceneId)?.name ?? selectedSceneId) : getSceneName(selectedSceneId)}
                                     </span>
                                     <div style={{
                                         display: 'grid',
@@ -186,7 +194,7 @@ const HomePage: React.FC = () => {
                                                         justifyContent: 'center',
                                                         boxSizing: 'border-box',
                                                     }}
-                                                    title={isUnlocked ? (theme === 'spring' ? '点击查看' : 'Click to view') : (theme === 'spring' ? '节日当天解锁' : 'Festival day unlock')}
+                                                    title={isUnlocked ? (theme === 'spring' ? '点击查看 Click to view' : 'Click to view') : (theme === 'spring' ? '节日当天解锁 Festival day unlock' : 'Festival day unlock')}
                                                 >
                                                     {isUnlocked ? <StickerIcon stickerType={msg.stickerType} size={44} /> : <span style={{ fontSize: '28px' }}>🔒</span>}
                                                 </button>
@@ -211,7 +219,7 @@ const HomePage: React.FC = () => {
                                                         justifyContent: 'center',
                                                         padding: 0,
                                                     }}
-                                                    title={theme === 'spring' ? '删除' : 'Delete'}
+                                                    title="删除 Delete"
                                                 >
                                                     ×
                                                 </button>
@@ -244,7 +252,7 @@ const HomePage: React.FC = () => {
                                 justifyContent: 'center',
                                 padding: 0,
                             }}
-                            title={theme === 'spring' ? '展开贴纸' : 'Expand stickers'}
+                            title="展开贴纸 Expand stickers"
                         >
                             <ChevronRight size={18} />
                         </button>
@@ -261,6 +269,7 @@ const HomePage: React.FC = () => {
                 flex: 1,
                 minHeight: '100vh',
                 position: 'relative',
+                zIndex: 60,
                 backgroundImage: `url(${backgroundImage})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
@@ -293,6 +302,7 @@ const HomePage: React.FC = () => {
                         message={detailMessage}
                         isUnlocked={isUnlocked}
                         onClose={() => setDetailMessage(null)}
+                        onDelete={handleDeleteSticker}
                     />
                 )}
 

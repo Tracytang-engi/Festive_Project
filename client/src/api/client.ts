@@ -5,10 +5,13 @@ import { generateSignature } from '../utils/security';
 // 生产构建若未设置 VITE_API_URL，fallback 到线上 API，避免请求本地端口
 const devApiUrl = 'http://127.0.0.1:3000';
 const prodApiUrl = 'https://api.festickers.com';
-export const SERVER_ORIGIN = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? prodApiUrl : devApiUrl);
+const rawOrigin = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? prodApiUrl : devApiUrl);
+export const SERVER_ORIGIN = typeof rawOrigin === 'string' ? rawOrigin.replace(/\/+$/, '') : rawOrigin;
+// 避免 Vercel 里 VITE_API_URL 已含 /api 时变成 .../api/api/... 导致 404
+const baseURL = SERVER_ORIGIN.endsWith('/api') ? SERVER_ORIGIN : `${SERVER_ORIGIN}/api`;
 
 const api = axios.create({
-    baseURL: `${SERVER_ORIGIN}/api`,
+    baseURL,
     headers: {
         'Content-Type': 'application/json'
     }
@@ -39,6 +42,12 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const payload = config.data || {};
     const signature = generateSignature(payload, timestamp);
     config.headers['x-signature'] = signature;
+
+    // 排查头像 404：打印实际请求 URL（上线后可删）
+    if (config.url?.includes('profile/avatar')) {
+        const url = (config.baseURL || '') + (config.url || '');
+        console.warn('[Avatar API 请求]', url);
+    }
 
     return config;
 });

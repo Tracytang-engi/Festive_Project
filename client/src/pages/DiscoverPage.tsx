@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../api/client';
+import { getFriends, getSentFriendRequestIds } from '../api/friends';
 import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
 import { themeConfig } from '../constants/theme';
@@ -17,6 +18,18 @@ const DiscoverPage: React.FC = () => {
     const [error, setError] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
     const [addingId, setAddingId] = useState<string | null>(null);
+    const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
+    const [sentRequestIds, setSentRequestIds] = useState<Set<string>>(new Set());
+    const [tipModal, setTipModal] = useState<{ show: boolean; message: string; isSuccess?: boolean }>({ show: false, message: '' });
+
+    const loadFriendAndSentIds = () => {
+        getFriends().then(friends => setFriendIds(new Set(friends.map(f => f._id)))).catch(() => {});
+        getSentFriendRequestIds().then(ids => setSentRequestIds(new Set(ids))).catch(() => {});
+    };
+
+    useEffect(() => {
+        loadFriendAndSentIds();
+    }, []);
 
     const handleSearch = async (searchQuery?: string) => {
         const q = searchQuery !== undefined ? searchQuery : query;
@@ -28,6 +41,7 @@ const DiscoverPage: React.FC = () => {
         try {
             const res = await api.get(`/users/search?nickname=${encodeURIComponent(trimmed)}`);
             setResults(res.data);
+            loadFriendAndSentIds();
         } catch (err: any) {
             setError(err?.response?.data?.message || '搜索失败，请检查网络');
         } finally {
@@ -37,20 +51,25 @@ const DiscoverPage: React.FC = () => {
 
     const sendRequest = async (targetId: string) => {
         if (addingId) return;
-        setAddingId(targetId);
+        setAddingId(targetId); // 立即反馈：按钮变为「发送中...」
         try {
             await api.post('/friends/request', { targetUserId: targetId });
-            alert(theme === 'spring' ? '好友请求已发送！' : 'Friend request sent!');
+            setSentRequestIds(prev => new Set([...prev, targetId]));
+            setTipModal({
+                show: true,
+                message: theme === 'spring' ? '好友请求已发送！ Friend request sent!' : 'Friend request sent!',
+                isSuccess: true
+            });
         } catch (err: any) {
             const status = err?.response?.status;
             const data = err?.response?.data;
             const msg = data?.message || data?.error || err?.message;
             if (status === 401) {
-                alert(theme === 'spring' ? '登录已过期，请重新登录后再添加好友' : 'Please log in again to add friends');
+                setTipModal({ show: true, message: theme === 'spring' ? '登录已过期，请重新登录后再添加好友 Please log in again.' : 'Please log in again to add friends.' });
             } else if (msg === 'Request already exists or connected') {
-                alert(theme === 'spring' ? '已发送过请求或已是好友' : 'Already sent or already friends');
+                setTipModal({ show: true, message: theme === 'spring' ? '已发送过请求或已是好友。Already sent or already friends.' : 'Already sent or already friends.' });
             } else {
-                alert((theme === 'spring' ? '发送失败：' : 'Failed: ') + (msg || (theme === 'spring' ? '请重试' : 'Please retry')));
+                setTipModal({ show: true, message: (theme === 'spring' ? '发送失败：' : 'Failed: ') + (msg || (theme === 'spring' ? '请重试' : 'Please retry')) });
             }
         } finally {
             setAddingId(null);
@@ -62,17 +81,17 @@ const DiscoverPage: React.FC = () => {
     const emptyStateConfig = {
         christmas: {
             icon: '🔍',
-            title: 'Find Your Friends',
-            description: 'Search for friends by nickname to send friend requests!',
-            placeholder: 'Enter nickname to search',
-            noResults: 'No users found. Try a different nickname or invite your friends!'
+            title: '寻找好友 Find Your Friends',
+            description: '输入昵称搜索好友，发送好友请求！ Search by nickname to send friend requests!',
+            placeholder: '输入昵称搜索 Enter nickname to search',
+            noResults: '未找到用户。换一个昵称试试，或邀请好友注册后搜索添加！ No users found. Try a different nickname or invite your friends!'
         },
         spring: {
             icon: '🔍',
-            title: '寻找好友',
-            description: '输入昵称搜索好友，发送好友请求！',
-            placeholder: '输入昵称搜索',
-            noResults: '未找到用户。尝试其他昵称，或邀请好友注册后搜索添加！'
+            title: '寻找好友 Discover Friends',
+            description: '输入昵称搜索好友，发送好友请求！ Search by nickname and send friend requests.',
+            placeholder: '输入昵称搜索 Search by nickname',
+            noResults: '未找到用户。尝试其他昵称，或邀请好友注册后搜索添加！ No users found. Try another nickname or invite friends to join.'
         }
     };
 
@@ -86,13 +105,16 @@ const DiscoverPage: React.FC = () => {
             ) : (
                 <SpringFestivalEffects showSnow={true} intensity="light" />
             )}
-            <div style={{
+            <div className="page-main" style={{
                 flex: 1,
-                padding: '32px 40px',
+                minWidth: 0,
+                padding: 'var(--page-padding-y) var(--page-padding-x)',
                 overflowY: 'auto',
                 background: mainBg,
                 color: 'white',
-                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+                position: 'relative',
+                zIndex: 60,
             }}>
                 <PageTransition pageKey="discover">
                 <header style={{
@@ -113,6 +135,8 @@ const DiscoverPage: React.FC = () => {
                     style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '24px' }}
                 >
                     <input
+                        id="discover-search"
+                        name="discover-search"
                         type="text"
                         className="ios-input"
                         value={query}
@@ -120,6 +144,7 @@ const DiscoverPage: React.FC = () => {
                         onKeyDown={e => e.key === 'Enter' && handleSearch()}
                         placeholder={currentConfig.placeholder}
                         style={{ width: '300px', maxWidth: '100%', padding: '14px 18px', fontSize: '16px' }}
+                        aria-label={currentConfig.placeholder}
                     />
                     <button
                         className="ios-btn ios-btn-primary tap-scale"
@@ -159,7 +184,7 @@ const DiscoverPage: React.FC = () => {
                     {loading ? (
                         <div style={{ padding: '48px', textAlign: 'center' }}>
                             <div className="empty-state-icon" style={{ fontSize: '48px', marginBottom: '12px' }}>⏳</div>
-                            <p style={{ color: 'var(--ios-gray)', margin: 0 }}>Searching...</p>
+                            <p style={{ color: 'var(--ios-gray)', margin: 0 }}>搜索中... <span className="bilingual-en">Searching...</span></p>
                         </div>
                     ) : hasSearched && results.length === 0 ? (
                         <motion.div variants={staggerItem} style={{ padding: '48px 24px', textAlign: 'center' }}>
@@ -184,50 +209,122 @@ const DiscoverPage: React.FC = () => {
                             </p>
                         </motion.div>
                     ) : (
-                        results.map(u => (
-                            <motion.div
-                                key={u._id}
-                                variants={staggerItem}
-                                className="discover-item tap-scale"
-                                style={{
-                                    padding: '20px 24px',
-                                    borderBottom: '1px solid rgba(60,60,67,0.08)',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    transition: 'background 0.2s',
-                                }}
-                                whileHover={{ background: 'rgba(0,122,255,0.05)' }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <span style={{ fontSize: '28px', lineHeight: 1 }}>{u.avatar || '👤'}</span>
-                                    <div>
-                                        <strong style={{ fontSize: '17px', fontWeight: 600, color: '#333' }}>{u.nickname || '未设置昵称'}</strong>
-                                        <span style={{ fontSize: '14px', color: 'var(--ios-gray)', marginLeft: '10px' }}>
-                                            📍 {u.region || '未设置地区'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <button
-                                    className="ios-btn ios-btn-pill tap-scale"
-                                    onClick={() => sendRequest(u._id)}
-                                    disabled={addingId === u._id}
+                        results.map(u => {
+                            const uid = u._id ?? u.id;
+                            const isFriend = uid ? friendIds.has(uid) : false;
+                            const isSent = uid ? sentRequestIds.has(uid) : false;
+                            const isAdding = addingId === uid;
+                            const isGray = isFriend || isSent;
+                            const handleAdd = (e: React.MouseEvent) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (isGray || !uid || isAdding) return;
+                                sendRequest(uid);
+                            };
+                            return (
+                                <motion.div
+                                    key={uid}
+                                    variants={staggerItem}
+                                    className="discover-item"
                                     style={{
-                                        background: addingId === u._id ? '#ccc' : 'var(--ios-blue)',
-                                        color: 'white',
-                                        padding: '10px 20px',
-                                        fontSize: '14px',
-                                        cursor: addingId === u._id ? 'not-allowed' : 'pointer',
+                                        padding: '20px 24px',
+                                        borderBottom: '1px solid rgba(60,60,67,0.08)',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        transition: 'background 0.2s',
+                                        ...(isGray ? { background: 'rgba(60,60,67,0.06)', opacity: 0.85 } : {}),
                                     }}
+                                    whileHover={isGray ? undefined : { background: 'rgba(0,122,255,0.05)' }}
                                 >
-                                    {addingId === u._id ? (theme === 'spring' ? '发送中...' : 'Sending...') : '+ 添加'}
-                                </button>
-                            </motion.div>
-                        ))
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                                        <span style={{ fontSize: '28px', lineHeight: 1, flexShrink: 0 }}>{u.avatar || '👤'}</span>
+                                        <div style={{ minWidth: 0, overflow: 'hidden', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                                            <strong style={{ fontSize: '17px', fontWeight: 600, color: isGray ? '#8e8e93' : '#333' }}>{u.nickname || '未设置昵称'}</strong>
+                                            <span style={{ fontSize: '14px', color: 'var(--ios-gray)', marginLeft: '10px' }}>
+                                                📍 {u.region || '未设置地区'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="ios-btn ios-btn-pill tap-scale"
+                                        onClick={handleAdd}
+                                        disabled={isAdding || isGray}
+                                        style={{
+                                            flexShrink: 0,
+                                            background: isGray ? '#e5e5ea' : (isAdding ? '#ccc' : 'var(--ios-blue)'),
+                                            color: isGray ? '#8e8e93' : 'white',
+                                            padding: '10px 20px',
+                                            fontSize: '14px',
+                                            cursor: isGray ? 'default' : (isAdding ? 'not-allowed' : 'pointer'),
+                                        }}
+                                    >
+                                        {isFriend
+                                            ? (theme === 'spring' ? <>已添加 <span className="bilingual-en">Added</span></> : 'Added')
+                                            : isSent
+                                                ? (theme === 'spring' ? <>已发送 <span className="bilingual-en">Sent</span></> : 'Sent')
+                                                : (isAdding ? <>发送中... <span className="bilingual-en">Sending...</span></> : <>+ 添加 <span className="bilingual-en">Add</span></>)}
+                                    </button>
+                                </motion.div>
+                            );
+                        })
                     )}
                 </motion.div>
                 </PageTransition>
             </div>
+
+            {/* 操作结果弹窗：成功/已发送过/失败等 */}
+            {tipModal.show && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 9999,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.4)',
+                        padding: '24px',
+                    }}
+                    onClick={() => setTipModal(prev => ({ ...prev, show: false }))}
+                >
+                    <div
+                        className="ios-card tap-scale"
+                        style={{
+                            maxWidth: '340px',
+                            width: '100%',
+                            padding: '24px',
+                            background: 'white',
+                            borderRadius: '16px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                            color: '#333',
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <p style={{ margin: '0 0 20px', fontSize: '16px', lineHeight: 1.5 }}>
+                            {tipModal.message}
+                        </p>
+                        <button
+                            type="button"
+                            className="ios-btn tap-scale"
+                            onClick={() => setTipModal(prev => ({ ...prev, show: false }))}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                background: tipModal.isSuccess ? 'var(--ios-blue)' : '#8e8e93',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '10px',
+                                fontSize: '16px',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            {theme === 'spring' ? '知道了' : 'Got it'}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

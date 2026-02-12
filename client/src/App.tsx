@@ -26,6 +26,13 @@ const ModeratorRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { user, isAuthenticated } = useAuth();
   const token = localStorage.getItem('token');
   if (!(isAuthenticated || token)) return <Navigate to="/auth" />;
+  if (token && user === null) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f2f2f7', fontFamily: '-apple-system, sans-serif' }}>
+        加载中... <span className="bilingual-en">Loading...</span>
+      </div>
+    );
+  }
   if (user && user.role !== 'moderator') return <Navigate to="/" replace />;
   return <>{children}</>;
 };

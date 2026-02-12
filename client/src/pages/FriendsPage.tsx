@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '../components/Effects/PageTransition';
 import Snowfall from '../components/Effects/Snowfall';
 import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
+import TipModal from '../components/TipModal';
 
 const FriendsPage: React.FC = () => {
     const { theme } = useTheme();
@@ -17,6 +18,7 @@ const FriendsPage: React.FC = () => {
     const [friends, setFriends] = useState<User[]>([]);
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [tip, setTip] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
     useEffect(() => {
         loadData();
@@ -42,8 +44,9 @@ const FriendsPage: React.FC = () => {
         try {
             await respondToFriendRequest(requestId, action);
             loadData();
-        } catch {
-            alert("Action failed.");
+        } catch (err: any) {
+            const msg = err?.response?.data?.message ?? err?.response?.data?.error ?? (theme === 'spring' ? '操作失败，请重试' : 'Action failed. Please try again.');
+            setTip({ show: true, message: typeof msg === 'string' ? msg : '操作失败，请重试 Action failed. Please try again.' });
         }
     };
 
@@ -76,11 +79,14 @@ const FriendsPage: React.FC = () => {
             )}
             <div style={{
                 flex: 1,
-                padding: '32px 40px',
+                minWidth: 0,
+                padding: 'var(--page-padding-y) var(--page-padding-x)',
                 background: themeConfig[theme].mainBg,
                 color: 'white',
                 overflowY: 'auto',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+                position: 'relative',
+                zIndex: 60,
             }}>
                 <PageTransition pageKey="friends">
                 <h1 style={{ margin: '0 0 28px', fontSize: '28px', fontWeight: 700 }}>{currentConfig.title}</h1>
@@ -195,8 +201,9 @@ const FriendsPage: React.FC = () => {
                                                 <strong style={{ fontSize: '16px', color: '#333' }}>{friend.nickname}</strong>
                                                 <div style={{ fontSize: '13px', opacity: 0.7, marginTop: '4px' }}>📍 {friend.region}</div>
                                             </div>
-                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#007AFF' }}>
-                                                {theme === 'spring' ? '查看春节页' : 'View Spring page'}
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#007AFF', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <span>{theme === 'spring' ? '查看春节页' : 'View Spring page'}</span>
+                                                <span>{theme === 'spring' ? '为好友布置' : 'Decorate for friend'}</span>
                                             </div>
                                         </motion.div>
                                     ))}
@@ -207,6 +214,7 @@ const FriendsPage: React.FC = () => {
                 )}
                 </PageTransition>
             </div>
+            <TipModal show={tip.show} message={tip.message} onClose={() => setTip(prev => ({ ...prev, show: false }))} />
         </div>
     );
 };

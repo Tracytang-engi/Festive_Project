@@ -42,6 +42,17 @@ app.use(cors({
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
+// OPTIONS 预检必须在鉴权之前处理；app.options('*') 只匹配路径 '*'，故用中间件拦截所有 OPTIONS
+app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Origin', req.headers.origin || '*');
+        res.set('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-signature, x-timestamp');
+        return res.status(204).end();
+    }
+    next();
+});
+
 // Database Connection
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/festive-app';
 mongoose.connect(MONGO_URI)
@@ -60,6 +71,12 @@ app.use('/api/admin', adminRoutes);
 // Health Check
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
+});
+
+// 404 时打印请求路径，便于排查浏览器 404
+app.use((req, res) => {
+    console.warn('[404]', req.method, req.originalUrl || req.path);
+    res.status(404).json({ error: 'NOT_FOUND' });
 });
 
 const PORT = process.env.PORT || 3000;

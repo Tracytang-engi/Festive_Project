@@ -22,8 +22,8 @@ router.post('/check-id', ipLimiterMiddleware, async (req: Request, res: Response
         }
         const user = await User.findOne({ userId: trimmed });
         res.json({ exists: !!user });
-    } catch (err) {
-        console.error("Check ID Error:", err);
+    } catch (err: any) {
+        console.error("Check ID Error:", err?.message ?? err);
         res.status(500).json({ error: "SERVER_ERROR", message: "服务器繁忙，请稍后重试" });
     }
 });
@@ -201,8 +201,8 @@ router.post('/login', ipLimiterMiddleware, async (req: Request, res: Response) =
 
         const token = generateJWT((user._id as any).toString());
         res.status(200).json({ success: true, token });
-    } catch (err) {
-        console.error("Login Error:", err);
+    } catch (err: any) {
+        console.error("Login Error:", err?.message ?? err);
         res.status(500).json({ error: "SERVER_ERROR", message: "服务器繁忙，请稍后重试" });
     }
 });

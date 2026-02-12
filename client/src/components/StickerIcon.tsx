@@ -1,5 +1,5 @@
 import React from 'react';
-import { getStickerImageUrl } from '../constants/stickers';
+import { getStickerImageUrl, isChristmasSticker } from '../constants/stickers';
 
 interface StickerIconProps {
     stickerType: string;
@@ -8,7 +8,7 @@ interface StickerIconProps {
     className?: string;
 }
 
-/** Renders sticker as image if we have one, otherwise as emoji. */
+/** 有图则渲染图片；圣诞 emoji 渲染文字；无图的旧春节贴纸（如 loong）不渲染任何内容. */
 const StickerIcon: React.FC<StickerIconProps> = ({ stickerType, size = 64, style, className }) => {
     const url = getStickerImageUrl(stickerType);
     if (url) {
@@ -27,11 +27,14 @@ const StickerIcon: React.FC<StickerIconProps> = ({ stickerType, size = 64, style
             />
         );
     }
-    return (
-        <span className={className} style={{ fontSize: size, lineHeight: 1, ...style }}>
-            {stickerType}
-        </span>
-    );
+    if (isChristmasSticker(stickerType)) {
+        return (
+            <span className={className} style={{ fontSize: size, lineHeight: 1, ...style }}>
+                {stickerType}
+            </span>
+        );
+    }
+    return null;
 };
 
 export default StickerIcon;

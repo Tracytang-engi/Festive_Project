@@ -42,6 +42,8 @@ const SettingsPage: React.FC = () => {
     // 个人主页：头像
     const currentAvatar = user?.avatar || DEFAULT_AVATAR;
     const [avatarLoading, setAvatarLoading] = useState(false);
+    const [avatarError, setAvatarError] = useState<string | null>(null);
+    const [avatarSuccess, setAvatarSuccess] = useState(false);
 
     // 个人主页：昵称
     const nicknameRemain = NICKNAME_CHANGE_LIMIT - (user?.nicknameChangeCount ?? 0);
@@ -185,11 +187,14 @@ const SettingsPage: React.FC = () => {
             )}
             <div style={{
                 flex: 1,
-                padding: '32px 40px',
+                minWidth: 0,
+                padding: 'var(--page-padding-y) var(--page-padding-x)',
                 overflowY: 'auto',
                 background: mainBg,
                 color: 'white',
-                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+                fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+                position: 'relative',
+                zIndex: 60,
             }}>
                 <header style={{
                     display: 'flex',
@@ -198,14 +203,14 @@ const SettingsPage: React.FC = () => {
                     marginBottom: '28px'
                 }}>
                     <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>
-                        ⚙️ Settings
+                        ⚙️ 设置 <span className="bilingual-en">Settings</span>
                     </h1>
                     <button
                         className="ios-btn tap-scale"
                         onClick={() => navigate('/')}
                         style={{ background: 'rgba(255,255,255,0.2)', color: 'white', padding: '10px 16px' }}
                     >
-                        Done
+                        完成 <span className="bilingual-en">Done</span>
                     </button>
                 </header>
 
@@ -218,30 +223,36 @@ const SettingsPage: React.FC = () => {
                     marginBottom: '24px'
                 }}>
                     <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 600 }}>
-                        个人主页
+                        个人主页 <span className="bilingual-en">Profile</span>
                     </h2>
 
                     {/* 头像 */}
                     <div style={{ marginBottom: '24px' }}>
                         <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, marginBottom: '8px' }}>
-                            头像
+                            头像 <span className="bilingual-en">Avatar</span>
                         </label>
                         <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#666' }}>
-                            当前头像：<span style={{ fontSize: '28px' }}>{currentAvatar}</span>
+                            当前头像 <span className="bilingual-en">Current avatar</span>：<span style={{ fontSize: '28px' }}>{currentAvatar}</span>
                         </p>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {AVATAR_EMOJIS.map(emoji => (
                                 <button
                                     key={emoji}
                                     type="button"
+                                    className="tap-scale"
                                     disabled={avatarLoading}
                                     onClick={async () => {
                                         setAvatarLoading(true);
+                                        setAvatarError(null);
+                                        setAvatarSuccess(false);
                                         try {
                                             await api.put('/users/profile/avatar', { avatar: emoji });
+                                            setAvatarSuccess(true);
                                             await checkAuth();
-                                        } catch {
-                                            // ignore
+                                        } catch (err: any) {
+                                            const status = err?.response?.status;
+                                            const msg = err?.response?.data?.message ?? err?.response?.data?.error ?? (status === 404 ? (theme === 'spring' ? '接口不存在(404)，请检查网络或联系管理员' : 'Not found (404)') : (theme === 'spring' ? '更新失败，请重试' : 'Update failed'));
+                                            setAvatarError(msg);
                                         } finally {
                                             setAvatarLoading(false);
                                         }
@@ -260,22 +271,34 @@ const SettingsPage: React.FC = () => {
                                 </button>
                             ))}
                         </div>
+                        {avatarError && (
+                            <div className="ios-info-banner" style={{ marginTop: '10px', background: 'rgba(255,59,48,0.15)', borderColor: 'rgba(255,59,48,0.3)', color: '#c0392b' }}>
+                                {avatarError}
+                            </div>
+                        )}
+                        {avatarSuccess && (
+                            <div className="ios-info-banner" style={{ marginTop: '10px', background: 'rgba(52,199,89,0.15)', borderColor: 'rgba(52,199,89,0.3)', color: '#27ae60' }}>
+                                {theme === 'spring' ? <>头像已更新 <span className="bilingual-en">Avatar updated</span></> : 'Avatar updated'}
+                            </div>
+                        )}
                     </div>
 
                     {/* 修改昵称 */}
                     <div style={{ marginBottom: '24px' }}>
-                        <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, marginBottom: '8px' }}>
-                            修改昵称
+                        <label htmlFor="settings-nickname" style={{ display: 'block', fontSize: '15px', fontWeight: 600, marginBottom: '8px' }}>
+                            修改昵称 <span className="bilingual-en">Edit nickname</span>
                         </label>
                         <p style={{ margin: '0 0 8px', fontSize: '13px', color: '#666' }}>
-                            当前昵称：{user?.nickname ?? '-'} · 剩余修改次数：{Math.max(0, nicknameRemain)}/{NICKNAME_CHANGE_LIMIT}
+                            当前昵称 <span className="bilingual-en">Current</span>：{user?.nickname ?? '-'} · 剩余修改次数 <span className="bilingual-en">Remaining</span>：{Math.max(0, nicknameRemain)}/{NICKNAME_CHANGE_LIMIT}
                         </p>
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                             <input
+                                id="settings-nickname"
+                                name="nickname"
                                 type="text"
                                 value={nicknameInput}
                                 onChange={(e) => setNicknameInput(e.target.value)}
-                                placeholder="输入新昵称"
+                                placeholder="输入新昵称 Enter new nickname"
                                 disabled={nicknameRemain <= 0}
                                 style={{
                                     flex: '1',
@@ -301,7 +324,7 @@ const SettingsPage: React.FC = () => {
                                     cursor: (nicknameRemain <= 0 || nicknameLoading) ? 'not-allowed' : 'pointer'
                                 }}
                             >
-                                {nicknameLoading ? '提交中...' : '保存'}
+                                {nicknameLoading ? <>提交中... <span className="bilingual-en">Submitting...</span></> : <>保存 <span className="bilingual-en">Save</span></>}
                             </button>
                         </div>
                         {nicknameError && (
@@ -311,7 +334,7 @@ const SettingsPage: React.FC = () => {
                         )}
                         {nicknameSuccess && (
                             <div className="ios-info-banner" style={{ marginTop: '10px', background: 'rgba(52,199,89,0.15)', borderColor: 'rgba(52,199,89,0.3)', color: '#27ae60' }}>
-                                昵称已更新
+                                昵称已更新 <span className="bilingual-en">Nickname updated</span>
                             </div>
                         )}
                     </div>
@@ -319,17 +342,20 @@ const SettingsPage: React.FC = () => {
                     {/* 修改密码 */}
                     <div>
                         <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, marginBottom: '8px' }}>
-                            修改密码
+                            修改密码 <span className="bilingual-en">Change password</span>
                         </label>
                         <p style={{ margin: '0 0 8px', fontSize: '13px', color: '#666' }}>
-                            剩余修改次数：{Math.max(0, passwordRemain)}/{PASSWORD_CHANGE_LIMIT}（每人限 1 次）
+                            剩余修改次数 <span className="bilingual-en">Remaining</span>：{Math.max(0, passwordRemain)}/{PASSWORD_CHANGE_LIMIT}（每人限 1 次 <span className="bilingual-en">once per user</span>）
                         </p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <label htmlFor="settings-current-password" style={{ fontSize: '13px', color: '#666' }}>当前密码 <span className="bilingual-en">Current password</span></label>
                             <input
+                                id="settings-current-password"
+                                name="currentPassword"
                                 type="password"
                                 value={currentPassword}
                                 onChange={(e) => setCurrentPassword(e.target.value)}
-                                placeholder="当前密码"
+                                placeholder="当前密码 Current password"
                                 disabled={passwordRemain <= 0}
                                 style={{
                                     padding: '10px 14px',
@@ -338,11 +364,14 @@ const SettingsPage: React.FC = () => {
                                     fontSize: '15px'
                                 }}
                             />
+                            <label htmlFor="settings-new-password" style={{ fontSize: '13px', color: '#666' }}>新密码 6 位 <span className="bilingual-en">New password, 6 digits</span></label>
                             <input
+                                id="settings-new-password"
+                                name="newPassword"
                                 type="password"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
-                                placeholder="新密码（6 位）"
+                                placeholder="新密码 6 位 New password, 6 digits"
                                 disabled={passwordRemain <= 0}
                                 maxLength={6}
                                 style={{
@@ -367,7 +396,7 @@ const SettingsPage: React.FC = () => {
                                     cursor: (passwordRemain <= 0 || passwordLoading) ? 'not-allowed' : 'pointer'
                                 }}
                             >
-                                {passwordLoading ? '提交中...' : '保存新密码'}
+                                {passwordLoading ? <>提交中... <span className="bilingual-en">Submitting...</span></> : <>保存新密码 <span className="bilingual-en">Save new password</span></>}
                             </button>
                         </div>
                         {passwordError && (
@@ -377,7 +406,7 @@ const SettingsPage: React.FC = () => {
                         )}
                         {passwordSuccess && (
                             <div className="ios-info-banner" style={{ marginTop: '10px', background: 'rgba(52,199,89,0.15)', borderColor: 'rgba(52,199,89,0.3)', color: '#27ae60' }}>
-                                密码已更新
+                                密码已更新 <span className="bilingual-en">Password updated</span>
                             </div>
                         )}
                     </div>
@@ -390,15 +419,15 @@ const SettingsPage: React.FC = () => {
                     color: '#333'
                 }}>
                     <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, marginBottom: '12px' }}>
-                        {theme === 'spring' ? '自定义背景（按场景）' : 'Custom Background (per scene)'}
+                        自定义背景（按场景） <span className="bilingual-en">Custom Background</span>
                     </label>
                     <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px' }}>
-                        {theme === 'spring' ? '先选择要修改的场景，再上传图片；可随时恢复默认。' : 'Select a scene, then upload an image; you can restore default anytime.'}
+                        先选择要修改的场景，再上传图片；可随时恢复默认。 <span className="bilingual-en">Select a scene, then upload an image; you can restore default anytime.</span>
                     </p>
 
                     <div style={{ marginBottom: '16px' }}>
                         <span style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '8px' }}>
-                            {theme === 'spring' ? '选择场景' : 'Select scene'}
+                            选择场景 <span className="bilingual-en">Select scene</span>
                         </span>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {ALL_SCENES.flatMap(({ ids }) => ids).map(sid => (
@@ -440,11 +469,14 @@ const SettingsPage: React.FC = () => {
                         onClick={() => fileInputRef.current?.click()}
                     >
                         <input
+                            id="custom-bg-file"
+                            name="customBackground"
                             ref={fileInputRef}
                             type="file"
                             accept="image/*"
                             onChange={handleFileChange}
                             style={{ display: 'none' }}
+                            aria-label="上传场景背景 Upload scene background"
                         />
                         {preview && (
                             <img
@@ -470,7 +502,7 @@ const SettingsPage: React.FC = () => {
                                 fontWeight: 500,
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                             }}>
-                                {file ? file.name : (theme === 'spring' ? '选择图片' : 'Choose image')}
+                                {file ? file.name : <>选择图片 <span className="bilingual-en">Choose image</span></>}
                             </span>
                         </div>
                     </div>
@@ -482,7 +514,7 @@ const SettingsPage: React.FC = () => {
                     )}
                     {success && (
                         <div className="ios-info-banner" style={{ marginTop: '16px', background: 'rgba(52,199,89,0.15)', borderColor: 'rgba(52,199,89,0.3)', color: '#27ae60' }}>
-                            {theme === 'spring' ? '已更新' : 'Updated!'}
+                            已更新 <span className="bilingual-en">Updated!</span>
                         </div>
                     )}
 
@@ -505,7 +537,7 @@ const SettingsPage: React.FC = () => {
                                 cursor: (!file || uploading) ? 'not-allowed' : 'pointer'
                             }}
                         >
-                            {uploading ? (theme === 'spring' ? '上传中...' : 'Uploading...') : (theme === 'spring' ? '保存' : 'Save')}
+                            {uploading ? <>上传中... <span className="bilingual-en">Uploading...</span></> : <>保存 <span className="bilingual-en">Save</span></>}
                         </button>
                         {customBackgrounds[selectedSceneId] && (
                             <button
@@ -524,7 +556,7 @@ const SettingsPage: React.FC = () => {
                                     cursor: restoring ? 'not-allowed' : 'pointer'
                                 }}
                             >
-                                {restoring ? (theme === 'spring' ? '恢复中...' : 'Restoring...') : (theme === 'spring' ? '恢复默认' : 'Restore default')}
+                                {restoring ? <>恢复中... <span className="bilingual-en">Restoring...</span></> : <>恢复默认 <span className="bilingual-en">Restore default</span></>}
                             </button>
                         )}
                     </div>

@@ -146,8 +146,24 @@ router.get('/:friendId/decor', (req, res) => __awaiter(void 0, void 0, void 0, f
             return res.status(404).json({ error: "USER_NOT_FOUND" });
         const messages = yield Message_1.default.find({ recipient: friendId, season: 'spring' })
             .select('_id stickerType sceneId isPrivate content sender createdAt')
-            .populate('sender', 'nickname avatar')
+            .populate('sender', '_id nickname avatar')
             .lean();
+        // 贴纸内容锁定：节日当天 00:00（北京时间）后解锁，与 messages 接口一致
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const chinaTime = new Date(utc + (3600000 * 8));
+        const currentYear = chinaTime.getFullYear();
+        const month = chinaTime.getMonth();
+        const date = chinaTime.getDate();
+        let isUnlocked = false;
+        if (currentYear === 2025 && month === 0 && date >= 29)
+            isUnlocked = true;
+        else if (currentYear === 2026 && month === 1 && date >= 17)
+            isUnlocked = true;
+        else if (currentYear === 2027 && month === 1 && date >= 6)
+            isUnlocked = true;
+        else if (currentYear === 2024 && month === 1 && date >= 10)
+            isUnlocked = true;
         const messagesForClient = messages.map((m) => {
             const base = {
                 _id: m._id.toString(),
@@ -156,11 +172,19 @@ router.get('/:friendId/decor', (req, res) => __awaiter(void 0, void 0, void 0, f
                 isPrivate: !!m.isPrivate,
             };
             if (m.isPrivate) {
-                return base;
+                const senderId = m.sender && (m.sender._id || m.sender).toString();
+                const requesterIsSenderOrRecipient = userId === senderId || userId === friendId;
+                if (requesterIsSenderOrRecipient) {
+                    return Object.assign(Object.assign({}, base), { content: m.content, sender: m.sender, createdAt: m.createdAt });
+                }
+                return Object.assign(Object.assign({}, base), { sender: m.sender });
+            }
+            if (!isUnlocked) {
+                return Object.assign(Object.assign({}, base), { content: 'LOCKED UNTIL FESTIVAL', sender: m.sender, createdAt: m.createdAt });
             }
             return Object.assign(Object.assign({}, base), { content: m.content, sender: m.sender, createdAt: m.createdAt });
         });
-        res.json(Object.assign(Object.assign({}, friend), { messages: messagesForClient }));
+        res.json(Object.assign(Object.assign({}, friend), { messages: messagesForClient, isUnlocked }));
     }
     catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });

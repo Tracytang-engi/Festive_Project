@@ -24,10 +24,16 @@ export const searchUsers = async (nickname: string): Promise<User[]> => {
     return response.data;
 };
 
-// Get pending friend requests
+// Get pending friend requests (received by me)
 export const getFriendRequests = async (): Promise<any[]> => {
     const response = await api.get('/friends/requests');
     return response.data;
+};
+
+/** 我发出的、待对方处理的好友请求对应的用户 ID 列表（发现页灰显「已发送」用） */
+export const getSentFriendRequestIds = async (): Promise<string[]> => {
+    const response = await api.get<string[]>('/friends/requests/sent');
+    return Array.isArray(response.data) ? response.data : [];
 };
 
 /** 好友的贴纸消息（仅用于展示布置） */
@@ -38,7 +44,7 @@ export interface FriendDecorMessage {
     isPrivate?: boolean;
     /** 公开消息才有，用于 StickerDetailModal */
     content?: string;
-    sender?: { nickname: string; avatar?: string };
+    sender?: { _id?: string; nickname: string; avatar?: string };
     createdAt?: string;
 }
 
@@ -53,10 +59,14 @@ export interface FriendDecor {
     sceneLayout?: Record<string, Record<string, { left: number; top: number }>>;
     /** 对方收到的春节贴纸列表，用于展示具体贴纸 */
     messages?: FriendDecorMessage[];
+    /** 贴纸内容是否已解锁（节日当天 00:00 后为 true） */
+    isUnlocked?: boolean;
 }
 
 // 查看好友的主题装饰页数据（仅好友可调）
-export const getFriendDecor = async (friendId: string): Promise<FriendDecor> => {
-    const response = await api.get(`/friends/${friendId}/decor`);
+// bustCache: 发送贴纸后 refetch 时传 true，避免浏览器/CDN 返回旧缓存导致发送者看不到新贴纸
+export const getFriendDecor = async (friendId: string, options?: { bustCache?: boolean }): Promise<FriendDecor> => {
+    const params = options?.bustCache ? { _t: Date.now() } : undefined;
+    const response = await api.get(`/friends/${friendId}/decor`, { params });
     return response.data;
 };
