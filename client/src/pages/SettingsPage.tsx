@@ -7,8 +7,6 @@ import { useTheme } from '../context/ThemeContext';
 import { themeConfig } from '../constants/theme';
 import { SPRING_SCENE_IDS, CHRISTMAS_SCENE_IDS, SCENE_ICONS, getSceneName, getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage } from '../constants/scenes';
 import { AVATAR_EMOJIS, DEFAULT_AVATAR } from '../constants/avatars';
-import Snowfall from '../components/Effects/Snowfall';
-import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 
 const NICKNAME_CHANGE_LIMIT = 3;
 const PASSWORD_CHANGE_LIMIT = 1;
@@ -180,11 +178,6 @@ const SettingsPage: React.FC = () => {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
             <Sidebar />
-            {theme === 'christmas' ? (
-                <Snowfall intensity="light" />
-            ) : (
-                <SpringFestivalEffects showSnow={true} intensity="light" />
-            )}
             <div style={{
                 flex: 1,
                 minWidth: 0,

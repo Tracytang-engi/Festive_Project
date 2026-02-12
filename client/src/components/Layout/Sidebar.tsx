@@ -93,7 +93,7 @@ const Sidebar: React.FC = () => {
                 <div className="sidebar-nav-icon theme-tap icon-responsive" title="我的好友 My Friends" onClick={() => navigate('/friends')} style={{ opacity: isActive('/friends') ? 1 : 0.5, transform: isActive('/friends') ? 'scale(1.2)' : 'scale(1)' }}>
                     <Heart size={24} />
                 </div>
-                <div className="sidebar-nav-icon theme-tap icon-responsive" title="写贺卡 Write a Card" onClick={() => navigate('/messages')} style={{ opacity: isActive('/messages') ? 1 : 0.5, transform: isActive('/messages') ? 'scale(1.2)' : 'scale(1)' }}>
+                <div className="sidebar-nav-icon theme-tap icon-responsive" title="送贴纸 (Send stickers)" onClick={() => navigate('/messages')} style={{ opacity: isActive('/messages') ? 1 : 0.5, transform: isActive('/messages') ? 'scale(1.2)' : 'scale(1)' }}>
                     <PenSquare size={24} />
                 </div>
                 <div className="sidebar-nav-icon theme-tap icon-responsive" title="设置 Settings" onClick={() => navigate('/settings')} style={{ opacity: isActive('/settings') ? 1 : 0.5, transform: isActive('/settings') ? 'scale(1.2)' : 'scale(1)' }}>

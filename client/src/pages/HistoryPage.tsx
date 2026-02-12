@@ -4,8 +4,6 @@ import { useTheme } from '../context/ThemeContext';
 import { themeConfig } from '../constants/theme';
 import { getHistoryList, getHistoryDetail, archiveSeason } from '../api/history';
 import type { HistoryItem, HistorySceneData } from '../api/history';
-import Snowfall from '../components/Effects/Snowfall';
-import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import StickerIcon from '../components/StickerIcon';
 import TipModal from '../components/TipModal';
 import ConfirmModal from '../components/ConfirmModal';
@@ -62,11 +60,6 @@ const HistoryPage: React.FC = () => {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
             <Sidebar />
-            {theme === 'christmas' ? (
-                <Snowfall intensity="light" />
-            ) : (
-                <SpringFestivalEffects showSnow={true} intensity="light" />
-            )}
             <div style={{
                 flex: 1,
                 minWidth: 0,

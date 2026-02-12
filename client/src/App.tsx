@@ -14,6 +14,7 @@ import SettingsPage from './pages/SettingsPage';
 import FestiveDecorPage from './pages/FestiveDecorPage';
 import FriendDecorPage from './pages/FriendDecorPage';
 import ModeratorPage from './pages/ModeratorPage';
+import GlobalSnowOverlay from './components/Effects/GlobalSnowOverlay';
 import './index.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -64,6 +65,7 @@ const ChristmasBannerAndLayout: React.FC = () => {
   const isChristmas = theme === 'christmas';
   return (
     <>
+      <GlobalSnowOverlay />
       {isChristmas && (
         <div
           style={{

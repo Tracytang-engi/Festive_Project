@@ -4,8 +4,6 @@ import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { themeConfig } from '../constants/theme';
-import Snowfall from '../components/Effects/Snowfall';
-import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import PageTransition from '../components/Effects/PageTransition';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '../components/Effects/PageTransition';
@@ -22,23 +20,18 @@ const MessagesPage: React.FC = () => {
         icon: '🧧',
         title: '暂无祝福消息 No Messages Yet',
         description: '向亲朋好友发送新春祝福，传递温暖与祝福！ Send festive greetings to your friends!',
-        actionText: '写贺卡 Write a Card',
+        actionText: '送贴纸 (Send stickers)',
         emoji: '🎉'
     };
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
             <Sidebar />
-            {theme === 'christmas' ? (
-                <Snowfall intensity="moderate" />
-            ) : (
-                <SpringFestivalEffects showSnow={true} intensity="moderate" />
-            )}
-            <div style={{ flex: 1, minWidth: 0, padding: 'var(--page-padding-y) var(--page-padding-x)', overflowY: 'auto', background: mainBg, color: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', position: 'relative', zIndex: 60 }}>
+            <div style={{ flex: 1, minWidth: 0, padding: 'var(--page-padding-y) var(--page-padding-x)', overflowY: 'auto', background: mainBg, color: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', position: 'relative' }}>
             <PageTransition pageKey={`messages-${season}`}>
             <header style={{ marginBottom: '28px' }}>
                 <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>
-                    写贺卡 <span className="bilingual-en">Write a Card</span>
+                    送贴纸 <span className="bilingual-en">Send stickers</span>
                 </h1>
                 <p style={{ margin: '8px 0 0', fontSize: '15px', color: 'rgba(255,255,255,0.9)' }}>
                     当前页面：春节贺卡 <span className="bilingual-en">Spring Festival cards</span>

@@ -17,19 +17,19 @@ interface SpringSnowProps {
 }
 
 const SpringSnow: React.FC<SpringSnowProps> = ({ intensity = 'moderate' }) => {
-    const count = intensity === 'light' ? 20 : intensity === 'heavy' ? 50 : 32;
+    const count = intensity === 'light' ? 28 : intensity === 'heavy' ? 55 : 38;
 
     const snowflakes = useMemo<Snowflake[]>(() => {
         return Array.from({ length: count }, (_, i) => ({
             id: i,
             left: Math.random() * 100,
-            top: Math.random() * -20,
-            size: Math.random() * 8 + 4,
-            duration: Math.random() * 10 + 10,
-            delay: Math.random() * 12,
-            opacity: Math.random() * 0.7 + 0.3,
+            top: Math.random() * -30,
+            size: Math.random() * 10 + 5,
+            duration: Math.random() * 12 + 10,
+            delay: Math.random() * 8,
+            opacity: Math.random() * 0.5 + 0.5,
             drift: Math.random() * 40 - 20,
-            color: '#ffffff', // 白色雪花
+            color: '#ffffff',
         }));
     }, [count]);
 
@@ -41,9 +41,10 @@ const SpringSnow: React.FC<SpringSnowProps> = ({ intensity = 'moderate' }) => {
                 left: 0,
                 right: 0,
                 bottom: 0,
+                width: '100%',
+                height: '100%',
                 pointerEvents: 'none',
-                overflow: 'hidden',
-                zIndex: 40,
+                overflow: 'visible',
             }}
         >
             {snowflakes.map((flake) => (
@@ -79,12 +80,12 @@ const SpringSnowflake: React.FC<Snowflake> = ({
                 position: 'absolute',
                 left: `${left}%`,
                 top: `${top}%`,
-                width: size,
-                height: size,
+                width: `${size}px`,
+                height: `${size}px`,
                 background: color,
                 borderRadius: '50%',
                 opacity,
-                boxShadow: `0 0 ${size}px rgba(255,255,255,0.8)`,
+                boxShadow: `0 0 ${size * 1.5}px rgba(255,255,255,0.9), 0 0 ${size * 3}px rgba(255,255,255,0.4)`,
                 animation: `spring-snowfall ${duration}s linear ${delay}s infinite`,
                 '--drift': `${drift}px`,
             } as React.CSSProperties}

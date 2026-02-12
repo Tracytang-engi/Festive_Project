@@ -12,7 +12,6 @@ import PrivateMessagePlaceholderModal from '../components/Messages/PrivateMessag
 import ComposeSidebar from '../components/Messages/ComposeSidebar';
 import ComposeModal from '../components/Messages/ComposeModal';
 import { themeConfig } from '../constants/theme';
-import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import { ArrowLeft, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -42,8 +41,8 @@ const FriendDecorPage: React.FC = () => {
         if (SPRING_STICKER_CATEGORIES.some(c => c.id === scene)) return categoryToSceneId[scene] ?? DEFAULT_SPRING_SCENE;
         return null;
     };
-    /** 当前要查看的场景；null 表示在选场景步骤。无 URL scene 时默认进默认场景，直接看到对方贴纸。 */
-    const [viewingSceneId, setViewingSceneId] = useState<string | null>(() => resolveSceneFromUrl(new URLSearchParams(window.location.search).get('scene')) ?? DEFAULT_SPRING_SCENE);
+    /** 当前要查看的场景；null 表示在选场景步骤（从好友圈点进来先显示此页）。有 URL ?scene= 时进入对应场景。 */
+    const [viewingSceneId, setViewingSceneId] = useState<string | null>(() => resolveSceneFromUrl(new URLSearchParams(window.location.search).get('scene')) ?? null);
     /** 场景名称弹窗是否显示，进入场景后 1s 渐变消失 */
     const [sceneCardVisible, setSceneCardVisible] = useState(true);
     /** 点击贴纸：私密占位弹窗 或 公开消息详情 */
@@ -238,7 +237,6 @@ const FriendDecorPage: React.FC = () => {
             <>
             <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
                 <Sidebar />
-                <SpringFestivalEffects showSnow={true} intensity="light" />
                 <div style={{
                     flex: 1,
                     padding: '24px 20px 48px',
@@ -470,7 +468,6 @@ const FriendDecorPage: React.FC = () => {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflow: 'hidden' }}>
             <Sidebar />
-            <SpringFestivalEffects showSnow={true} intensity="moderate" />
             <div
                 ref={sceneContainerRef}
                 className="page-bg-area"
