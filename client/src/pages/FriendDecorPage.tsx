@@ -170,20 +170,21 @@ const FriendDecorPage: React.FC = () => {
             return { x: me.clientX, y: me.clientY };
         };
 
-        const onMove = (e: MouseEvent | TouchEvent) => {
+        const onMove = (e: Event) => {
+            const ev = e as MouseEvent | TouchEvent;
             const rect = el.getBoundingClientRect();
-            const { x, y } = getCoords(e);
+            const { x, y } = getCoords(ev);
             const left = Math.min(95, Math.max(5, ((x - rect.left) / rect.width) * 100));
             const top = Math.min(95, Math.max(5, ((y - rect.top) / rect.height) * 100));
             dragPositionRef.current = { left, top };
             setDraggingSticker(prev => prev ? { ...prev, left, top } : null);
         };
-        const onUp = async (e: MouseEvent | TouchEvent) => {
+        const onUp = async () => {
             setDraggingSticker(null);
-            document.removeEventListener('mousemove', onMove as EventListener);
-            document.removeEventListener('mouseup', onUp as EventListener);
-            document.removeEventListener('touchmove', onMove as EventListener, { capture: true });
-            document.removeEventListener('touchend', onUp as EventListener, { capture: true });
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            document.removeEventListener('touchmove', onMove, { capture: true });
+            document.removeEventListener('touchend', onUp, { capture: true });
             const { left, top } = dragPositionRef.current;
             justDraggedRef.current = true;
             try {
@@ -193,15 +194,15 @@ const FriendDecorPage: React.FC = () => {
                 refetchDecor();
             }
         };
-        document.addEventListener('mousemove', onMove as EventListener);
-        document.addEventListener('mouseup', onUp as EventListener);
-        document.addEventListener('touchmove', onMove as EventListener, { capture: true, passive: false });
-        document.addEventListener('touchend', onUp as EventListener, { capture: true });
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+        document.addEventListener('touchmove', onMove, { capture: true, passive: false });
+        document.addEventListener('touchend', onUp, { capture: true });
         return () => {
-            document.removeEventListener('mousemove', onMove as EventListener);
-            document.removeEventListener('mouseup', onUp as EventListener);
-            document.removeEventListener('touchmove', onMove as EventListener, { capture: true });
-            document.removeEventListener('touchend', onUp as EventListener, { capture: true });
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            document.removeEventListener('touchmove', onMove, { capture: true });
+            document.removeEventListener('touchend', onUp, { capture: true });
         };
     }, [draggingSticker?.messageId, refetchDecor]);
 
