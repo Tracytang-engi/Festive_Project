@@ -135,27 +135,55 @@ const FriendDecorPage: React.FC = () => {
 
     const justDraggedRef = useRef(false);
     const dragPositionRef = useRef({ left: 0, top: 0 });
+    const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const longPressMessageRef = useRef<FriendDecorMessage | null>(null);
+    const didStartDragRef = useRef(false);
+
+    const LONG_PRESS_MS = 400;
 
     const refetchDecor = useCallback(() => {
         if (userId) getFriendDecor(userId, { bustCache: true }).then(setDecor).catch(() => {});
     }, [userId]);
+
+    const clearLongPressTimer = useCallback(() => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+        longPressMessageRef.current = null;
+    }, []);
 
     useEffect(() => {
         if (!draggingSticker || !sceneContainerRef.current) return;
         const messageId = draggingSticker.messageId;
         dragPositionRef.current = { left: draggingSticker.left, top: draggingSticker.top };
         const el = sceneContainerRef.current;
-        const onMove = (e: MouseEvent) => {
+
+        const getCoords = (e: MouseEvent | TouchEvent) => {
+            if ('touches' in e && e.touches.length > 0) {
+                return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+            if ('changedTouches' in e && e.changedTouches.length > 0) {
+                return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+            }
+            const me = e as MouseEvent;
+            return { x: me.clientX, y: me.clientY };
+        };
+
+        const onMove = (e: MouseEvent | TouchEvent) => {
             const rect = el.getBoundingClientRect();
-            const left = Math.min(95, Math.max(5, ((e.clientX - rect.left) / rect.width) * 100));
-            const top = Math.min(95, Math.max(5, ((e.clientY - rect.top) / rect.height) * 100));
+            const { x, y } = getCoords(e);
+            const left = Math.min(95, Math.max(5, ((x - rect.left) / rect.width) * 100));
+            const top = Math.min(95, Math.max(5, ((y - rect.top) / rect.height) * 100));
             dragPositionRef.current = { left, top };
             setDraggingSticker(prev => prev ? { ...prev, left, top } : null);
         };
-        const onUp = async () => {
+        const onUp = async (e: MouseEvent | TouchEvent) => {
             setDraggingSticker(null);
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onUp);
+            document.removeEventListener('mousemove', onMove as EventListener);
+            document.removeEventListener('mouseup', onUp as EventListener);
+            document.removeEventListener('touchmove', onMove as EventListener, { capture: true });
+            document.removeEventListener('touchend', onUp as EventListener, { capture: true });
             const { left, top } = dragPositionRef.current;
             justDraggedRef.current = true;
             try {
@@ -165,11 +193,15 @@ const FriendDecorPage: React.FC = () => {
                 refetchDecor();
             }
         };
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
+        document.addEventListener('mousemove', onMove as EventListener);
+        document.addEventListener('mouseup', onUp as EventListener);
+        document.addEventListener('touchmove', onMove as EventListener, { capture: true, passive: false });
+        document.addEventListener('touchend', onUp as EventListener, { capture: true });
         return () => {
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onUp);
+            document.removeEventListener('mousemove', onMove as EventListener);
+            document.removeEventListener('mouseup', onUp as EventListener);
+            document.removeEventListener('touchmove', onMove as EventListener, { capture: true });
+            document.removeEventListener('touchend', onUp as EventListener, { capture: true });
         };
     }, [draggingSticker?.messageId, refetchDecor]);
 
@@ -177,7 +209,8 @@ const FriendDecorPage: React.FC = () => {
         const isSender = currentUser?._id && message.sender?._id && message.sender._id === currentUser._id;
         if (message.isPrivate && !isSender) {
             setShowPrivatePlaceholder(true);
-        } else if (message.content !== undefined || (message.isPrivate && isSender)) {
+        } else {
+            // 发送方始终可点开自己发的贴纸；接收方看公开内容或自己的私密消息
             setDetailMessage(message as Message);
         }
     };
@@ -556,7 +589,7 @@ const FriendDecorPage: React.FC = () => {
                     </button>
                 </div>
 
-                {/* 该场景布置：过年之前发送方与房主可拖；过年之后仅房主可拖；点击查看详情 */}
+                {/* 该场景布置：短按查看详情，长按拖拽（仅发送方/房主可拖）；过年之后仅房主可拖 */}
                 {stickersInScene.map(({ message, pos }) => {
                     const senderId = typeof message.sender === 'object' && message.sender && '_id' in message.sender
                         ? (message.sender as { _id?: string })._id
@@ -567,6 +600,45 @@ const FriendDecorPage: React.FC = () => {
                     const displayPos = draggingSticker?.messageId === message._id
                         ? { left: draggingSticker.left, top: draggingSticker.top }
                         : pos;
+
+                    const handlePointerDown = canDrag
+                        ? (e: React.PointerEvent) => {
+                            e.preventDefault();
+                            didStartDragRef.current = false;
+                            (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+                            longPressMessageRef.current = message;
+                            clearLongPressTimer();
+                            longPressTimerRef.current = setTimeout(() => {
+                                longPressTimerRef.current = null;
+                                longPressMessageRef.current = null;
+                                didStartDragRef.current = true;
+                                setDraggingSticker({ messageId: message._id, left: pos.left, top: pos.top });
+                            }, LONG_PRESS_MS);
+                          }
+                        : undefined;
+
+                    const handlePointerUp = canDrag
+                        ? (e: React.PointerEvent) => {
+                            const msg = longPressMessageRef.current;
+                            const startedDrag = didStartDragRef.current;
+                            clearLongPressTimer();
+                            (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+                            if (justDraggedRef.current) {
+                                justDraggedRef.current = false;
+                                didStartDragRef.current = false;
+                                return;
+                            }
+                            if (!startedDrag && msg) handleStickerClick(msg);
+                            didStartDragRef.current = false;
+                          }
+                        : undefined;
+
+                    const handlePointerCancel = canDrag
+                        ? () => {
+                            clearLongPressTimer();
+                          }
+                        : undefined;
+
                     return (
                         <div
                             key={message._id}
@@ -579,10 +651,13 @@ const FriendDecorPage: React.FC = () => {
                                     justDraggedRef.current = false;
                                     return;
                                 }
-                                handleStickerClick(message);
+                                if (!canDrag) handleStickerClick(message);
                             }}
                             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleStickerClick(message); }}
-                            onMouseDown={canDrag ? (e) => { e.preventDefault(); setDraggingSticker({ messageId: message._id, left: pos.left, top: pos.top }); } : undefined}
+                            onPointerDown={handlePointerDown}
+                            onPointerUp={handlePointerUp}
+                            onPointerCancel={handlePointerCancel}
+                            onPointerLeave={handlePointerCancel}
                             style={{
                                 position: 'absolute',
                                 left: `${displayPos.left}%`,

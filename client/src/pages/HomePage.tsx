@@ -9,6 +9,7 @@ import { SERVER_ORIGIN } from '../api/client';
 
 import SantaSticker from '../components/SantaSticker';
 import ChineseHorseSticker from '../components/ChineseHorseSticker';
+import CompassSticker from '../components/CompassSticker';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import PageTransition from '../components/Effects/PageTransition';
 import { motion } from 'framer-motion';
@@ -78,7 +79,12 @@ const HomePage: React.FC = () => {
                 </h1>
 
                 {theme === 'christmas' && <SantaSticker />}
-                {theme === 'spring' && <ChineseHorseSticker />}
+                {theme === 'spring' && (
+                    <>
+                        <ChineseHorseSticker />
+                        <CompassSticker />
+                    </>
+                )}
 
                 {detailMessage && (
                     <StickerDetailModal
