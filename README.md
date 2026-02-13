@@ -29,6 +29,18 @@ A festive social web application featuring **Christmas** and **Spring Festival**
 
 ---
 
+## User Walk-through
+
+1. **Sign up** – Register with your phone number and set your profile (nickname, region).
+2. **Choose theme** – Switch between Christmas 🎄 and Spring Festival 🧧 in the sidebar.
+3. **Select scene** – On the homepage, tap the horse/star sticker (「选择场景」) to pick your festive scene.
+4. **Add friends** – Go to Discover to search and send friend requests; accept requests in Friends.
+5. **Send blessings** – From a friend’s scene, tap「发祝福」→ pick a sticker in the sidebar → write your wish → send. Stickers appear on their scene.
+6. **View & arrange** – On your own Festive Decor page, tap stickers to read messages; long-press to drag and reposition; save the layout.
+7. **User guide** – Tap the compass sticker (「用户指南」) on the Spring Festival homepage for tips.
+
+---
+
 ## How to Run
 
 ### Prerequisites
