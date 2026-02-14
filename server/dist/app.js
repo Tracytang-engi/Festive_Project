@@ -23,12 +23,12 @@ const User_1 = __importDefault(require("./models/User"));
 const security_1 = require("./utils/security");
 // 从 server 根目录加载 .env（兼容 PM2 不同 cwd）
 dotenv_1.default.config({ path: path_1.default.join(__dirname, '..', '.env') });
-/** 确保新手指引默认账户存在（userId=onboarding_guide，昵称=新手指引小助手），申请即通过且为默认好友 */
+/** 确保新手指引默认账户存在（默认 Andy：userId=20070421），申请即通过且为默认好友 */
 function ensureOnboardingBotUser() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const userId = (process.env.ONBOARDING_BOT_USER_ID || 'onboarding_guide').trim();
-            const nickname = (process.env.ONBOARDING_BOT_NICKNAME || '新手指引小助手').trim();
+            const userId = (process.env.ONBOARDING_BOT_USER_ID || '20070421').trim();
+            const nickname = (process.env.ONBOARDING_BOT_NICKNAME || 'Andy').trim();
             let u = yield User_1.default.findOne({ userId });
             if (u) {
                 console.log('[Onboarding] 新手指引默认账户已存在:', u.nickname);
@@ -113,9 +113,11 @@ app.use((req, res) => {
     res.status(404).json({ error: 'NOT_FOUND' });
 });
 const PORT = process.env.PORT || 3000;
+// 先连库再 listen，但不等待 ensureOnboardingBotUser，避免 PM2 重启时抢端口导致 EADDRINUSE
 mongoose_1.default.connect(MONGO_URI)
-    .then(() => { console.log('MongoDB Connected'); return ensureOnboardingBotUser(); })
     .then(() => {
+    console.log('MongoDB Connected');
+    ensureOnboardingBotUser().catch(e => console.warn('[Onboarding]', e.message));
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 })
     .catch(err => console.error('MongoDB Connection Error:', err));

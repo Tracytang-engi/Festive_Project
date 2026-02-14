@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../api/client';
 import { getFriends, getSentFriendRequestIds } from '../api/friends';
 import Sidebar from '../components/Layout/Sidebar';
@@ -14,27 +14,11 @@ const DiscoverPage: React.FC = () => {
     const onboarding = useOnboarding();
     const [query, setQuery] = useState('');
 
-    // 新手指引：在发现页预填「新手指引小助手」（第一步添加好友）
-    useEffect(() => {
-        if ((onboarding?.step === 'discover_search' || onboarding?.step === 'discover_click_add') && !query.trim()) {
-            setQuery('新手指引小助手');
-        }
-    }, [onboarding?.step]);
-
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
 
-    // 搜索出结果后，指示变为「点击添加」
-    const didAdvanceToClickAdd = useRef(false);
-    useEffect(() => {
-        if (onboarding?.step !== 'discover_search' || didAdvanceToClickAdd.current) return;
-        if (hasSearched && results.length > 0 && !loading) {
-            didAdvanceToClickAdd.current = true;
-            onboarding.nextStep();
-        }
-    }, [onboarding, hasSearched, results.length, loading]);
     const [addingId, setAddingId] = useState<string | null>(null);
     const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
     const [sentRequestIds, setSentRequestIds] = useState<Set<string>>(new Set());
@@ -74,7 +58,6 @@ const DiscoverPage: React.FC = () => {
             const res = await api.post('/friends/request', { targetUserId: targetId });
             const autoAccepted = res?.data?.autoAccepted === true;
             setSentRequestIds(prev => new Set([...prev, targetId]));
-            if (onboarding?.step === 'discover_click_add') onboarding.nextStep();
             setTipModal({
                 show: true,
                 message: autoAccepted

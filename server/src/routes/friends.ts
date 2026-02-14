@@ -8,10 +8,10 @@ import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
 const router = express.Router();
 router.use(authMiddleware);
 
-/** 新手指引默认账户：申请即通过、且为所有人默认好友。启动时自动创建（userId=onboarding_guide，昵称=新手指引小助手）。
+/** 新手指引默认账户：Andy，申请即通过、且为所有人默认好友。
  * 环境变量：ONBOARDING_BOT_OBJECT_ID、ONBOARDING_BOT_USER_ID、ONBOARDING_BOT_NICKNAME 可选覆盖。 */
-const DEFAULT_BOT_USER_ID = 'onboarding_guide';
-const DEFAULT_BOT_NICKNAME = '新手指引小助手';
+const DEFAULT_BOT_USER_ID = '20070421';
+const DEFAULT_BOT_NICKNAME = 'Andy';
 function getOnboardingBotUserId(): string {
     return (process.env.ONBOARDING_BOT_USER_ID || DEFAULT_BOT_USER_ID).trim();
 }

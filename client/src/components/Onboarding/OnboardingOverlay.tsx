@@ -275,32 +275,16 @@ export default function OnboardingOverlay() {
         );
     }
 
-    // 1.2 在发现页：输入昵称并搜索（高亮与搜索框+搜索按钮整行吻合）
+    // 1.2 在发现页：显示「可以在这里查找好友」，直接指引进入我的好友（无需加好友）
     if (step === 'discover_search' && path === '/discover') {
         return createPortal(
             <>
                 <Backdrop />
                 {skip()}
                 <ArrowTooltip
-                    targetRect={targetDiscoverSearchRow}
-                    text="输入昵称（如 新手指引小助手）并点击右侧搜索按钮。"
-                    placement="bottom"
-                />
-            </>,
-            document.body
-        );
-    }
-
-    // 1.3 在发现页：有结果时，点击「添加」
-    if (step === 'discover_click_add' && path === '/discover') {
-        return createPortal(
-            <>
-                <Backdrop />
-                {skip()}
-                <ArrowTooltip
-                    targetRect={targetDiscoverAddBtn}
-                    text="点击「添加」发送好友请求。发送成功后点击左侧「我的好友」返回。"
-                    placement="left"
+                    targetRect={targetMyFriends}
+                    text="可以在这里查找好友。点击左侧「我的好友」进入好友列表。"
+                    placement="right"
                 />
             </>,
             document.body
