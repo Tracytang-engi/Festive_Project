@@ -80,7 +80,7 @@ const AuthForm: React.FC = () => {
             return;
         }
         if (!region.trim()) {
-            setError('请选择地区');
+            setError('请输入地区');
             return;
         }
         const idLen = userId.trim().length;
@@ -294,26 +294,17 @@ const AuthForm: React.FC = () => {
                             <label htmlFor="auth-register-region" style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
                                 地区
                             </label>
-                            <select
+                            <input
                                 id="auth-register-region"
                                 name="region"
+                                type="text"
                                 className="ios-input"
+                                placeholder="请输入地区（如：北京、上海）"
                                 value={region}
                                 onChange={e => { setRegion(e.target.value); setError(''); }}
-                                style={{ width: '100%', boxSizing: 'border-box', padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(60,60,67,0.12)', fontSize: '16px' }}
-                            >
-                                <option value="">请选择地区</option>
-                                <option value="北京">北京</option>
-                                <option value="上海">上海</option>
-                                <option value="广州">广州</option>
-                                <option value="深圳">深圳</option>
-                                <option value="杭州">杭州</option>
-                                <option value="成都">成都</option>
-                                <option value="武汉">武汉</option>
-                                <option value="西安">西安</option>
-                                <option value="南京">南京</option>
-                                <option value="其他">其他</option>
-                            </select>
+                                maxLength={30}
+                                style={{ width: '100%', boxSizing: 'border-box' }}
+                            />
                         </div>
                         <div>
                             <label htmlFor="auth-register-userid" style={{ display: 'block', fontSize: '13px', color: 'var(--ios-gray)', fontWeight: 500, marginBottom: '8px' }}>
