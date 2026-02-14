@@ -20,10 +20,26 @@ const Notification_1 = __importDefault(require("../models/Notification"));
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = express_1.default.Router();
 router.use(authMiddleware_1.authMiddleware);
-/** 引导用特殊账号：任何人申请即自动通过。可用环境变量 ONBOARDING_BOT_USER_ID 配置（默认 20070421） */
+/** 引导用特殊账号：任何人申请即自动通过。
+ * 环境变量：ONBOARDING_BOT_USER_ID=登录账号（默认 20070421）；ONBOARDING_BOT_OBJECT_ID=该用户的 MongoDB _id（可选，设了则优先用 _id 匹配） */
 const DEFAULT_BOT_USER_ID = '20070421';
 function getOnboardingBotUserId() {
     return (process.env.ONBOARDING_BOT_USER_ID || DEFAULT_BOT_USER_ID).trim();
+}
+function getOnboardingBotObjectId() {
+    const id = process.env.ONBOARDING_BOT_OBJECT_ID;
+    return (id && typeof id === 'string' && id.trim()) ? id.trim() : null;
+}
+function isOnboardingBot(targetUserId, targetUser) {
+    if (!targetUser)
+        return false;
+    const botOid = getOnboardingBotObjectId();
+    if (botOid && String(targetUserId) === String(botOid))
+        return true;
+    if (String(targetUser.userId) === String(getOnboardingBotUserId()))
+        return true;
+    const nick = (targetUser.nickname && String(targetUser.nickname).trim().toLowerCase()) || '';
+    return nick === 'andy' || nick.includes('andy');
 }
 // POST /api/friends/request
 router.post('/request', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -43,18 +59,14 @@ router.post('/request', (req, res) => __awaiter(void 0, void 0, void 0, function
         if (existing) {
             return res.status(400).json({ error: "Request already exists or connected" });
         }
-        // 被添加的人：查库判断是否为引导账号（userId 或昵称为 Andy 均视为自动通过）
         const targetUser = yield User_1.default.findById(targetUserId).select('userId nickname').lean();
-        const botUserId = getOnboardingBotUserId();
-        const isAndy = !!targetUser && (String(targetUser.userId) === String(botUserId) ||
-            (targetUser.nickname && String(targetUser.nickname).trim().toLowerCase() === 'andy'));
+        const isAndy = isOnboardingBot(String(targetUserId), targetUser);
         const friendRequest = yield Friend_1.default.create({
             requester: requesterId,
             recipient: targetUserId,
             status: isAndy ? 'accepted' : 'pending'
         });
         if (isAndy) {
-            // Andy 账号：不发 FRIEND_REQUEST 通知，直接通知申请者「已通过」
             yield Notification_1.default.create({
                 recipient: requesterId,
                 type: 'CONNECTION_SUCCESS',
@@ -70,7 +82,7 @@ router.post('/request', (req, res) => __awaiter(void 0, void 0, void 0, function
                 relatedEntityId: friendRequest._id
             });
         }
-        res.json({ success: true });
+        res.json({ success: true, autoAccepted: !!isAndy });
     }
     catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });

@@ -8,10 +8,24 @@ import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
 const router = express.Router();
 router.use(authMiddleware);
 
-/** 引导用特殊账号：任何人申请即自动通过。可用环境变量 ONBOARDING_BOT_USER_ID 配置（默认 20070421） */
+/** 引导用特殊账号 Andy：所有发给 Andy 的好友申请都直接通过，不用 Andy 同意，申请者会立即在「我的好友」中看到 Andy。
+ * 环境变量：ONBOARDING_BOT_USER_ID=Andy 的登录账号（默认 20070421）；ONBOARDING_BOT_OBJECT_ID=Andy 的 MongoDB _id（可选，设了则优先用 _id 匹配） */
 const DEFAULT_BOT_USER_ID = '20070421';
 function getOnboardingBotUserId(): string {
     return (process.env.ONBOARDING_BOT_USER_ID || DEFAULT_BOT_USER_ID).trim();
+}
+function getOnboardingBotObjectId(): string | null {
+    const id = process.env.ONBOARDING_BOT_OBJECT_ID;
+    return (id && typeof id === 'string' && id.trim()) ? id.trim() : null;
+}
+
+function isOnboardingBot(targetUserId: string, targetUser: { userId?: string; nickname?: string } | null): boolean {
+    if (!targetUser) return false;
+    const botOid = getOnboardingBotObjectId();
+    if (botOid && String(targetUserId) === String(botOid)) return true;
+    if (String(targetUser.userId) === String(getOnboardingBotUserId())) return true;
+    const nick = (targetUser.nickname && String(targetUser.nickname).trim().toLowerCase()) || '';
+    return nick === 'andy' || nick.includes('andy');
 }
 
 // POST /api/friends/request
@@ -34,13 +48,8 @@ router.post('/request', async (req: AuthRequest, res) => {
             return res.status(400).json({ error: "Request already exists or connected" });
         }
 
-        // 被添加的人：查库判断是否为引导账号（userId 或昵称为 Andy 均视为自动通过）
         const targetUser = await User.findById(targetUserId).select('userId nickname').lean();
-        const botUserId = getOnboardingBotUserId();
-        const isAndy = !!targetUser && (
-            String(targetUser.userId) === String(botUserId) ||
-            (targetUser.nickname && String(targetUser.nickname).trim().toLowerCase() === 'andy')
-        );
+        const isAndy = isOnboardingBot(String(targetUserId), targetUser);
 
         const friendRequest = await Friend.create({
             requester: requesterId,
@@ -49,7 +58,6 @@ router.post('/request', async (req: AuthRequest, res) => {
         });
 
         if (isAndy) {
-            // Andy 账号：不发 FRIEND_REQUEST 通知，直接通知申请者「已通过」
             await Notification.create({
                 recipient: requesterId,
                 type: 'CONNECTION_SUCCESS',
@@ -65,7 +73,7 @@ router.post('/request', async (req: AuthRequest, res) => {
             });
         }
 
-        res.json({ success: true });
+        res.json({ success: true, autoAccepted: !!isAndy });
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
     }

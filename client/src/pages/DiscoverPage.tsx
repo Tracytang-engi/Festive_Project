@@ -71,12 +71,15 @@ const DiscoverPage: React.FC = () => {
         if (addingId) return;
         setAddingId(targetId); // 立即反馈：按钮变为「发送中...」
         try {
-            await api.post('/friends/request', { targetUserId: targetId });
+            const res = await api.post('/friends/request', { targetUserId: targetId });
+            const autoAccepted = res?.data?.autoAccepted === true;
             setSentRequestIds(prev => new Set([...prev, targetId]));
             if (onboarding?.step === 'discover_click_add') onboarding.nextStep();
             setTipModal({
                 show: true,
-                message: theme === 'spring' ? '好友请求已发送！点击左侧「我的好友」返回。' : 'Friend request sent! Tap My Friends to continue.',
+                message: autoAccepted
+                    ? (theme === 'spring' ? '已添加为好友！点击左侧「我的好友」即可看到 TA。' : 'Added as friend! Tap My Friends to see them.')
+                    : (theme === 'spring' ? '好友请求已发送！点击左侧「我的好友」返回。' : 'Friend request sent! Tap My Friends to continue.'),
                 isSuccess: true
             });
         } catch (err: any) {
