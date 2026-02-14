@@ -3,7 +3,6 @@ import api from '../api/client';
 import { getFriends, getSentFriendRequestIds } from '../api/friends';
 import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
-import { useOnboarding } from '../context/OnboardingContext';
 import { themeConfig } from '../constants/theme';
 import PageTransition from '../components/Effects/PageTransition';
 import { motion } from 'framer-motion';
@@ -11,7 +10,6 @@ import { staggerContainer, staggerItem } from '../components/Effects/PageTransit
 
 const DiscoverPage: React.FC = () => {
     const { theme } = useTheme();
-    const onboarding = useOnboarding();
     const [query, setQuery] = useState('');
 
     const [results, setResults] = useState<any[]>([]);

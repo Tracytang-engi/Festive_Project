@@ -234,9 +234,6 @@ export default function OnboardingOverlay() {
 
     const targetDiscover = useTargetRect('[data-onboarding-target="discover"]');
     const targetMyFriends = useTargetRect('[data-onboarding-target="my-friends"]');
-    const discoverSearchActive = step === 'discover_search' && path === '/discover';
-    const targetDiscoverSearchRow = useTargetRect(discoverSearchActive ? '[data-onboarding-target="discover-search-row"]' : null);
-    const targetDiscoverAddBtn = useTargetRect(step === 'discover_click_add' && path === '/discover' ? '[data-onboarding-target="discover-add-btn"]' : null);
     const targetFriendCard = useTargetRect('[data-onboarding-target="friend-card"]');
     const targetDecorChooseScene = useTargetRect(isFriendDecorPath ? '[data-onboarding-target="decor-choose-scene"]' : null);
     const targetDecorChooseSceneWrap = useTargetRect(isFriendDecorPath ? '[data-onboarding-target="decor-choose-scene-wrap"]' : null);
