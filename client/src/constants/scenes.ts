@@ -75,3 +75,8 @@ export function getSpringSceneBackgroundImage(sceneId: string | undefined): stri
     if (key === 'spring_couplets' || !pathOrEmpty) return springFuDoor;
     return publicBgPath(pathOrEmpty);
 }
+
+/** Spring home page (春节首页) background — 2026 Year of the Horse. Separate from scene backgrounds. */
+export function getSpringHomePageBackgroundImage(): string {
+    return publicBgPath('year_of_horse_2026.png');
+}

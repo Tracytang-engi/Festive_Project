@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Layout/Sidebar';
 import { getMessages, deleteMessage } from '../api/messages';
 import type { Message } from '../types';
-import { getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE } from '../constants/scenes';
+import { getSpringHomePageBackgroundImage, getChristmasSceneBackgroundImage } from '../constants/scenes';
 import { SERVER_ORIGIN } from '../api/client';
 
 import SantaSticker from '../components/SantaSticker';
@@ -17,9 +17,10 @@ import { motion } from 'framer-motion';
 const HomePage: React.FC = () => {
     const { theme } = useTheme();
     const { user } = useAuth();
-    const pageSceneId = user?.selectedScene ?? (theme === 'spring' ? DEFAULT_SPRING_SCENE : 'xmas_1');
-    const defaultBg = theme === 'christmas' ? getChristmasSceneBackgroundImage(pageSceneId) : getSpringSceneBackgroundImage(pageSceneId);
-    const customBgPath = user?.customBackgrounds?.[pageSceneId];
+    const pageSceneId = user?.selectedScene ?? (theme === 'spring' ? 'spring_dinner' : 'xmas_1');
+    // 春节首页固定用马年图；圣诞用场景背景。自定义背景仅圣诞支持（春节首页为固定图）
+    const defaultBg = theme === 'christmas' ? getChristmasSceneBackgroundImage(pageSceneId) : getSpringHomePageBackgroundImage();
+    const customBgPath = theme === 'christmas' ? user?.customBackgrounds?.[pageSceneId] : undefined;
     const backgroundImage = customBgPath ? `${SERVER_ORIGIN}${customBgPath}` : defaultBg;
     const [, setMessages] = useState<Message[]>([]);
     const [isUnlocked, setIsUnlocked] = useState(false);
