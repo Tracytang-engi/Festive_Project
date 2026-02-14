@@ -10,6 +10,7 @@ import { SERVER_ORIGIN } from '../api/client';
 import SantaSticker from '../components/SantaSticker';
 import ChineseHorseSticker from '../components/ChineseHorseSticker';
 import CompassSticker from '../components/CompassSticker';
+import ShareCardButton from '../components/ShareCardButton';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import PageTransition from '../components/Effects/PageTransition';
 import { motion } from 'framer-motion';
@@ -60,6 +61,7 @@ const HomePage: React.FC = () => {
                 backgroundRepeat: 'no-repeat',
                 overflow: 'hidden'
             }}>
+                {theme === 'spring' && user && <ShareCardButton user={user} />}
                 <PageTransition pageKey={`home-${theme}`}>
                 <motion.div
                     initial={{ opacity: 0 }}
