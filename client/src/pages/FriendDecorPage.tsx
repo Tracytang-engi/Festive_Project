@@ -264,19 +264,22 @@ const FriendDecorPage: React.FC = () => {
 
     if (error || !decor) {
         const nicknameFromShare = searchParams.get('nickname')?.trim();
-        const isNotFriendsWithNickname = errorCode === 'NOT_FRIENDS' && !!nicknameFromShare;
+        const isViewingOwnPage = !!(currentUser?._id && userId && currentUser._id === userId);
+        const isNotFriendsWithNickname = errorCode === 'NOT_FRIENDS' && !!nicknameFromShare && !isViewingOwnPage;
         return (
             <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
                 <Sidebar />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f2f2f7', padding: '24px' }}>
                     <p style={{ fontSize: '16px', color: '#c41e3a', marginBottom: '16px', textAlign: 'center' }}>
-                        {isNotFriendsWithNickname
-                            ? `你还不是 ${nicknameFromShare} 的好友，加好友后可查看 TA 的春节祝福墙`
+                        {isViewingOwnPage
+                            ? '这是你自己的春节主页，请返回首页查看'
+                            : isNotFriendsWithNickname
+                            ? '对方还不是你的好友，请添加好友后再查看对方页面'
                             : (error || <>加载失败 <span className="bilingual-en">Load failed</span></>)}
                     </p>
                     <button
                         type="button"
-                        onClick={() => navigate(isNotFriendsWithNickname ? `/discover?q=${encodeURIComponent(nicknameFromShare)}` : '/friends')}
+                        onClick={() => navigate(isViewingOwnPage ? '/' : isNotFriendsWithNickname ? `/discover?q=${encodeURIComponent(nicknameFromShare)}` : '/friends')}
                         style={{
                             padding: '10px 20px',
                             background: '#007AFF',
@@ -287,7 +290,7 @@ const FriendDecorPage: React.FC = () => {
                             fontSize: '15px',
                         }}
                     >
-                        {isNotFriendsWithNickname ? '加好友' : <>返回好友 <span className="bilingual-en">Back to friends</span></>}
+                        {isViewingOwnPage ? '返回首页' : isNotFriendsWithNickname ? '加好友' : <>返回好友 <span className="bilingual-en">Back to friends</span></>}
                     </button>
                 </div>
             </div>
