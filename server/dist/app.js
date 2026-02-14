@@ -1,16 +1,46 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __importDefault(require("path"));
+const crypto_1 = __importDefault(require("crypto"));
 const express_1 = __importDefault(require("express"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
+const User_1 = __importDefault(require("./models/User"));
+const security_1 = require("./utils/security");
 // 从 server 根目录加载 .env（兼容 PM2 不同 cwd）
 dotenv_1.default.config({ path: path_1.default.join(__dirname, '..', '.env') });
+/** 确保新手指引默认账户存在（userId=onboarding_guide，昵称=新手指引小助手），申请即通过且为默认好友 */
+function ensureOnboardingBotUser() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const userId = (process.env.ONBOARDING_BOT_USER_ID || 'onboarding_guide').trim();
+            const nickname = (process.env.ONBOARDING_BOT_NICKNAME || '新手指引小助手').trim();
+            const existing = yield User_1.default.findOne({ userId });
+            if (existing)
+                return;
+            const passwordHash = yield (0, security_1.hashPassword)(crypto_1.default.randomBytes(32).toString('hex'));
+            yield User_1.default.create({ userId, nickname, passwordHash });
+            console.log('[Onboarding] 新手指引默认账户已创建:', nickname);
+        }
+        catch (e) {
+            console.warn('[Onboarding] 创建默认账户失败（可忽略）:', e.message);
+        }
+    });
+}
 // Routes
 const auth_1 = __importDefault(require("./routes/auth"));
 const users_1 = __importDefault(require("./routes/users"));
@@ -59,7 +89,7 @@ app.use((req, res, next) => {
 // Database Connection
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/festive-app';
 mongoose_1.default.connect(MONGO_URI)
-    .then(() => console.log('MongoDB Connected'))
+    .then(() => { console.log('MongoDB Connected'); return ensureOnboardingBotUser(); })
     .catch(err => console.error('MongoDB Connection Error:', err));
 // Routes Mounting
 app.use('/api/auth', auth_1.default);

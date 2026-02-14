@@ -14,10 +14,10 @@ const DiscoverPage: React.FC = () => {
     const onboarding = useOnboarding();
     const [query, setQuery] = useState('');
 
-    // 新手指引：在发现页预填 Andy（第一步添加好友）
+    // 新手指引：在发现页预填「新手指引小助手」（第一步添加好友）
     useEffect(() => {
         if ((onboarding?.step === 'discover_search' || onboarding?.step === 'discover_click_add') && !query.trim()) {
-            setQuery('Andy');
+            setQuery('新手指引小助手');
         }
     }, [onboarding?.step]);
 

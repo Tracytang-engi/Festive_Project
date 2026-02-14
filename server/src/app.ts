@@ -1,12 +1,30 @@
 import path from 'path';
+import crypto from 'crypto';
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
+import User from './models/User';
+import { hashPassword } from './utils/security';
 
 // 从 server 根目录加载 .env（兼容 PM2 不同 cwd）
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
+
+/** 确保新手指引默认账户存在（userId=onboarding_guide，昵称=新手指引小助手），申请即通过且为默认好友 */
+async function ensureOnboardingBotUser(): Promise<void> {
+    try {
+        const userId = (process.env.ONBOARDING_BOT_USER_ID || 'onboarding_guide').trim();
+        const nickname = (process.env.ONBOARDING_BOT_NICKNAME || '新手指引小助手').trim();
+        const existing = await User.findOne({ userId });
+        if (existing) return;
+        const passwordHash = await hashPassword(crypto.randomBytes(32).toString('hex'));
+        await User.create({ userId, nickname, passwordHash });
+        console.log('[Onboarding] 新手指引默认账户已创建:', nickname);
+    } catch (e) {
+        console.warn('[Onboarding] 创建默认账户失败（可忽略）:', (e as Error).message);
+    }
+}
 
 // Routes
 import authRoutes from './routes/auth';
@@ -56,7 +74,7 @@ app.use((req, res, next) => {
 // Database Connection
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/festive-app';
 mongoose.connect(MONGO_URI)
-    .then(() => console.log('MongoDB Connected'))
+    .then(() => { console.log('MongoDB Connected'); return ensureOnboardingBotUser(); })
     .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Routes Mounting

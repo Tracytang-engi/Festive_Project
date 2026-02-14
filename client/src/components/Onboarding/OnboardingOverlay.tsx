@@ -283,7 +283,7 @@ export default function OnboardingOverlay() {
                 {skip()}
                 <ArrowTooltip
                     targetRect={targetDiscoverSearchRow}
-                    text="输入昵称（如 Andy）并点击右侧搜索按钮。"
+                    text="输入昵称（如 新手指引小助手）并点击右侧搜索按钮。"
                     placement="bottom"
                 />
             </>,
