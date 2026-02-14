@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 
 interface Snowflake {
     id: number;
@@ -64,18 +64,8 @@ const SpringSnowflake: React.FC<Snowflake> = ({
     drift,
     color,
 }) => {
-    const [resetKey, setResetKey] = useState(0);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setResetKey((prev) => prev + 1);
-        }, duration * 1000);
-        return () => clearInterval(interval);
-    }, [duration]);
-
     return (
         <div
-            key={resetKey}
             style={{
                 position: 'absolute',
                 left: `${left}%`,

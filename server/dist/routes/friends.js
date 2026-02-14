@@ -20,6 +20,8 @@ const Notification_1 = __importDefault(require("../models/Notification"));
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = express_1.default.Router();
 router.use(authMiddleware_1.authMiddleware);
+/** 引导用特殊账号：任何人申请即自动通过 */
+const ONBOARDING_BOT_USER_ID = '20070421';
 // POST /api/friends/request
 router.post('/request', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -38,18 +40,30 @@ router.post('/request', (req, res) => __awaiter(void 0, void 0, void 0, function
         if (existing) {
             return res.status(400).json({ error: "Request already exists or connected" });
         }
+        const andy = yield User_1.default.findOne({ userId: ONBOARDING_BOT_USER_ID }).select('_id').lean();
+        const isAndy = andy && andy._id.toString() === targetUserId;
         const friendRequest = yield Friend_1.default.create({
             requester: requesterId,
             recipient: targetUserId,
-            status: 'pending'
+            status: isAndy ? 'accepted' : 'pending'
         });
-        // Create Notification
-        yield Notification_1.default.create({
-            recipient: targetUserId,
-            type: 'FRIEND_REQUEST',
-            relatedUser: requesterId,
-            relatedEntityId: friendRequest._id
-        });
+        if (isAndy) {
+            // Andy 账号：不发 FRIEND_REQUEST 通知，直接通知申请者「已通过」
+            yield Notification_1.default.create({
+                recipient: requesterId,
+                type: 'CONNECTION_SUCCESS',
+                relatedUser: targetUserId,
+                relatedEntityId: friendRequest._id
+            });
+        }
+        else {
+            yield Notification_1.default.create({
+                recipient: targetUserId,
+                type: 'FRIEND_REQUEST',
+                relatedUser: requesterId,
+                relatedEntityId: friendRequest._id
+            });
+        }
         res.json({ success: true });
     }
     catch (err) {
@@ -67,7 +81,7 @@ router.post('/respond', (req, res) => __awaiter(void 0, void 0, void 0, function
             return res.status(404).json({ error: "Request not found" });
         // Verify recipient is current user
         if (request.recipient.toString() !== userId) {
-            return res.status(403).json({ error: "Unauthorized" });
+            return res.status(403).json({ error: "UNAUTHORIZED", message: "无权操作此请求 Unauthorized to respond to this request." });
         }
         if (action === 'accept') {
             request.status = 'accepted';
@@ -108,6 +122,21 @@ router.get('/check/:targetId', (req, res) => __awaiter(void 0, void 0, void 0, f
         res.json({ isFriend: false });
     }
 }));
+// GET /api/friends/requests/sent — 我发出的、待对方处理的好友请求（用于发现页灰显「已发送」）
+router.get('/requests/sent', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        const list = yield Friend_1.default.find({ requester: userId, status: 'pending' })
+            .select('recipient')
+            .lean();
+        const sentToIds = list.map((r) => r.recipient.toString());
+        res.json(sentToIds);
+    }
+    catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+}));
 // GET /api/friends/requests
 router.get('/requests', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -138,7 +167,7 @@ router.get('/:friendId/decor', (req, res) => __awaiter(void 0, void 0, void 0, f
             ]
         });
         if (!link)
-            return res.status(403).json({ error: "NOT_FRIENDS", message: "仅可查看好友的装饰" });
+            return res.status(403).json({ error: "NOT_FRIENDS", message: "仅可查看好友的装饰 Only friends can view this decor." });
         const friend = yield User_1.default.findById(friendId)
             .select('nickname avatar selectedScene themePreference customBackgrounds sceneLayout')
             .lean();
@@ -164,6 +193,13 @@ router.get('/:friendId/decor', (req, res) => __awaiter(void 0, void 0, void 0, f
             isUnlocked = true;
         else if (currentYear === 2024 && month === 1 && date >= 10)
             isUnlocked = true;
+        // 测试账号可提前预览好友页贴纸
+        if (!isUnlocked && userId) {
+            const viewer = yield User_1.default.findById(userId).select('userId role').lean();
+            if (viewer && (viewer.userId === '111111' || viewer.userId === '20070421' || viewer.role === 'moderator')) {
+                isUnlocked = true;
+            }
+        }
         const messagesForClient = messages.map((m) => {
             const base = {
                 _id: m._id.toString(),
@@ -184,6 +220,7 @@ router.get('/:friendId/decor', (req, res) => __awaiter(void 0, void 0, void 0, f
             }
             return Object.assign(Object.assign({}, base), { content: m.content, sender: m.sender, createdAt: m.createdAt });
         });
+        res.set('Cache-Control', 'no-store');
         res.json(Object.assign(Object.assign({}, friend), { messages: messagesForClient, isUnlocked }));
     }
     catch (err) {

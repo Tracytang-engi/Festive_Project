@@ -15,6 +15,7 @@ import { themeConfig } from '../constants/theme';
 import { ArrowLeft, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useOnboarding } from '../context/OnboardingContext';
 import type { Message } from '../types';
 
 const FriendDecorPage: React.FC = () => {
@@ -22,6 +23,7 @@ const FriendDecorPage: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const { user: currentUser } = useAuth();
+    const onboarding = useOnboarding();
     const sceneContainerRef = useRef<HTMLDivElement>(null);
     /** Sender dragging their sticker to reposition on owner's scene */
     const [draggingSticker, setDraggingSticker] = useState<{ messageId: string; left: number; top: number } | null>(null);
@@ -54,6 +56,14 @@ const FriendDecorPage: React.FC = () => {
     const [showComposeModal, setShowComposeModal] = useState(false);
     /** 发祝福侧边栏（场景视图内用 ComposeSidebar） */
     const [isComposeOpen, setIsComposeOpen] = useState(false);
+    /** 点击发祝福后显示「完成新手教程」提示，1s 后消失 */
+    const [showOnboardingCompleteMessage, setShowOnboardingCompleteMessage] = useState(false);
+
+    useEffect(() => {
+        if (!showOnboardingCompleteMessage) return;
+        const t = setTimeout(() => setShowOnboardingCompleteMessage(false), 1000);
+        return () => clearTimeout(t);
+    }, [showOnboardingCompleteMessage]);
 
     useEffect(() => {
         if (!userId) {
@@ -291,7 +301,9 @@ const FriendDecorPage: React.FC = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                }}>
+                }}
+                    data-onboarding-target="decor-choose-scene-wrap"
+                >
                     {/* 顶部导航栏 - iOS 大标题 + 返回 */}
                     <div style={{
                         width: '100%',
@@ -353,17 +365,18 @@ const FriendDecorPage: React.FC = () => {
                             type="button"
                             onClick={() => setShowSceneList(true)}
                             className="tap-scale"
+                            data-onboarding-target="decor-choose-scene"
                             style={{
                                 position: 'relative',
                                 width: '100%',
                                 maxWidth: '560px',
                                 padding: '16px 24px',
                                 borderRadius: 'var(--ios-radius-lg)',
-                                border: 'none',
-                                background: 'var(--ios-glass)',
+                                border: '1px solid rgba(255,255,255,0.35)',
+                                background: 'rgba(255,255,255,0.2)',
                                 backdropFilter: 'saturate(180%) blur(20px)',
                                 WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-                                boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(255,255,255,0.3)',
+                                boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
                                 color: '#1d1d1f',
                                 fontSize: '17px',
                                 fontWeight: 600,
@@ -389,7 +402,11 @@ const FriendDecorPage: React.FC = () => {
                                     key={scene.id}
                                     type="button"
                                     whileTap={{ scale: 0.98 }}
-                                    onClick={() => setViewingSceneId(scene.id)}
+                                    onClick={() => {
+                                        setViewingSceneId(scene.id);
+                                        navigate(`/friend/${userId}/decor?scene=${scene.id}`, { replace: true });
+                                        if (onboarding?.step === 'decor_choose_scene') onboarding.nextStep();
+                                    }}
                                     style={{
                                         display: 'flex',
                                         alignItems: 'center',
@@ -466,8 +483,15 @@ const FriendDecorPage: React.FC = () => {
                     {/* 给 TA 发祝福：选贴纸 + 写留言 */}
                     <button
                         type="button"
-                        onClick={() => setShowComposeModal(true)}
+                        onClick={() => {
+                            setShowComposeModal(true);
+                            if (onboarding?.isActive) {
+                                onboarding.completeOnboarding();
+                                setShowOnboardingCompleteMessage(true);
+                            }
+                        }}
                         className="tap-scale"
+                        data-onboarding-target="compose-btn"
                         style={{
                             marginTop: '28px',
                             width: '100%',
@@ -504,6 +528,29 @@ const FriendDecorPage: React.FC = () => {
                 onSceneChosen={searchParams.get('compose') !== '1' ? (sceneId) => { navigate(`/friend/${userId}/decor?scene=${sceneId}&compose=1`); setShowComposeModal(false); } : undefined}
                 onSentSuccess={userId ? (sceneId) => { getFriendDecor(userId, { bustCache: true }).then(setDecor).then(() => { if (sceneId) setViewingSceneId(sceneId); }).catch(() => {}); } : undefined}
             />
+            {showOnboardingCompleteMessage && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        left: '50%',
+                        top: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 10002,
+                        padding: '20px 28px',
+                        background: 'rgba(0,0,0,0.75)',
+                        backdropFilter: 'blur(12px)',
+                        borderRadius: '16px',
+                        color: 'white',
+                        fontSize: '17px',
+                        fontWeight: 500,
+                        textAlign: 'center',
+                        lineHeight: 1.5,
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    }}
+                >
+                    恭喜你完成新手教程，快给亲友送上祝福吧~
+                </div>
+            )}
         </>
         );
     }
@@ -515,6 +562,7 @@ const FriendDecorPage: React.FC = () => {
             <div
                 ref={sceneContainerRef}
                 className="page-bg-area"
+                data-onboarding-target="sticker-area"
                 style={{
                     flex: 1,
                     minHeight: '100vh',
@@ -552,6 +600,7 @@ const FriendDecorPage: React.FC = () => {
                         <button
                             type="button"
                             onClick={() => setViewingSceneId(null)}
+                            data-onboarding-target="decor-back-btn"
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -576,8 +625,15 @@ const FriendDecorPage: React.FC = () => {
                     </div>
                     <button
                         type="button"
-                        onClick={() => setIsComposeOpen(true)}
+                        onClick={() => {
+                            setIsComposeOpen(true);
+                            if (onboarding?.isActive) {
+                                onboarding.completeOnboarding();
+                                setShowOnboardingCompleteMessage(true);
+                            }
+                        }}
                         className="tap-scale"
+                        data-onboarding-target="compose-btn"
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -737,6 +793,29 @@ const FriendDecorPage: React.FC = () => {
                         showReportButton={false}
                         onDelete={isOwner ? handleDeleteSticker : undefined}
                     />
+                )}
+                {showOnboardingCompleteMessage && (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            left: '50%',
+                            top: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            zIndex: 10002,
+                            padding: '20px 28px',
+                            background: 'rgba(0,0,0,0.75)',
+                            backdropFilter: 'blur(12px)',
+                            borderRadius: '16px',
+                            color: 'white',
+                            fontSize: '17px',
+                            fontWeight: 500,
+                            textAlign: 'center',
+                            lineHeight: 1.5,
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                        }}
+                    >
+                        恭喜你完成新手教程，快给亲友送上祝福吧~
+                    </div>
                 )}
             </div>
         </div>

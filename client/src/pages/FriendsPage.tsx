@@ -70,17 +70,20 @@ const FriendsPage: React.FC = () => {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
             <Sidebar />
-            <div style={{
-                flex: 1,
-                minWidth: 0,
-                padding: 'var(--page-padding-y) var(--page-padding-x)',
-                background: themeConfig[theme].mainBg,
-                color: 'white',
-                overflowY: 'auto',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-                position: 'relative',
-                zIndex: 60,
-            }}>
+            <div
+                style={{
+                    flex: 1,
+                    minWidth: 0,
+                    padding: 'var(--page-padding-y) var(--page-padding-x)',
+                    background: themeConfig[theme].mainBg,
+                    color: 'white',
+                    overflowY: 'auto',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+                    position: 'relative',
+                    zIndex: 60,
+                }}
+                data-onboarding-target="friends-list-wrap"
+            >
                 <PageTransition pageKey="friends">
                                 <h1 style={{ margin: '0 0 32px', fontSize: '26px', fontWeight: 600, letterSpacing: '-0.3px' }}>{currentConfig.title}</h1>
 
@@ -181,7 +184,7 @@ const FriendsPage: React.FC = () => {
                                     initial="hidden"
                                     animate="visible"
                                 >
-                                    {friends.map(friend => (
+                                    {friends.map((friend, index) => (
                                         <motion.div
                                             key={friend._id}
                                             variants={staggerItem}
@@ -190,6 +193,7 @@ const FriendsPage: React.FC = () => {
                                             whileHover={{ scale: 1.02, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }}
                                             onClick={() => navigate(`/friend/${friend._id}/decor`)}
                                             title={theme === 'spring' ? '查看TA的春节页面' : 'View their Spring Festival page'}
+                                            data-onboarding-target={index === 0 ? 'friend-card' : undefined}
                                         >
                                             <div className="icon-lg" style={{ marginBottom: '12px', fontSize: '52px', lineHeight: 1 }}>{friend.avatar || '👤'}</div>
                                             <div style={{ width: '100%' }}>

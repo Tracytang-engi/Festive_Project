@@ -39,7 +39,7 @@ const TipModal: React.FC<TipModalProps> = ({ show, message, isSuccess = false, o
                 onClick={e => e.stopPropagation()}
             >
                 <p style={{ margin: '0 0 20px', fontSize: '16px', lineHeight: 1.5 }}>
-                    {message}
+                    {message ?? ''}
                 </p>
                 <button
                     type="button"

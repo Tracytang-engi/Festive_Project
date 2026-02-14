@@ -33,10 +33,6 @@ function randomPositionOnScene(existing: Record<string, { left: number; top: num
 
 const router = express.Router();
 router.use(authMiddleware);
-router.use((req, _res, next) => {
-    console.warn('[MESSAGES]', req.method, req.url, req.originalUrl);
-    next();
-});
 
 // GET /api/messages/detail/:id — single message detail for sender/recipient
 router.get('/detail/:id', async (req: AuthRequest, res) => {
