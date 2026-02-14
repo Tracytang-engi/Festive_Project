@@ -16,13 +16,21 @@ async function ensureOnboardingBotUser(): Promise<void> {
     try {
         const userId = (process.env.ONBOARDING_BOT_USER_ID || 'onboarding_guide').trim();
         const nickname = (process.env.ONBOARDING_BOT_NICKNAME || '新手指引小助手').trim();
-        const existing = await User.findOne({ userId });
-        if (existing) return;
+        let u = await User.findOne({ userId });
+        if (u) {
+            console.log('[Onboarding] 新手指引默认账户已存在:', u.nickname);
+            return;
+        }
+        u = await User.findOne({ nickname });
+        if (u) {
+            console.log('[Onboarding] 新手指引账户已存在（昵称）:', nickname);
+            return;
+        }
         const passwordHash = await hashPassword(crypto.randomBytes(32).toString('hex'));
         await User.create({ userId, nickname, passwordHash });
         console.log('[Onboarding] 新手指引默认账户已创建:', nickname);
     } catch (e) {
-        console.warn('[Onboarding] 创建默认账户失败（可忽略）:', (e as Error).message);
+        console.warn('[Onboarding] 创建默认账户失败:', (e as Error).message);
     }
 }
 
@@ -73,9 +81,6 @@ app.use((req, res, next) => {
 
 // Database Connection
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/festive-app';
-mongoose.connect(MONGO_URI)
-    .then(() => { console.log('MongoDB Connected'); return ensureOnboardingBotUser(); })
-    .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Routes Mounting
 app.use('/api/auth', authRoutes);
@@ -98,8 +103,11 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+mongoose.connect(MONGO_URI)
+    .then(() => { console.log('MongoDB Connected'); return ensureOnboardingBotUser(); })
+    .then(() => {
+        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    })
+    .catch(err => console.error('MongoDB Connection Error:', err));
 
 export default app;

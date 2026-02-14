@@ -29,15 +29,22 @@ function ensureOnboardingBotUser() {
         try {
             const userId = (process.env.ONBOARDING_BOT_USER_ID || 'onboarding_guide').trim();
             const nickname = (process.env.ONBOARDING_BOT_NICKNAME || '新手指引小助手').trim();
-            const existing = yield User_1.default.findOne({ userId });
-            if (existing)
+            let u = yield User_1.default.findOne({ userId });
+            if (u) {
+                console.log('[Onboarding] 新手指引默认账户已存在:', u.nickname);
                 return;
+            }
+            u = yield User_1.default.findOne({ nickname });
+            if (u) {
+                console.log('[Onboarding] 新手指引账户已存在（昵称）:', nickname);
+                return;
+            }
             const passwordHash = yield (0, security_1.hashPassword)(crypto_1.default.randomBytes(32).toString('hex'));
             yield User_1.default.create({ userId, nickname, passwordHash });
             console.log('[Onboarding] 新手指引默认账户已创建:', nickname);
         }
         catch (e) {
-            console.warn('[Onboarding] 创建默认账户失败（可忽略）:', e.message);
+            console.warn('[Onboarding] 创建默认账户失败:', e.message);
         }
     });
 }
@@ -88,9 +95,6 @@ app.use((req, res, next) => {
 });
 // Database Connection
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/festive-app';
-mongoose_1.default.connect(MONGO_URI)
-    .then(() => { console.log('MongoDB Connected'); return ensureOnboardingBotUser(); })
-    .catch(err => console.error('MongoDB Connection Error:', err));
 // Routes Mounting
 app.use('/api/auth', auth_1.default);
 app.use('/api/users', users_1.default);
@@ -109,7 +113,10 @@ app.use((req, res) => {
     res.status(404).json({ error: 'NOT_FOUND' });
 });
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+mongoose_1.default.connect(MONGO_URI)
+    .then(() => { console.log('MongoDB Connected'); return ensureOnboardingBotUser(); })
+    .then(() => {
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+})
+    .catch(err => console.error('MongoDB Connection Error:', err));
 exports.default = app;
