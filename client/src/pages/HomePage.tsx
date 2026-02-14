@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Layout/Sidebar';
 import { getMessages, deleteMessage } from '../api/messages';
 import type { Message } from '../types';
-import { getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE } from '../constants/scenes';
+import { getSpringMainPageBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE } from '../constants/scenes';
 import { SERVER_ORIGIN } from '../api/client';
 
 import SantaSticker from '../components/SantaSticker';
@@ -18,7 +18,7 @@ const HomePage: React.FC = () => {
     const { theme } = useTheme();
     const { user } = useAuth();
     const pageSceneId = user?.selectedScene ?? (theme === 'spring' ? DEFAULT_SPRING_SCENE : 'xmas_1');
-    const defaultBg = theme === 'christmas' ? getChristmasSceneBackgroundImage(pageSceneId) : getSpringSceneBackgroundImage(pageSceneId);
+    const defaultBg = theme === 'christmas' ? getChristmasSceneBackgroundImage(pageSceneId) : getSpringMainPageBackgroundImage();
     const customBgPath = user?.customBackgrounds?.[pageSceneId];
     const backgroundImage = customBgPath ? `${SERVER_ORIGIN}${customBgPath}` : defaultBg;
     const [, setMessages] = useState<Message[]>([]);

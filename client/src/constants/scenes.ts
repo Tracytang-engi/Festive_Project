@@ -61,6 +61,12 @@ export const SCENE_ICONS: Record<string, string> = {
 /** Default Spring scene when none selected. */
 export const DEFAULT_SPRING_SCENE = 'spring_dinner';
 
+/** 春节主页面（选择场景之前）使用的背景图：2026 马年 */
+export const SPRING_MAIN_PAGE_BG = 'spring_main_2026.png';
+export function getSpringMainPageBackgroundImage(): string {
+    return publicBgPath(SPRING_MAIN_PAGE_BG);
+}
+
 /** Spring scene id → background (file path for public; Vite import for assets). */
 const SPRING_SCENE_BG_KEYS: Record<string, string> = {
     spring_dinner: 'eve_dinner.png',
