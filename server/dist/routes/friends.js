@@ -20,8 +20,11 @@ const Notification_1 = __importDefault(require("../models/Notification"));
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = express_1.default.Router();
 router.use(authMiddleware_1.authMiddleware);
-/** 引导用特殊账号：任何人申请即自动通过。
- * 环境变量：ONBOARDING_BOT_USER_ID=登录账号（默认 20070421）；ONBOARDING_BOT_OBJECT_ID=该用户的 MongoDB _id（可选，设了则优先用 _id 匹配） */
+/** 引导用特殊账号 Andy：所有发给 Andy 的好友申请都直接通过，不用 Andy 同意。
+ * 环境变量（在服务器 .env 里配置）：
+ *   ONBOARDING_BOT_OBJECT_ID = Andy 的 MongoDB _id（最可靠，推荐必设）
+ *   ONBOARDING_BOT_USER_ID  = Andy 的登录账号，默认 20070421
+ *   ONBOARDING_BOT_NICKNAME = Andy 的昵称，可选，如线上是「安迪」则设 安迪 */
 const DEFAULT_BOT_USER_ID = '20070421';
 function getOnboardingBotUserId() {
     return (process.env.ONBOARDING_BOT_USER_ID || DEFAULT_BOT_USER_ID).trim();
@@ -30,16 +33,38 @@ function getOnboardingBotObjectId() {
     const id = process.env.ONBOARDING_BOT_OBJECT_ID;
     return (id && typeof id === 'string' && id.trim()) ? id.trim() : null;
 }
+function getOnboardingBotNickname() {
+    const n = process.env.ONBOARDING_BOT_NICKNAME;
+    return (n && typeof n === 'string' && n.trim()) ? n.trim().toLowerCase() : null;
+}
 function isOnboardingBot(targetUserId, targetUser) {
     if (!targetUser)
         return false;
     const botOid = getOnboardingBotObjectId();
-    if (botOid && String(targetUserId) === String(botOid))
+    if (botOid && String(targetUserId).trim() === String(botOid).trim())
         return true;
-    if (String(targetUser.userId) === String(getOnboardingBotUserId()))
+    const uId = (targetUser.userId != null && String(targetUser.userId).trim()) || '';
+    if (uId === String(getOnboardingBotUserId()).trim())
         return true;
     const nick = (targetUser.nickname && String(targetUser.nickname).trim().toLowerCase()) || '';
-    return nick === 'andy' || nick.includes('andy');
+    if (nick === 'andy' || nick.includes('andy'))
+        return true;
+    const botNick = getOnboardingBotNickname();
+    if (botNick && (nick === botNick || nick.includes(botNick)))
+        return true;
+    return false;
+}
+/** 获取默认好友 Andy 的 MongoDB _id（用于「所有人默认好友」） */
+function getDefaultFriendAndyId() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const botOid = getOnboardingBotObjectId();
+        if (botOid) {
+            const u = yield User_1.default.findById(botOid).select('_id').lean();
+            return u ? String(u._id) : null;
+        }
+        const u = yield User_1.default.findOne({ userId: getOnboardingBotUserId() }).select('_id').lean();
+        return u ? String(u._id) : null;
+    });
 }
 // POST /api/friends/request
 router.post('/request', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -83,6 +108,26 @@ router.post('/request', (req, res) => __awaiter(void 0, void 0, void 0, function
             });
         }
         res.json({ success: true, autoAccepted: !!isAndy });
+    }
+    catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+}));
+// GET /api/friends/andy-id — 查询 userId=20070421 的用户的 MongoDB _id，用于在 .env 中设置 ONBOARDING_BOT_OBJECT_ID
+router.get('/andy-id', (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const botUserId = getOnboardingBotUserId();
+        const user = yield User_1.default.findOne({ userId: botUserId }).select('_id nickname userId').lean();
+        if (!user) {
+            return res.json({ ok: false, message: '未找到 userId=' + botUserId + ' 的用户，请确认数据库中有 Andy 账号' });
+        }
+        res.json({
+            ok: true,
+            andyObjectId: String(user._id),
+            nickname: user.nickname,
+            userId: user.userId,
+            hint: '将 andyObjectId 填入 .env: ONBOARDING_BOT_OBJECT_ID=' + String(user._id) + ' 然后 pm2 restart festive-api',
+        });
     }
     catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
@@ -245,23 +290,43 @@ router.get('/:friendId/decor', (req, res) => __awaiter(void 0, void 0, void 0, f
         res.status(500).json({ error: "SERVER_ERROR" });
     }
 }));
-// GET /api/friends
+// GET /api/friends — 好友列表；Andy 作为默认好友，若尚未存在则自动建立关系并加入列表
 router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-        const friends = yield Friend_1.default.find({
+        let friends = yield Friend_1.default.find({
             $or: [
                 { requester: userId, status: 'accepted' },
                 { recipient: userId, status: 'accepted' }
             ]
         }).populate('requester', 'nickname region avatar')
             .populate('recipient', 'nickname region avatar');
+        // Andy 为默认好友：若当前用户还没有 Andy，则自动创建 accepted 关系并加入列表
+        const andyId = yield getDefaultFriendAndyId();
+        if (andyId && userId !== andyId) {
+            const hasAndy = friends.some((f) => f.requester._id.toString() === andyId || f.recipient._id.toString() === andyId);
+            if (!hasAndy) {
+                const newConn = yield Friend_1.default.create({
+                    requester: userId,
+                    recipient: andyId,
+                    status: 'accepted'
+                });
+                const andyUser = yield User_1.default.findById(andyId).select('nickname region avatar').lean();
+                if (andyUser) {
+                    friends = [...friends, {
+                            _id: newConn._id,
+                            requester: { _id: userId },
+                            recipient: { _id: andyUser._id, nickname: andyUser.nickname, region: andyUser.region, avatar: andyUser.avatar }
+                        }];
+                }
+            }
+        }
         // Transform to return the *other* user
-        const result = friends.map(f => {
+        const result = friends.map((f) => {
             const isRequester = f.requester._id.toString() === userId;
             return {
-                _id: f._id, // Connection ID
+                _id: f._id,
                 friend: isRequester ? f.recipient : f.requester
             };
         });
