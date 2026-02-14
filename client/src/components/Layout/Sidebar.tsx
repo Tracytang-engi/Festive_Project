@@ -122,10 +122,10 @@ const Sidebar: React.FC = () => {
                     <Bell size={24} />
                     {hasUnread && <span className="notification-badge" />}
                 </div>
-                <div className="sidebar-nav-icon theme-tap icon-responsive" title="发现好友 Discover Friends" onClick={() => navigate('/discover')} style={{ opacity: isActive('/discover') ? 1 : 0.5, transform: isActive('/discover') ? 'scale(1.2)' : 'scale(1)' }}>
+                <div className="sidebar-nav-icon theme-tap icon-responsive" title="发现好友 Discover Friends" onClick={() => navigate('/discover')} style={{ opacity: isActive('/discover') ? 1 : 0.5, transform: isActive('/discover') ? 'scale(1.2)' : 'scale(1)' }} data-onboarding-target="discover">
                     <UserPlus size={24} />
                 </div>
-                <div className="sidebar-nav-icon theme-tap icon-responsive" title="我的好友 My Friends" onClick={() => navigate('/friends')} style={{ opacity: isActive('/friends') ? 1 : 0.5, transform: isActive('/friends') ? 'scale(1.2)' : 'scale(1)' }}>
+                <div className="sidebar-nav-icon theme-tap icon-responsive" title="我的好友 My Friends" onClick={() => navigate('/friends')} style={{ opacity: isActive('/friends') ? 1 : 0.5, transform: isActive('/friends') ? 'scale(1.2)' : 'scale(1)' }} data-onboarding-target="my-friends">
                     <Heart size={24} />
                 </div>
                 <div className="sidebar-nav-icon theme-tap icon-responsive" title="送贴纸 (Send stickers)" onClick={() => navigate('/messages')} style={{ opacity: isActive('/messages') ? 1 : 0.5, transform: isActive('/messages') ? 'scale(1.2)' : 'scale(1)' }}>

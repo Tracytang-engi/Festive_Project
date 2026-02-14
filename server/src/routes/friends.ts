@@ -8,6 +8,9 @@ import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
 const router = express.Router();
 router.use(authMiddleware);
 
+/** 引导用特殊账号：任何人申请即自动通过 */
+const ONBOARDING_BOT_USER_ID = '20070421';
+
 // POST /api/friends/request
 router.post('/request', async (req: AuthRequest, res) => {
     try {
@@ -28,19 +31,31 @@ router.post('/request', async (req: AuthRequest, res) => {
             return res.status(400).json({ error: "Request already exists or connected" });
         }
 
+        const andy = await User.findOne({ userId: ONBOARDING_BOT_USER_ID }).select('_id').lean();
+        const isAndy = andy && andy._id.toString() === targetUserId;
+
         const friendRequest = await Friend.create({
             requester: requesterId,
             recipient: targetUserId,
-            status: 'pending'
+            status: isAndy ? 'accepted' : 'pending'
         });
 
-        // Create Notification
-        await Notification.create({
-            recipient: targetUserId,
-            type: 'FRIEND_REQUEST',
-            relatedUser: requesterId,
-            relatedEntityId: friendRequest._id
-        });
+        if (isAndy) {
+            // Andy 账号：不发 FRIEND_REQUEST 通知，直接通知申请者「已通过」
+            await Notification.create({
+                recipient: requesterId,
+                type: 'CONNECTION_SUCCESS',
+                relatedUser: targetUserId,
+                relatedEntityId: friendRequest._id
+            });
+        } else {
+            await Notification.create({
+                recipient: targetUserId,
+                type: 'FRIEND_REQUEST',
+                relatedUser: requesterId,
+                relatedEntityId: friendRequest._id
+            });
+        }
 
         res.json({ success: true });
     } catch (err) {

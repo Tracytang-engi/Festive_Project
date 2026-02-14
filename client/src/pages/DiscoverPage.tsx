@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/client';
 import { getFriends, getSentFriendRequestIds } from '../api/friends';
 import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
+import { useOnboarding } from '../context/OnboardingContext';
 import { themeConfig } from '../constants/theme';
 import PageTransition from '../components/Effects/PageTransition';
 import { motion } from 'framer-motion';
@@ -10,11 +11,30 @@ import { staggerContainer, staggerItem } from '../components/Effects/PageTransit
 
 const DiscoverPage: React.FC = () => {
     const { theme } = useTheme();
+    const onboarding = useOnboarding();
     const [query, setQuery] = useState('');
+
+    // 新手指引：在发现页预填 Andy（第一步添加好友）
+    useEffect(() => {
+        if ((onboarding?.step === 'discover_search' || onboarding?.step === 'discover_click_add') && !query.trim()) {
+            setQuery('Andy');
+        }
+    }, [onboarding?.step]);
+
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
+
+    // 搜索出结果后，指示变为「点击添加」
+    const didAdvanceToClickAdd = useRef(false);
+    useEffect(() => {
+        if (onboarding?.step !== 'discover_search' || didAdvanceToClickAdd.current) return;
+        if (hasSearched && results.length > 0 && !loading) {
+            didAdvanceToClickAdd.current = true;
+            onboarding.nextStep();
+        }
+    }, [onboarding, hasSearched, results.length, loading]);
     const [addingId, setAddingId] = useState<string | null>(null);
     const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
     const [sentRequestIds, setSentRequestIds] = useState<Set<string>>(new Set());
@@ -53,9 +73,10 @@ const DiscoverPage: React.FC = () => {
         try {
             await api.post('/friends/request', { targetUserId: targetId });
             setSentRequestIds(prev => new Set([...prev, targetId]));
+            if (onboarding?.step === 'discover_click_add') onboarding.nextStep();
             setTipModal({
                 show: true,
-                message: theme === 'spring' ? '好友请求已发送！ Friend request sent!' : 'Friend request sent!',
+                message: theme === 'spring' ? '好友请求已发送！点击左侧「我的好友」返回。' : 'Friend request sent! Tap My Friends to continue.',
                 isSuccess: true
             });
         } catch (err: any) {
@@ -127,26 +148,33 @@ const DiscoverPage: React.FC = () => {
                     transition={{ delay: 0.1 }}
                     style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '24px' }}
                 >
-                    <input
-                        id="discover-search"
-                        name="discover-search"
-                        type="text"
-                        className="ios-input"
-                        value={query}
-                        onChange={e => setQuery(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                        placeholder={currentConfig.placeholder}
-                        style={{ width: '300px', maxWidth: '100%', padding: '14px 18px', fontSize: '16px' }}
-                        aria-label={currentConfig.placeholder}
-                    />
-                    <button
-                        className="ios-btn ios-btn-primary tap-scale"
-                        onClick={() => handleSearch()}
-                        disabled={loading || !query.trim()}
-                        style={{ background: 'var(--ios-blue)', color: 'white', padding: '14px 28px', fontSize: '15px' }}
+                    <div
+                        style={{ display: 'inline-flex', gap: '12px', alignItems: 'center' }}
+                        data-onboarding-target="discover-search-row"
                     >
-                        {loading ? '...' : '🔍'}
-                    </button>
+                        <input
+                            id="discover-search"
+                            name="discover-search"
+                            type="text"
+                            className="ios-input"
+                            value={query}
+                            onChange={e => setQuery(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                            placeholder={currentConfig.placeholder}
+                            style={{ width: '300px', maxWidth: '100%', padding: '14px 18px', fontSize: '16px' }}
+                            aria-label={currentConfig.placeholder}
+                        />
+                        <button
+                            type="button"
+                            className="ios-btn ios-btn-primary tap-scale"
+                            onClick={() => handleSearch()}
+                            disabled={loading || !query.trim()}
+                            style={{ background: 'var(--ios-blue)', color: 'white', padding: '14px 28px', fontSize: '15px' }}
+                            data-onboarding-target="discover-search-btn"
+                        >
+                            {loading ? '...' : '🔍'}
+                        </button>
+                    </div>
                 </motion.div>
 
                 {error && (
@@ -202,12 +230,13 @@ const DiscoverPage: React.FC = () => {
                             </p>
                         </motion.div>
                     ) : (
-                        results.map(u => {
+                        results.map((u, index) => {
                             const uid = u._id ?? u.id;
                             const isFriend = uid ? friendIds.has(uid) : false;
                             const isSent = uid ? sentRequestIds.has(uid) : false;
                             const isAdding = addingId === uid;
                             const isGray = isFriend || isSent;
+                            const isFirstAddable = index === 0 && !isGray && !!uid;
                             const handleAdd = (e: React.MouseEvent) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -244,6 +273,7 @@ const DiscoverPage: React.FC = () => {
                                         className="ios-btn ios-btn-pill tap-scale"
                                         onClick={handleAdd}
                                         disabled={isAdding || isGray}
+                                        data-onboarding-target={isFirstAddable ? 'discover-add-btn' : undefined}
                                         style={{
                                             flexShrink: 0,
                                             background: isGray ? '#e5e5ea' : (isAdding ? '#ccc' : 'var(--ios-blue)'),

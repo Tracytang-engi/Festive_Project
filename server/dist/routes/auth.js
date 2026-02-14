@@ -20,6 +20,7 @@ const router = express_1.default.Router();
 // 注：auth 路由不使用 signature 验证，避免 JSON 序列化顺序导致签名不匹配
 // POST /api/auth/check-id - 检查 ID 是否存在（登录第一步）
 router.post('/check-id', rateLimiter_1.ipLimiterMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         const { userId } = req.body;
         if (!userId || typeof userId !== 'string') {
@@ -36,7 +37,7 @@ router.post('/check-id', rateLimiter_1.ipLimiterMiddleware, (req, res) => __awai
         res.json({ exists: !!user });
     }
     catch (err) {
-        console.error("Check ID Error:", err);
+        console.error("Check ID Error:", (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : err);
         res.status(500).json({ error: "SERVER_ERROR", message: "服务器繁忙，请稍后重试" });
     }
 }));
@@ -126,6 +127,7 @@ router.post('/register', rateLimiter_1.ipLimiterMiddleware, (req, res) => __awai
 }));
 // POST /api/auth/login - 登录
 router.post('/login', rateLimiter_1.ipLimiterMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         const { userId, password } = req.body;
         if (!userId || !password) {
@@ -200,7 +202,7 @@ router.post('/login', rateLimiter_1.ipLimiterMiddleware, (req, res) => __awaiter
         res.status(200).json({ success: true, token });
     }
     catch (err) {
-        console.error("Login Error:", err);
+        console.error("Login Error:", (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : err);
         res.status(500).json({ error: "SERVER_ERROR", message: "服务器繁忙，请稍后重试" });
     }
 }));

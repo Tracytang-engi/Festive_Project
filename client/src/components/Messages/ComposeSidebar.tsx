@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { sendMessage } from '../../api/messages';
 import StickerIcon from '../StickerIcon';
 import { getStickersForScene, getStickersByCategory } from '../../constants/stickers';
+import { useOnboarding } from '../../context/OnboardingContext';
 
 interface ComposeSidebarProps {
     isOpen: boolean;
@@ -32,7 +33,13 @@ const ComposeSidebar: React.FC<ComposeSidebarProps> = ({
     recipientNickname,
     initialSeason = 'spring',
 }) => {
-    const [sticker, setSticker] = useState<string>('');
+    const onboarding = useOnboarding();
+    const [sticker, setSticker] = useState<string>(() => {
+        const list = initialSeason === 'spring'
+            ? getStickersByCategory(SPRING_SCENE_TO_CATEGORY[initialSceneId] ?? 'eve_dinner')
+            : getStickersForScene(initialSeason, initialSceneId);
+        return list[0] ?? '';
+    });
     const [content, setContent] = useState('');
     const [isPrivate, setIsPrivate] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -41,17 +48,14 @@ const ComposeSidebar: React.FC<ComposeSidebarProps> = ({
         initialSeason === 'spring'
             ? getStickersByCategory(SPRING_SCENE_TO_CATEGORY[initialSceneId] ?? 'eve_dinner')
             : getStickersForScene(initialSeason, initialSceneId);
+    const defaultSticker = stickers[0] ?? '';
 
     useEffect(() => {
         if (isOpen) {
             setContent('');
-            const list =
-                initialSeason === 'spring'
-                    ? getStickersByCategory(SPRING_SCENE_TO_CATEGORY[initialSceneId] ?? 'eve_dinner')
-                    : getStickersForScene(initialSeason, initialSceneId);
-            setSticker(list[0] ?? '');
+            setSticker(defaultSticker);
         }
-    }, [isOpen, initialSceneId, initialSeason]);
+    }, [isOpen, defaultSticker]);
 
     const handleSend = async () => {
         if (!sticker) return alert(initialSeason === 'spring' ? '请先选择贴纸' : 'Please select a sticker first.');
@@ -70,6 +74,7 @@ const ComposeSidebar: React.FC<ComposeSidebarProps> = ({
             alert(initialSeason === 'spring' ? '祝福已发送！' : 'Message sent!');
             onClose();
             setContent('');
+            onboarding?.completeOnboarding();
         } catch {
             alert(initialSeason === 'spring' ? '发送失败。' : 'Failed to send message.');
         } finally {
@@ -105,14 +110,15 @@ const ComposeSidebar: React.FC<ComposeSidebarProps> = ({
                 </div>
 
                 <label style={styles.label}>{initialSeason === 'spring' ? '选择贴纸' : 'Choose Sticker'}</label>
-                <div style={styles.stickersWrap}>
+                <div style={styles.stickersWrap} data-onboarding-target="compose-sticker-grid">
                     <div style={styles.stickers}>
-                        {stickers.map(s => (
+                        {stickers.map((s, index) => (
                             <span
                                 key={s}
                                 role="button"
                                 tabIndex={0}
                                 className="tap-scale"
+                                data-onboarding-target={index === 0 ? 'compose-first-sticker' : undefined}
                                 style={{
                                     ...styles.sticker,
                                     border: sticker === s ? '2px solid #007AFF' : '1px solid rgba(0,0,0,0.08)',
@@ -157,6 +163,7 @@ const ComposeSidebar: React.FC<ComposeSidebarProps> = ({
                         onClick={handleSend}
                         disabled={loading}
                         style={styles.sendBtn}
+                        data-onboarding-target="compose-send-btn"
                     >
                         {loading ? (initialSeason === 'spring' ? '发送中...' : 'Sending...') : (initialSeason === 'spring' ? '发送祝福' : 'Send Wishes')}
                     </button>

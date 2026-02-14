@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { ChristmasMessageProvider } from './context/ChristmasMessageContext';
 import { SidebarProvider } from './context/SidebarContext';
+import { OnboardingProvider } from './context/OnboardingContext';
+import OnboardingOverlay from './components/Onboarding/OnboardingOverlay';
 import HomePage from './pages/HomePage';
 import AuthForm from './components/Auth/AuthForm';
 import SceneSelector from './pages/SceneSelectionPage';
@@ -102,7 +104,10 @@ const App: React.FC = () => {
         <ThemeProvider>
           <ChristmasMessageProvider>
             <SidebarProvider>
-              <ChristmasBannerAndLayout />
+              <OnboardingProvider>
+                <ChristmasBannerAndLayout />
+                <OnboardingOverlay />
+              </OnboardingProvider>
             </SidebarProvider>
           </ChristmasMessageProvider>
         </ThemeProvider>
