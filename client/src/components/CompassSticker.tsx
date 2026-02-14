@@ -75,8 +75,40 @@ const CompassSticker: React.FC = () => {
             <UserGuideModal
                 isOpen={showGuide}
                 onClose={() => setShowGuide(false)}
-                contentZh="欢迎使用"
-                contentEn="Welcome"
+                contentZh={`🎉 欢迎来到 Festickers！
+这是一个专属于节日的互动空间，你可以走进朋友的节日场景，送出贴纸和祝福，一起留下温暖的回忆！
+
+🧭 快速上手指南：
+注册登录：账号和密码是确认身份的唯一凭证，请牢记哦！个性头像、个人信息可以在设置中修改~
+
+选择节日主题
+在侧边栏切换圣诞 🎄 或春节 🧧 场景。
+
+进入朋友的节日页面
+在【寻找好友】界面搜索好友昵称，发送添加请求→等待好友通过→点击好友名字 → 选择他们的节日场景。
+
+发送贴纸祝福
+在好友的节日场景中，点击"发祝福"→ 选择贴纸 → 写下你的祝福 → 发送后可以长按拖拽调整送出贴纸的位置，一起装扮好友的界面！
+
+装饰你的节日场景
+在自己的页面查看收到的贴纸，长按拖动贴纸重新摆放，保存你的专属布局。收到的信息会在节日当天零点解锁~
+
+✨ 每一张贴纸都承载着一份节日心意，快去探索吧！`}
+                contentEn={`🎉 Welcome to Festickers!
+A festive space where you can explore friends' scenes, send stickers and blessings, and create warm memories together!
+
+🧭 Quick Start:
+Sign up & login: Your account and password are your identity—keep them safe! Update avatar and profile in Settings.
+
+Choose a theme: Switch between Christmas 🎄 and Spring Festival 🧧 in the sidebar.
+
+Visit friends' scenes: In Discover, search by nickname → send a friend request → wait for approval → tap a friend → select their festive scene.
+
+Send sticker blessings: On a friend's scene, tap "发祝福" → pick a sticker → write your wish → send. Long-press to drag and reposition stickers!
+
+Decorate your scene: View received stickers, long-press to drag and rearrange, then save your layout. Messages unlock at midnight on the festival day.
+
+✨ Every sticker carries a festive wish—go explore!`}
             />
         </>
     );

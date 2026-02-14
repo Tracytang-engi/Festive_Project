@@ -42,6 +42,8 @@ const UserGuideModal: React.FC<UserGuideModalProps> = ({ isOpen, onClose, conten
                     padding: '24px 28px',
                     maxWidth: '90vw',
                     width: '420px',
+                    maxHeight: '85vh',
+                    overflowY: 'auto',
                     boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
                     fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
                 }}

@@ -145,66 +145,76 @@ const FriendDecorPage: React.FC = () => {
         if (userId) getFriendDecor(userId, { bustCache: true }).then(setDecor).catch(() => {});
     }, [userId]);
 
-    const clearLongPressTimer = useCallback(() => {
+    const clearLongPressTimer = useCallback((clearMessage = true) => {
         if (longPressTimerRef.current) {
             clearTimeout(longPressTimerRef.current);
             longPressTimerRef.current = null;
         }
-        longPressMessageRef.current = null;
+        if (clearMessage) longPressMessageRef.current = null;
     }, []);
+
+    const dragEndedRef = useRef(false);
+
+    const endDrag = useCallback((msgId: string) => {
+        if (dragEndedRef.current) return;
+        dragEndedRef.current = true;
+        setDraggingSticker(null);
+        justDraggedRef.current = true;
+        const { left, top } = dragPositionRef.current;
+        updateMessagePosition(msgId, left, top).then(refetchDecor).catch(refetchDecor);
+    }, [refetchDecor]);
 
     useEffect(() => {
         if (!draggingSticker || !sceneContainerRef.current) return;
+        dragEndedRef.current = false;
         const messageId = draggingSticker.messageId;
         dragPositionRef.current = { left: draggingSticker.left, top: draggingSticker.top };
         const el = sceneContainerRef.current;
 
-        const getCoords = (e: MouseEvent | TouchEvent) => {
-            if ('touches' in e && e.touches.length > 0) {
-                return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        const getCoords = (e: Event) => {
+            const ev = e as MouseEvent | TouchEvent;
+            if ('touches' in ev && ev.touches.length > 0) {
+                return { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
             }
-            if ('changedTouches' in e && e.changedTouches.length > 0) {
-                return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+            if ('changedTouches' in ev && ev.changedTouches.length > 0) {
+                return { x: ev.changedTouches[0].clientX, y: ev.changedTouches[0].clientY };
             }
-            const me = e as MouseEvent;
+            const me = ev as MouseEvent;
             return { x: me.clientX, y: me.clientY };
         };
 
         const onMove = (e: Event) => {
-            const ev = e as MouseEvent | TouchEvent;
             const rect = el.getBoundingClientRect();
-            const { x, y } = getCoords(ev);
+            const { x, y } = getCoords(e);
             const left = Math.min(95, Math.max(5, ((x - rect.left) / rect.width) * 100));
             const top = Math.min(95, Math.max(5, ((y - rect.top) / rect.height) * 100));
             dragPositionRef.current = { left, top };
             setDraggingSticker(prev => prev ? { ...prev, left, top } : null);
         };
-        const onUp = async () => {
-            setDraggingSticker(null);
+        const onUp = () => {
+            endDrag(messageId);
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
             document.removeEventListener('touchmove', onMove, { capture: true });
             document.removeEventListener('touchend', onUp, { capture: true });
-            const { left, top } = dragPositionRef.current;
-            justDraggedRef.current = true;
-            try {
-                await updateMessagePosition(messageId, left, top);
-                refetchDecor();
-            } catch {
-                refetchDecor();
-            }
         };
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp);
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
         document.addEventListener('touchmove', onMove, { capture: true, passive: false });
         document.addEventListener('touchend', onUp, { capture: true });
         return () => {
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
             document.removeEventListener('touchmove', onMove, { capture: true });
             document.removeEventListener('touchend', onUp, { capture: true });
         };
-    }, [draggingSticker?.messageId, refetchDecor]);
+    }, [draggingSticker?.messageId, refetchDecor, endDrag]);
 
     const handleStickerClick = (message: FriendDecorMessage) => {
         const isSender = currentUser?._id && message.sender?._id && message.sender._id === currentUser._id;
@@ -629,14 +639,18 @@ const FriendDecorPage: React.FC = () => {
                                 didStartDragRef.current = false;
                                 return;
                             }
-                            if (!startedDrag && msg) handleStickerClick(msg);
+                            if (startedDrag) {
+                                endDrag(message._id);
+                            } else if (msg) {
+                                handleStickerClick(msg);
+                            }
                             didStartDragRef.current = false;
                           }
                         : undefined;
 
                     const handlePointerCancel = canDrag
                         ? () => {
-                            clearLongPressTimer();
+                            clearLongPressTimer(false);
                           }
                         : undefined;
 
