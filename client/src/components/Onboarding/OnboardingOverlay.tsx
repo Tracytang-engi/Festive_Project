@@ -5,7 +5,7 @@ import { useOnboarding } from '../../context/OnboardingContext';
 
 const OVERLAY_Z = 10000;
 
-function useTargetRect(selector: string | null): DOMRect | null {
+function useTargetRect(selector: string | null, extraDeps: unknown[] = [], options?: { pollUntilMs?: number }): DOMRect | null {
     const [rect, setRect] = useState<DOMRect | null>(null);
     const step = useOnboarding()?.step;
 
@@ -14,6 +14,7 @@ function useTargetRect(selector: string | null): DOMRect | null {
             setRect(null);
             return;
         }
+        setRect(null);
         let cancelled = false;
         let teardown: (() => void) | null = null;
         const setup = (el: Element) => {
@@ -32,6 +33,7 @@ function useTargetRect(selector: string | null): DOMRect | null {
             if (cancelled) return;
             const el = document.querySelector(selector);
             if (el) {
+                teardown?.();
                 teardown = setup(el);
             }
         };
@@ -40,18 +42,82 @@ function useTargetRect(selector: string | null): DOMRect | null {
         if (!teardown) setRect(null);
         const t1 = setTimeout(tryAttach, 150);
         const t2 = setTimeout(tryAttach, 450);
+        const t3 = setTimeout(tryAttach, 900);
+        const pollUntilMs = options?.pollUntilMs ?? 0;
+        const pollId = pollUntilMs > 0 ? window.setInterval(tryAttach, 400) : 0;
+        const stopPoll = pollUntilMs > 0 ? setTimeout(() => { clearInterval(pollId); }, pollUntilMs) : 0;
         return () => {
             cancelled = true;
             clearTimeout(t1);
             clearTimeout(t2);
+            clearTimeout(t3);
+            clearInterval(pollId);
+            clearTimeout(stopPoll);
             teardown?.();
         };
-    }, [selector, step]);
+    }, [selector, step, ...extraDeps]);
 
     return rect;
 }
 
-/** 高亮目标 + 一侧文案 */
+/** 获取某容器的第一个子元素的 rect（用于高亮「年夜饭」等列表第一项，不依赖单独 data 属性） */
+function useFirstChildRect(containerSelector: string | null, extraDeps: unknown[] = [], options?: { pollUntilMs?: number }): DOMRect | null {
+    const [rect, setRect] = useState<DOMRect | null>(null);
+    const step = useOnboarding()?.step;
+
+    useEffect(() => {
+        if (!containerSelector) {
+            setRect(null);
+            return;
+        }
+        setRect(null);
+        let cancelled = false;
+        let teardown: (() => void) | null = null;
+        const setup = (el: Element) => {
+            const update = () => setRect(el.getBoundingClientRect());
+            update();
+            const ro = new ResizeObserver(update);
+            ro.observe(el);
+            window.addEventListener('scroll', update, true);
+            return () => {
+                ro.disconnect();
+                window.removeEventListener('scroll', update, true);
+            };
+        };
+
+        const tryAttach = () => {
+            if (cancelled) return;
+            const container = document.querySelector(containerSelector);
+            const el = container?.firstElementChild ?? null;
+            if (el) {
+                teardown?.();
+                teardown = setup(el);
+            }
+        };
+
+        tryAttach();
+        if (!teardown) setRect(null);
+        const t1 = setTimeout(tryAttach, 150);
+        const t2 = setTimeout(tryAttach, 450);
+        const t3 = setTimeout(tryAttach, 900);
+        const pollUntilMs = options?.pollUntilMs ?? 0;
+        const pollId = pollUntilMs > 0 ? window.setInterval(tryAttach, 400) : 0;
+        const stopPoll = pollUntilMs > 0 ? setTimeout(() => { clearInterval(pollId); }, pollUntilMs) : 0;
+        return () => {
+            cancelled = true;
+            clearTimeout(t1);
+            clearTimeout(t2);
+            clearTimeout(t3);
+            clearInterval(pollId);
+            clearTimeout(stopPoll);
+            teardown?.();
+        };
+    }, [containerSelector, step, ...extraDeps]);
+
+    return rect;
+}
+
+/** 高亮目标 + 一侧文案（忽略宽高过小的 rect，避免无效高亮） */
 function ArrowTooltip({
     targetRect,
     text,
@@ -61,7 +127,7 @@ function ArrowTooltip({
     text: string;
     placement?: 'right' | 'left' | 'bottom';
 }) {
-    if (!targetRect) return null;
+    if (!targetRect || targetRect.width < 2 || targetRect.height < 2) return null;
 
     const padding = 12;
     let boxLeft = targetRect.left + targetRect.width / 2 - 120;
@@ -234,12 +300,16 @@ export default function OnboardingOverlay() {
 
     const targetDiscover = useTargetRect('[data-onboarding-target="discover"]');
     const targetMyFriends = useTargetRect('[data-onboarding-target="my-friends"]');
-    const discoverSearchActive = step === 'discover_search' && path === '/discover';
-    const targetDiscoverSearchRow = useTargetRect(discoverSearchActive ? '[data-onboarding-target="discover-search-row"]' : null);
-    const targetDiscoverAddBtn = useTargetRect(step === 'discover_click_add' && path === '/discover' ? '[data-onboarding-target="discover-add-btn"]' : null);
     const targetFriendCard = useTargetRect('[data-onboarding-target="friend-card"]');
-    const targetDecorChooseScene = useTargetRect(isFriendDecorPath ? '[data-onboarding-target="decor-choose-scene"]' : null);
-    const targetDecorChooseSceneWrap = useTargetRect(isFriendDecorPath ? '[data-onboarding-target="decor-choose-scene-wrap"]' : null);
+    const targetDecorChooseSceneBtn = useTargetRect(isFriendDecorPath ? '[data-onboarding-target="decor-choose-scene-btn"]' : null, isFriendDecorPath ? [path] : []);
+    const targetDecorChooseSceneFirst = useFirstChildRect(
+        isFriendDecorPath ? '[data-onboarding-target="decor-choose-scene"]' : null,
+        isFriendDecorPath ? [path] : [],
+        isFriendDecorPath ? { pollUntilMs: 5000 } : undefined
+    );
+    const targetDecorChooseSceneArea = useTargetRect(isFriendDecorPath ? '[data-onboarding-target="decor-choose-scene-area"]' : null, isFriendDecorPath ? [path] : []);
+    const targetDecorChooseScene = useTargetRect(isFriendDecorPath ? '[data-onboarding-target="decor-choose-scene"]' : null, isFriendDecorPath ? [path] : []);
+    const targetDecorChooseSceneWrap = useTargetRect(isFriendDecorPath ? '[data-onboarding-target="decor-choose-scene-wrap"]' : null, isFriendDecorPath ? [path] : []);
     const targetFriendsListWrap = useTargetRect('[data-onboarding-target="friends-list-wrap"]');
     const targetComposeBtn = useTargetRect('[data-onboarding-target="compose-btn"]');
     const targetStickerArea = useTargetRect('[data-onboarding-target="sticker-area"]');
@@ -275,32 +345,16 @@ export default function OnboardingOverlay() {
         );
     }
 
-    // 1.2 在发现页：输入昵称并搜索（高亮与搜索框+搜索按钮整行吻合）
+    // 1.2 在发现页：显示「可以在这里查找好友」，直接指引进入我的好友（无需加好友）
     if (step === 'discover_search' && path === '/discover') {
         return createPortal(
             <>
                 <Backdrop />
                 {skip()}
                 <ArrowTooltip
-                    targetRect={targetDiscoverSearchRow}
-                    text="输入昵称（如 Andy）并点击右侧搜索按钮。"
-                    placement="bottom"
-                />
-            </>,
-            document.body
-        );
-    }
-
-    // 1.3 在发现页：有结果时，点击「添加」
-    if (step === 'discover_click_add' && path === '/discover') {
-        return createPortal(
-            <>
-                <Backdrop />
-                {skip()}
-                <ArrowTooltip
-                    targetRect={targetDiscoverAddBtn}
-                    text="点击「添加」发送好友请求。发送成功后点击左侧「我的好友」返回。"
-                    placement="left"
+                    targetRect={targetMyFriends}
+                    text="可以在这里查找好友。点击左侧「我的好友」进入好友列表。"
+                    placement="right"
                 />
             </>,
             document.body
@@ -347,7 +401,8 @@ export default function OnboardingOverlay() {
     const isSceneSelectionScreen = isFriendDecorPath && !isInSceneView;
     const chooseSceneText = '先点击「选择场景查看」，再点一个场景进入；进入后即可发祝福、拖贴纸。';
     if ((step === 'decor_choose_scene' || (step === 'decor_send_drag' && isSceneSelectionScreen)) && isFriendDecorPath) {
-        const chooseSceneRect = targetDecorChooseScene ?? targetDecorChooseSceneWrap;
+        const rawChooseSceneRect = targetDecorChooseSceneFirst ?? targetDecorChooseSceneBtn ?? targetDecorChooseScene ?? targetDecorChooseSceneArea ?? targetDecorChooseSceneWrap;
+        const chooseSceneRect = rawChooseSceneRect && rawChooseSceneRect.width >= 2 && rawChooseSceneRect.height >= 2 ? rawChooseSceneRect : null;
         return createPortal(
             <>
                 <Backdrop />

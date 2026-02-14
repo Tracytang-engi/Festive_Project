@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../api/client';
 import { getFriends, getSentFriendRequestIds } from '../api/friends';
 import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
-import { useOnboarding } from '../context/OnboardingContext';
 import { themeConfig } from '../constants/theme';
 import PageTransition from '../components/Effects/PageTransition';
 import { motion } from 'framer-motion';
@@ -11,30 +10,13 @@ import { staggerContainer, staggerItem } from '../components/Effects/PageTransit
 
 const DiscoverPage: React.FC = () => {
     const { theme } = useTheme();
-    const onboarding = useOnboarding();
     const [query, setQuery] = useState('');
-
-    // 新手指引：在发现页预填 Andy（第一步添加好友）
-    useEffect(() => {
-        if ((onboarding?.step === 'discover_search' || onboarding?.step === 'discover_click_add') && !query.trim()) {
-            setQuery('Andy');
-        }
-    }, [onboarding?.step]);
 
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
 
-    // 搜索出结果后，指示变为「点击添加」
-    const didAdvanceToClickAdd = useRef(false);
-    useEffect(() => {
-        if (onboarding?.step !== 'discover_search' || didAdvanceToClickAdd.current) return;
-        if (hasSearched && results.length > 0 && !loading) {
-            didAdvanceToClickAdd.current = true;
-            onboarding.nextStep();
-        }
-    }, [onboarding, hasSearched, results.length, loading]);
     const [addingId, setAddingId] = useState<string | null>(null);
     const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
     const [sentRequestIds, setSentRequestIds] = useState<Set<string>>(new Set());
@@ -71,12 +53,14 @@ const DiscoverPage: React.FC = () => {
         if (addingId) return;
         setAddingId(targetId); // 立即反馈：按钮变为「发送中...」
         try {
-            await api.post('/friends/request', { targetUserId: targetId });
+            const res = await api.post('/friends/request', { targetUserId: targetId });
+            const autoAccepted = res?.data?.autoAccepted === true;
             setSentRequestIds(prev => new Set([...prev, targetId]));
-            if (onboarding?.step === 'discover_click_add') onboarding.nextStep();
             setTipModal({
                 show: true,
-                message: theme === 'spring' ? '好友请求已发送！点击左侧「我的好友」返回。' : 'Friend request sent! Tap My Friends to continue.',
+                message: autoAccepted
+                    ? (theme === 'spring' ? '已添加为好友！点击左侧「我的好友」即可看到 TA。' : 'Added as friend! Tap My Friends to see them.')
+                    : (theme === 'spring' ? '好友请求已发送！点击左侧「我的好友」返回。' : 'Friend request sent! Tap My Friends to continue.'),
                 isSuccess: true
             });
         } catch (err: any) {

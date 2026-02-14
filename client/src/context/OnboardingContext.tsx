@@ -78,14 +78,14 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         if (step === 'done') return;
         const path = location.pathname;
 
-        // 点击了「发现」进入发现页
+        // 点击了「发现」进入发现页（发现页只提示「可以在这里查找好友」，然后引导去我的好友）
         if (step === 'point_discover' && path === '/discover') {
             setStep('discover_search');
             return;
         }
 
-        // 点击了「我的好友」进入好友页
-        if (step === 'point_my_friends' && path === '/friends') {
+        // 从发现页点击「我的好友」进入好友页，或从 point_my_friends 进入
+        if ((step === 'discover_search' || step === 'point_my_friends') && path === '/friends') {
             setStep('friends_enter_inner');
             return;
         }

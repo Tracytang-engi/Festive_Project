@@ -41,7 +41,7 @@ router.post('/register', ipLimiterMiddleware, async (req: Request, res: Response
         if (!region || typeof region !== 'string' || !region.trim()) {
             return res.status(400).json({
                 error: "INVALID_INPUT",
-                message: "请选择地区"
+                message: "请输入地区"
             });
         }
         const trimmedNickname = String(nickname).trim();
@@ -98,12 +98,13 @@ router.post('/register', ipLimiterMiddleware, async (req: Request, res: Response
 
         const passwordHash = await hashPassword(trimmedPassword);
         const avatarStr = (avatar != null && String(avatar).trim()) ? String(avatar).trim().slice(0, 8) : '👤';
+        const regionStr = String(region).trim().slice(0, 30);
         const user = await User.create({
             userId: trimmedUserId,
             nickname: trimmedNickname,
             avatar: avatarStr,
             passwordHash,
-            region: String(region).trim()
+            region: regionStr
         });
 
         const token = generateJWT((user._id as any).toString());

@@ -8,8 +8,61 @@ import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
 const router = express.Router();
 router.use(authMiddleware);
 
-/** 引导用特殊账号：任何人申请即自动通过 */
-const ONBOARDING_BOT_USER_ID = '20070421';
+/** 新手指引默认账户：Andy，申请即通过、且为所有人默认好友。
+ * 环境变量：ONBOARDING_BOT_OBJECT_ID、ONBOARDING_BOT_USER_ID、ONBOARDING_BOT_NICKNAME 可选覆盖。 */
+const DEFAULT_BOT_USER_ID = '20070421';
+const DEFAULT_BOT_NICKNAME = 'Andy';
+function getOnboardingBotUserId(): string {
+    return (process.env.ONBOARDING_BOT_USER_ID || DEFAULT_BOT_USER_ID).trim();
+}
+function getOnboardingBotObjectId(): string | null {
+    const id = process.env.ONBOARDING_BOT_OBJECT_ID;
+    return (id && typeof id === 'string' && id.trim()) ? id.trim() : null;
+}
+function getOnboardingBotNickname(): string | null {
+    const n = process.env.ONBOARDING_BOT_NICKNAME;
+    return (n && typeof n === 'string' && n.trim()) ? n.trim().toLowerCase() : null;
+}
+
+function isOnboardingBot(targetUserId: string, targetUser: { userId?: string; nickname?: string } | null): boolean {
+    if (!targetUser) return false;
+    const botOid = getOnboardingBotObjectId();
+    if (botOid && String(targetUserId).trim() === String(botOid).trim()) return true;
+    const uId = (targetUser.userId != null && String(targetUser.userId).trim()) || '';
+    if (uId === String(getOnboardingBotUserId()).trim()) return true;
+    const nick = (targetUser.nickname && String(targetUser.nickname).trim()) || '';
+    const nickLower = nick.toLowerCase();
+    if (nickLower === '新手指引小助手' || nick.includes('新手指引')) return true;
+    if (nickLower === 'andy' || nickLower.includes('andy')) return true;
+    const botNick = getOnboardingBotNickname();
+    if (botNick && (nickLower === botNick || nickLower.includes(botNick))) return true;
+    return false;
+}
+
+/** 获取新手指引默认好友的 MongoDB _id。优先级：env _id → userId → env 昵称 → 昵称含 新手指引/andy */
+async function getDefaultFriendBotId(): Promise<string | null> {
+    const botOid = getOnboardingBotObjectId();
+    if (botOid) {
+        const u = await User.findById(botOid).select('_id').lean();
+        if (u) return String(u._id);
+    }
+    const byUserId = await User.findOne({ userId: getOnboardingBotUserId() }).select('_id').lean();
+    if (byUserId) return String(byUserId._id);
+    const botNick = getOnboardingBotNickname();
+    if (botNick) {
+        const u = await User.findOne({ nickname: new RegExp('^' + escapeRegex(botNick) + '$', 'i') }).select('_id').lean();
+        if (u) return String(u._id);
+    }
+    let u = await User.findOne({ userId: DEFAULT_BOT_USER_ID }).select('_id').lean();
+    if (u) return String(u._id);
+    u = await User.findOne({ nickname: /新手指引/ }).select('_id').lean();
+    if (u) return String(u._id);
+    u = await User.findOne({ nickname: /andy/i }).select('_id').lean();
+    return u ? String(u._id) : null;
+}
+function escapeRegex(s: string): string {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 // POST /api/friends/request
 router.post('/request', async (req: AuthRequest, res) => {
@@ -31,8 +84,8 @@ router.post('/request', async (req: AuthRequest, res) => {
             return res.status(400).json({ error: "Request already exists or connected" });
         }
 
-        const andy = await User.findOne({ userId: ONBOARDING_BOT_USER_ID }).select('_id').lean();
-        const isAndy = andy && andy._id.toString() === targetUserId;
+        const targetUser = await User.findById(targetUserId).select('userId nickname').lean();
+        const isAndy = isOnboardingBot(String(targetUserId), targetUser);
 
         const friendRequest = await Friend.create({
             requester: requesterId,
@@ -41,7 +94,6 @@ router.post('/request', async (req: AuthRequest, res) => {
         });
 
         if (isAndy) {
-            // Andy 账号：不发 FRIEND_REQUEST 通知，直接通知申请者「已通过」
             await Notification.create({
                 recipient: requesterId,
                 type: 'CONNECTION_SUCCESS',
@@ -57,7 +109,27 @@ router.post('/request', async (req: AuthRequest, res) => {
             });
         }
 
-        res.json({ success: true });
+        res.json({ success: true, autoAccepted: !!isAndy });
+    } catch (err) {
+        res.status(500).json({ error: "SERVER_ERROR" });
+    }
+});
+
+// GET /api/friends/onboarding-bot-id — 查询新手指引默认账户的 _id（用于 .env 的 ONBOARDING_BOT_OBJECT_ID）
+router.get('/onboarding-bot-id', async (_req: AuthRequest, res) => {
+    try {
+        const botUserId = getOnboardingBotUserId();
+        const user = await User.findOne({ userId: botUserId }).select('_id nickname userId').lean();
+        if (!user) {
+            return res.json({ ok: false, message: '未找到 userId=' + botUserId + ' 的新手指引账户，请重启后端以自动创建' });
+        }
+        res.json({
+            ok: true,
+            onboardingBotObjectId: String(user._id),
+            nickname: user.nickname,
+            userId: user.userId,
+            hint: '可选填入 .env: ONBOARDING_BOT_OBJECT_ID=' + String(user._id),
+        });
     } catch (err) {
         res.status(500).json({ error: "SERVER_ERROR" });
     }
@@ -225,11 +297,11 @@ router.get('/:friendId/decor', async (req: AuthRequest, res) => {
     }
 });
 
-// GET /api/friends
+// GET /api/friends — 好友列表；Andy 作为默认好友，若尚未存在则自动建立关系并加入列表
 router.get('/', async (req: AuthRequest, res) => {
     try {
         const userId = req.user?.id;
-        const friends = await Friend.find({
+        let friends = await Friend.find({
             $or: [
                 { requester: userId, status: 'accepted' },
                 { recipient: userId, status: 'accepted' }
@@ -237,11 +309,38 @@ router.get('/', async (req: AuthRequest, res) => {
         }).populate('requester', 'nickname region avatar')
             .populate('recipient', 'nickname region avatar');
 
+        // 新手指引账户为默认好友：若当前用户还没有该账户，则自动创建 accepted 关系并加入列表（失败也不影响返回已有列表）
+        try {
+            const andyId = await getDefaultFriendBotId();
+            if (andyId && userId !== andyId) {
+                const hasAndy = friends.some(
+                    (f: any) => f.requester._id.toString() === andyId || f.recipient._id.toString() === andyId
+                );
+                if (!hasAndy) {
+                    const newConn = await Friend.create({
+                        requester: userId,
+                        recipient: andyId,
+                        status: 'accepted'
+                    });
+                    const andyUser = await User.findById(andyId).select('_id nickname region avatar').lean();
+                    if (andyUser) {
+                        friends = [...friends, {
+                            _id: newConn._id,
+                            requester: { _id: userId },
+                            recipient: { _id: andyUser._id, nickname: andyUser.nickname, region: andyUser.region, avatar: andyUser.avatar }
+                        } as any];
+                    }
+                }
+            }
+        } catch (_) {
+            // 默认好友逻辑失败时仍返回已有列表，不抛 500
+        }
+
         // Transform to return the *other* user
-        const result = friends.map(f => {
+        const result = friends.map((f: any) => {
             const isRequester = f.requester._id.toString() === userId;
             return {
-                _id: f._id, // Connection ID
+                _id: f._id,
                 friend: isRequester ? f.recipient : f.requester
             };
         });

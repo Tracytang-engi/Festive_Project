@@ -1,12 +1,38 @@
 import path from 'path';
+import crypto from 'crypto';
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
+import User from './models/User';
+import { hashPassword } from './utils/security';
 
 // 从 server 根目录加载 .env（兼容 PM2 不同 cwd）
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
+
+/** 确保新手指引默认账户存在（默认 Andy：userId=20070421），申请即通过且为默认好友 */
+async function ensureOnboardingBotUser(): Promise<void> {
+    try {
+        const userId = (process.env.ONBOARDING_BOT_USER_ID || '20070421').trim();
+        const nickname = (process.env.ONBOARDING_BOT_NICKNAME || 'Andy').trim();
+        let u = await User.findOne({ userId });
+        if (u) {
+            console.log('[Onboarding] 新手指引默认账户已存在:', u.nickname);
+            return;
+        }
+        u = await User.findOne({ nickname });
+        if (u) {
+            console.log('[Onboarding] 新手指引账户已存在（昵称）:', nickname);
+            return;
+        }
+        const passwordHash = await hashPassword(crypto.randomBytes(32).toString('hex'));
+        await User.create({ userId, nickname, passwordHash });
+        console.log('[Onboarding] 新手指引默认账户已创建:', nickname);
+    } catch (e) {
+        console.warn('[Onboarding] 创建默认账户失败:', (e as Error).message);
+    }
+}
 
 // Routes
 import authRoutes from './routes/auth';
@@ -55,9 +81,6 @@ app.use((req, res, next) => {
 
 // Database Connection
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/festive-app';
-mongoose.connect(MONGO_URI)
-    .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Routes Mounting
 app.use('/api/auth', authRoutes);
@@ -80,8 +103,13 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// 先连库再 listen，但不等待 ensureOnboardingBotUser，避免 PM2 重启时抢端口导致 EADDRINUSE
+mongoose.connect(MONGO_URI)
+    .then(() => {
+        console.log('MongoDB Connected');
+        ensureOnboardingBotUser().catch(e => console.warn('[Onboarding]', (e as Error).message));
+        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    })
+    .catch(err => console.error('MongoDB Connection Error:', err));
 
 export default app;

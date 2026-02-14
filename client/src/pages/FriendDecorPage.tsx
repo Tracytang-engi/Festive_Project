@@ -304,6 +304,10 @@ const FriendDecorPage: React.FC = () => {
                 }}
                     data-onboarding-target="decor-choose-scene-wrap"
                 >
+                    <div
+                        data-onboarding-target="decor-choose-scene-area"
+                        style={{ width: '100%', maxWidth: '560px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                    >
                     {/* 顶部导航栏 - iOS 大标题 + 返回 */}
                     <div style={{
                         width: '100%',
@@ -365,7 +369,7 @@ const FriendDecorPage: React.FC = () => {
                             type="button"
                             onClick={() => setShowSceneList(true)}
                             className="tap-scale"
-                            data-onboarding-target="decor-choose-scene"
+                            data-onboarding-target="decor-choose-scene-btn"
                             style={{
                                 position: 'relative',
                                 width: '100%',
@@ -387,7 +391,9 @@ const FriendDecorPage: React.FC = () => {
                             <span style={{ position: 'absolute', right: '24px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', color: 'var(--ios-gray)' }}>→</span>
                         </button>
                     ) : (
-                        <div style={{
+                        <div
+                            data-onboarding-target="decor-choose-scene"
+                            style={{
                             width: '100%',
                             maxWidth: '560px',
                             borderRadius: 'var(--ios-radius-lg)',
@@ -513,6 +519,7 @@ const FriendDecorPage: React.FC = () => {
                     >
                         ✉️ 给 TA 发祝福 <span className="bilingual-en">Send a wish</span>
                     </button>
+                    </div>
                 </div>
             </div>
             <ComposeModal
