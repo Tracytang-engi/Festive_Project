@@ -40,9 +40,10 @@ const Snowfall: React.FC<SnowfallProps> = ({ intensity = 'moderate', theme = 'ch
                 left: 0,
                 right: 0,
                 bottom: 0,
+                width: '100%',
+                height: '100%',
                 pointerEvents: 'none',
-                overflow: 'hidden',
-                zIndex: 50,
+                overflow: 'visible',
             }}
         >
             {snowflakes.map((flake) => (
@@ -68,8 +69,8 @@ const Snowflake: React.FC<Snowflake & { theme: 'christmas' | 'spring' }> = ({
                 position: 'absolute',
                 left: `${left}%`,
                 top: `${top}%`,
-                width: size,
-                height: size,
+                width: `${size}px`,
+                height: `${size}px`,
                 background: theme === 'christmas'
                     ? 'radial-gradient(circle, #ffffff 0%, #e8e8e8 100%)'
                     : 'radial-gradient(circle, #ffffff 0%, #fff8e1 100%)',

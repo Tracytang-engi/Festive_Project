@@ -3,7 +3,6 @@ import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { getMessages, deleteMessage } from '../api/messages';
-import { saveSceneLayout } from '../api/scene';
 import { getSceneName, getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE } from '../constants/scenes';
 import { getStickerCategory, hasStickerImage, isChristmasSticker } from '../constants/stickers';
 import { SERVER_ORIGIN } from '../api/client';
@@ -13,8 +12,6 @@ import WelcomeSticker, { WELCOME_STICKER_ID } from '../components/WelcomeSticker
 import DraggableSticker from '../components/DraggableSticker';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import type { Message } from '../types';
-import Snowfall from '../components/Effects/Snowfall';
-import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 
 // Generate random position near center (25%-75% horizontal, 20%-70% vertical)
 const getRandomPosition = (seed: number) => {
@@ -30,7 +27,7 @@ const getRandomPosition = (seed: number) => {
 
 const FestiveDecorPage: React.FC = () => {
     const { theme } = useTheme();
-    const { user, checkAuth } = useAuth();
+    const { user } = useAuth();
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(true);
     const [introVisible, setIntroVisible] = useState(true);
@@ -38,8 +35,6 @@ const FestiveDecorPage: React.FC = () => {
     const [detailMessage, setDetailMessage] = useState<Message | null>(null);
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [stickerPositions, setStickerPositions] = useState<Record<string, { left: number; top: number }>>({});
-    const [saving, setSaving] = useState(false);
-    const [saveSuccess, setSaveSuccess] = useState(false);
     const [welcomeStickerHidden, setWelcomeStickerHidden] = useState(false);
     const defaultSceneId = theme === 'spring' ? DEFAULT_SPRING_SCENE : 'xmas_1';
     const pageScene = user?.selectedScene ?? defaultSceneId;
@@ -147,29 +142,9 @@ const FestiveDecorPage: React.FC = () => {
         });
     }, [theme, user?._id]);
 
-    const handleSaveLayout = useCallback(async () => {
-        setSaving(true);
-        setSaveSuccess(false);
-        try {
-            await saveSceneLayout(theme, stickerPositions);
-            await checkAuth();
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 2000);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setSaving(false);
-        }
-    }, [theme, stickerPositions, checkAuth]);
-
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto', overflowX: 'hidden' }}>
             <Sidebar />
-            {theme === 'christmas' ? (
-                <Snowfall intensity="moderate" />
-            ) : (
-                <SpringFestivalEffects showSnow={true} intensity="moderate" />
-            )}
             <div className="page-bg-area"
                 style={{
                     flex: 1,
@@ -264,41 +239,6 @@ const FestiveDecorPage: React.FC = () => {
                             />
                         ))}
                     </>
-                )}
-
-                {/* 保存布置按钮：有贴纸或欢迎贴纸未删除时显示 */}
-                {!loading && (visibleMessages.length > 0 || !welcomeStickerHidden) && (
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '24px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        zIndex: 80,
-                    }}>
-                        <button
-                            type="button"
-                            onClick={handleSaveLayout}
-                            disabled={saving}
-                            style={{
-                                padding: '12px 28px',
-                                borderRadius: '12px',
-                                border: 'none',
-                                background: saving ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.95)',
-                                color: theme === 'christmas' ? '#c41e3a' : '#c2185b',
-                                fontSize: '16px',
-                                fontWeight: 600,
-                                cursor: saving ? 'not-allowed' : 'pointer',
-                                boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                            }}
-                        >
-                            {saving ? <>保存中... <span className="bilingual-en">Saving...</span></> : <>保存布置 <span className="bilingual-en">Save Layout</span></>}
-                        </button>
-                        {saveSuccess && (
-                            <span style={{ marginLeft: '12px', color: 'rgba(255,255,255,0.95)', fontSize: '14px' }}>
-                                已保存 <span className="bilingual-en">Saved!</span>
-                            </span>
-                        )}
-                    </div>
                 )}
 
                 {!loading && messages.length === 0 && !introVisible && (

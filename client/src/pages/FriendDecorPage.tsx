@@ -9,10 +9,10 @@ import { SERVER_ORIGIN } from '../api/client';
 import StickerIcon from '../components/StickerIcon';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import PrivateMessagePlaceholderModal from '../components/Messages/PrivateMessagePlaceholderModal';
+import ComposeSidebar from '../components/Messages/ComposeSidebar';
 import ComposeModal from '../components/Messages/ComposeModal';
 import { themeConfig } from '../constants/theme';
-import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import type { Message } from '../types';
@@ -41,8 +41,8 @@ const FriendDecorPage: React.FC = () => {
         if (SPRING_STICKER_CATEGORIES.some(c => c.id === scene)) return categoryToSceneId[scene] ?? DEFAULT_SPRING_SCENE;
         return null;
     };
-    /** 当前要查看的场景；null 表示在选场景步骤。无 URL scene 时默认进默认场景，直接看到对方贴纸。 */
-    const [viewingSceneId, setViewingSceneId] = useState<string | null>(() => resolveSceneFromUrl(new URLSearchParams(window.location.search).get('scene')) ?? DEFAULT_SPRING_SCENE);
+    /** 当前要查看的场景；null 表示在选场景步骤（从好友圈点进来先显示此页）。有 URL ?scene= 时进入对应场景。 */
+    const [viewingSceneId, setViewingSceneId] = useState<string | null>(() => resolveSceneFromUrl(new URLSearchParams(window.location.search).get('scene')) ?? null);
     /** 场景名称弹窗是否显示，进入场景后 1s 渐变消失 */
     const [sceneCardVisible, setSceneCardVisible] = useState(true);
     /** 点击贴纸：私密占位弹窗 或 公开消息详情 */
@@ -50,8 +50,10 @@ const FriendDecorPage: React.FC = () => {
     const [detailMessage, setDetailMessage] = useState<Message | null>(null);
     /** 是否展开具体场景列表（年夜饭/庙会/贴对联/放鞭炮） */
     const [showSceneList, setShowSceneList] = useState(false);
-    /** 发祝福：选择贴纸 + 写留言 */
+    /** 发祝福：选择贴纸 + 写留言（选择场景步骤用 ComposeModal） */
     const [showComposeModal, setShowComposeModal] = useState(false);
+    /** 发祝福侧边栏（场景视图内用 ComposeSidebar） */
+    const [isComposeOpen, setIsComposeOpen] = useState(false);
 
     useEffect(() => {
         if (!userId) {
@@ -60,6 +62,7 @@ const FriendDecorPage: React.FC = () => {
             return;
         }
         let cancelled = false;
+        setLoading(true);
         const fetchDecor = async () => {
             try {
                 const data = await getFriendDecor(userId);
@@ -89,13 +92,13 @@ const FriendDecorPage: React.FC = () => {
         return () => { cancelled = true; };
     }, [userId]);
 
-    // Sync URL ?scene= & ?compose=1 into state (go to owner's scene and open sticker+words popup)
+    // Sync URL ?scene= & ?compose=1 into state (go to owner's scene and open sticker+words sidebar)
     useEffect(() => {
         const scene = searchParams.get('scene');
         const compose = searchParams.get('compose');
         const resolved = resolveSceneFromUrl(scene);
         if (resolved) setViewingSceneId(resolved);
-        if (compose === '1') setShowComposeModal(true);
+        if (compose === '1') setIsComposeOpen(true);
     }, [searchParams]);
 
     useEffect(() => {
@@ -132,49 +135,93 @@ const FriendDecorPage: React.FC = () => {
 
     const justDraggedRef = useRef(false);
     const dragPositionRef = useRef({ left: 0, top: 0 });
+    const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const longPressMessageRef = useRef<FriendDecorMessage | null>(null);
+    const didStartDragRef = useRef(false);
+
+    const LONG_PRESS_MS = 400;
 
     const refetchDecor = useCallback(() => {
         if (userId) getFriendDecor(userId, { bustCache: true }).then(setDecor).catch(() => {});
     }, [userId]);
 
+    const clearLongPressTimer = useCallback((clearMessage = true) => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+        if (clearMessage) longPressMessageRef.current = null;
+    }, []);
+
+    const dragEndedRef = useRef(false);
+
+    const endDrag = useCallback((msgId: string) => {
+        if (dragEndedRef.current) return;
+        dragEndedRef.current = true;
+        setDraggingSticker(null);
+        justDraggedRef.current = true;
+        const { left, top } = dragPositionRef.current;
+        updateMessagePosition(msgId, left, top).then(refetchDecor).catch(refetchDecor);
+    }, [refetchDecor]);
+
     useEffect(() => {
         if (!draggingSticker || !sceneContainerRef.current) return;
+        dragEndedRef.current = false;
         const messageId = draggingSticker.messageId;
         dragPositionRef.current = { left: draggingSticker.left, top: draggingSticker.top };
         const el = sceneContainerRef.current;
-        const onMove = (e: MouseEvent) => {
+
+        const getCoords = (e: Event) => {
+            const ev = e as MouseEvent | TouchEvent;
+            if ('touches' in ev && ev.touches.length > 0) {
+                return { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
+            }
+            if ('changedTouches' in ev && ev.changedTouches.length > 0) {
+                return { x: ev.changedTouches[0].clientX, y: ev.changedTouches[0].clientY };
+            }
+            const me = ev as MouseEvent;
+            return { x: me.clientX, y: me.clientY };
+        };
+
+        const onMove = (e: Event) => {
             const rect = el.getBoundingClientRect();
-            const left = Math.min(95, Math.max(5, ((e.clientX - rect.left) / rect.width) * 100));
-            const top = Math.min(95, Math.max(5, ((e.clientY - rect.top) / rect.height) * 100));
+            const { x, y } = getCoords(e);
+            const left = Math.min(95, Math.max(5, ((x - rect.left) / rect.width) * 100));
+            const top = Math.min(95, Math.max(5, ((y - rect.top) / rect.height) * 100));
             dragPositionRef.current = { left, top };
             setDraggingSticker(prev => prev ? { ...prev, left, top } : null);
         };
-        const onUp = async () => {
-            setDraggingSticker(null);
+        const onUp = () => {
+            endDrag(messageId);
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
-            const { left, top } = dragPositionRef.current;
-            justDraggedRef.current = true;
-            try {
-                await updateMessagePosition(messageId, left, top);
-                refetchDecor();
-            } catch {
-                refetchDecor();
-            }
+            document.removeEventListener('touchmove', onMove, { capture: true });
+            document.removeEventListener('touchend', onUp, { capture: true });
         };
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp);
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
+        document.addEventListener('touchmove', onMove, { capture: true, passive: false });
+        document.addEventListener('touchend', onUp, { capture: true });
         return () => {
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
+            document.removeEventListener('touchmove', onMove, { capture: true });
+            document.removeEventListener('touchend', onUp, { capture: true });
         };
-    }, [draggingSticker?.messageId, refetchDecor]);
+    }, [draggingSticker?.messageId, refetchDecor, endDrag]);
 
     const handleStickerClick = (message: FriendDecorMessage) => {
         const isSender = currentUser?._id && message.sender?._id && message.sender._id === currentUser._id;
         if (message.isPrivate && !isSender) {
             setShowPrivatePlaceholder(true);
-        } else if (message.content !== undefined || (message.isPrivate && isSender)) {
+        } else {
+            // 发送方始终可点开自己发的贴纸；接收方看公开内容或自己的私密消息
             setDetailMessage(message as Message);
         }
     };
@@ -234,7 +281,6 @@ const FriendDecorPage: React.FC = () => {
             <>
             <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
                 <Sidebar />
-                <SpringFestivalEffects showSnow={true} intensity="light" />
                 <div style={{
                     flex: 1,
                     padding: '24px 20px 48px',
@@ -466,7 +512,6 @@ const FriendDecorPage: React.FC = () => {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflow: 'hidden' }}>
             <Sidebar />
-            <SpringFestivalEffects showSnow={true} intensity="moderate" />
             <div
                 ref={sceneContainerRef}
                 className="page-bg-area"
@@ -487,7 +532,7 @@ const FriendDecorPage: React.FC = () => {
                     overflow: 'hidden',
                 }}
             >
-                {/* 顶部：返回选择场景 + 标题 */}
+                {/* 顶部：返回选择场景 + 标题 + 发祝福 */}
                 <div
                     style={{
                         position: 'absolute',
@@ -497,59 +542,65 @@ const FriendDecorPage: React.FC = () => {
                         zIndex: 100,
                         display: 'flex',
                         alignItems: 'center',
+                        justifyContent: 'space-between',
                         gap: '12px',
                         padding: '16px 24px',
                         background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), transparent)',
                     }}
                 >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                        <button
+                            type="button"
+                            onClick={() => setViewingSceneId(null)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                border: 'none',
+                                background: 'rgba(255,255,255,0.9)',
+                                color: '#333',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                flexShrink: 0,
+                            }}
+                            title="返回选择场景"
+                        >
+                            <ArrowLeft size={22} />
+                        </button>
+                        <h1 style={{ margin: 0, fontSize: 'clamp(18px, 2.5vw, 24px)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {decor.nickname} 的春节页面 · {sceneTitle}
+                        </h1>
+                    </div>
                     <button
                         type="button"
-                        onClick={() => setViewingSceneId(null)}
+                        onClick={() => setIsComposeOpen(true)}
+                        className="tap-scale"
                         style={{
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
+                            gap: '8px',
+                            padding: '10px 18px',
+                            borderRadius: '12px',
                             border: 'none',
-                            background: 'rgba(255,255,255,0.9)',
+                            background: 'rgba(255,255,255,0.95)',
                             color: '#333',
                             cursor: 'pointer',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                        }}
-                        title="返回选择场景 Back to scenes"
-                    >
-                        <ArrowLeft size={22} />
-                    </button>
-                    <h1 style={{ margin: 0, fontSize: 'clamp(18px, 2.5vw, 24px)', fontWeight: 600 }}>
-                        {decor.nickname} 的春节页面 · {sceneTitle}
-                    </h1>
-                    <button
-                        type="button"
-                        onClick={() => setShowComposeModal(true)}
-                        className="tap-scale"
-                        style={{
-                            marginLeft: 'auto',
-                            padding: '10px 18px',
-                            fontSize: '14px',
+                            fontSize: '15px',
                             fontWeight: 600,
-                            color: '#1d1d1f',
-                            background: 'rgba(255,255,255,0.95)',
-                            border: 'none',
-                            borderRadius: '12px',
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
+                            flexShrink: 0,
                         }}
+                        title="发送节日祝福 Send a Festive Greeting"
                     >
-                        ✉️ 发祝福
+                        <Mail size={18} />
+                        发祝福
                     </button>
                 </div>
 
-                {/* 该场景布置：过年之前发送方与房主可拖；过年之后仅房主可拖；点击查看详情 */}
+                {/* 该场景布置：短按查看详情，长按拖拽（仅发送方/房主可拖）；过年之后仅房主可拖 */}
                 {stickersInScene.map(({ message, pos }) => {
                     const senderId = typeof message.sender === 'object' && message.sender && '_id' in message.sender
                         ? (message.sender as { _id?: string })._id
@@ -560,6 +611,49 @@ const FriendDecorPage: React.FC = () => {
                     const displayPos = draggingSticker?.messageId === message._id
                         ? { left: draggingSticker.left, top: draggingSticker.top }
                         : pos;
+
+                    const handlePointerDown = canDrag
+                        ? (e: React.PointerEvent) => {
+                            e.preventDefault();
+                            didStartDragRef.current = false;
+                            (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+                            longPressMessageRef.current = message;
+                            clearLongPressTimer();
+                            longPressTimerRef.current = setTimeout(() => {
+                                longPressTimerRef.current = null;
+                                longPressMessageRef.current = null;
+                                didStartDragRef.current = true;
+                                setDraggingSticker({ messageId: message._id, left: pos.left, top: pos.top });
+                            }, LONG_PRESS_MS);
+                          }
+                        : undefined;
+
+                    const handlePointerUp = canDrag
+                        ? (e: React.PointerEvent) => {
+                            const msg = longPressMessageRef.current;
+                            const startedDrag = didStartDragRef.current;
+                            clearLongPressTimer();
+                            (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+                            if (justDraggedRef.current) {
+                                justDraggedRef.current = false;
+                                didStartDragRef.current = false;
+                                return;
+                            }
+                            if (startedDrag) {
+                                endDrag(message._id);
+                            } else if (msg) {
+                                handleStickerClick(msg);
+                            }
+                            didStartDragRef.current = false;
+                          }
+                        : undefined;
+
+                    const handlePointerCancel = canDrag
+                        ? () => {
+                            clearLongPressTimer(false);
+                          }
+                        : undefined;
+
                     return (
                         <div
                             key={message._id}
@@ -572,10 +666,13 @@ const FriendDecorPage: React.FC = () => {
                                     justDraggedRef.current = false;
                                     return;
                                 }
-                                handleStickerClick(message);
+                                if (!canDrag) handleStickerClick(message);
                             }}
                             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleStickerClick(message); }}
-                            onMouseDown={canDrag ? (e) => { e.preventDefault(); setDraggingSticker({ messageId: message._id, left: pos.left, top: pos.top }); } : undefined}
+                            onPointerDown={handlePointerDown}
+                            onPointerUp={handlePointerUp}
+                            onPointerCancel={handlePointerCancel}
+                            onPointerLeave={handlePointerCancel}
                             style={{
                                 position: 'absolute',
                                 left: `${displayPos.left}%`,
@@ -617,6 +714,18 @@ const FriendDecorPage: React.FC = () => {
                     </p>
                 </div>
 
+                <ComposeSidebar
+                    isOpen={isComposeOpen}
+                    onClose={() => {
+                        setIsComposeOpen(false);
+                        refetchDecor();
+                    }}
+                    initialSceneId={pageScene}
+                    recipientId={userId!}
+                    recipientNickname={decor.nickname}
+                    initialSeason="spring"
+                />
+
                 {showPrivatePlaceholder && (
                     <PrivateMessagePlaceholderModal onClose={() => setShowPrivatePlaceholder(false)} />
                 )}
@@ -629,20 +738,6 @@ const FriendDecorPage: React.FC = () => {
                         onDelete={isOwner ? handleDeleteSticker : undefined}
                     />
                 )}
-                <ComposeModal
-                    isOpen={showComposeModal}
-                    onClose={() => {
-                        setShowComposeModal(false);
-                        if (searchParams.get('compose') === '1') navigate(`/friend/${userId}/decor`, { replace: true });
-                        if (viewingSceneId && userId) getFriendDecor(userId, { bustCache: true }).then(setDecor).catch(() => {});
-                    }}
-                    initialSeason="spring"
-                    preselectedFriendId={userId ?? undefined}
-                    hideFriendSelect={true}
-                    fixedSceneId={searchParams.get('compose') === '1' ? (searchParams.get('scene') ?? undefined) : undefined}
-                    onSceneChosen={searchParams.get('compose') !== '1' ? (sceneId) => { navigate(`/friend/${userId}/decor?scene=${sceneId}&compose=1`); setShowComposeModal(false); } : undefined}
-                    onSentSuccess={userId ? (sceneId) => { getFriendDecor(userId, { bustCache: true }).then(setDecor).then(() => { if (sceneId) setViewingSceneId(sceneId); }).catch(() => {}); } : undefined}
-                />
             </div>
         </div>
     );

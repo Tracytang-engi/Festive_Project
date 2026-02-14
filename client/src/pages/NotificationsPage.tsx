@@ -5,8 +5,6 @@ import { themeConfig } from '../constants/theme';
 import { getNotifications, markAllAsRead } from '../api/notifications';
 import type { NotificationItem } from '../api/notifications';
 import { useNavigate } from 'react-router-dom';
-import Snowfall from '../components/Effects/Snowfall';
-import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import TipModal from '../components/TipModal';
 import { getMessageDetail } from '../api/messages';
@@ -107,11 +105,6 @@ const NotificationsPage: React.FC = () => {
     return (
         <div style={styles.container}>
             <Sidebar />
-            {theme === 'christmas' ? (
-                <Snowfall intensity="light" />
-            ) : (
-                <SpringFestivalEffects showSnow={true} intensity="light" />
-            )}
             <div style={styles.main}>
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                     <h1>🔔 通知 <span className="bilingual-en">Notifications</span></h1>
@@ -222,6 +215,7 @@ const NotificationsPage: React.FC = () => {
                         message={selectedDetail.message}
                         isUnlocked={selectedDetail.isUnlocked}
                         onClose={() => setSelectedDetail(null)}
+                        openedFromNotification={true}
                     />
                 )}
                 {detailLoading && !selectedDetail && (

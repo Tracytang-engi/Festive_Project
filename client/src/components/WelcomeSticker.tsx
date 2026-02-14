@@ -28,27 +28,33 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
     const [pos, setPos] = useState({ left: initialLeft, top: initialTop });
     const [dragging, setDragging] = useState(false);
     const [detailOpen, setDetailOpen] = useState(false);
-    const dragRef = React.useRef({ x: 0, y: 0, left: 0, top: 0, moved: false });
+    const dragRef = React.useRef({ moved: false });
+    const wrapperRef = React.useRef<HTMLDivElement>(null);
+    const positionRef = React.useRef({ left: initialLeft, top: initialTop });
 
     React.useEffect(() => {
-        setPos({ left: initialLeft, top: initialTop });
+        const next = { left: initialLeft, top: initialTop };
+        positionRef.current = next;
+        setPos(next);
     }, [initialLeft, initialTop]);
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         setDragging(true);
-        dragRef.current = { x: e.clientX, y: e.clientY, left: pos.left, top: pos.top, moved: false };
-    }, [pos]);
+        dragRef.current = { moved: false };
+    }, []);
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!dragging) return;
         dragRef.current.moved = true;
-        const dx = (e.clientX - dragRef.current.x) / window.innerWidth * 100;
-        const dy = (e.clientY - dragRef.current.y) / window.innerHeight * 100;
-        setPos({
-            left: Math.max(0, Math.min(90, dragRef.current.left + dx)),
-            top: Math.max(0, Math.min(85, dragRef.current.top + dy)),
-        });
+        const container = wrapperRef.current?.parentElement;
+        const rect = container?.getBoundingClientRect();
+        if (rect && rect.width > 0 && rect.height > 0) {
+            const left = Math.min(95, Math.max(5, ((e.clientX - rect.left) / rect.width) * 100));
+            const top = Math.min(95, Math.max(5, ((e.clientY - rect.top) / rect.height) * 100));
+            positionRef.current = { left, top };
+            setPos({ left, top });
+        }
     }, [dragging]);
 
     const handleMouseUp = useCallback(() => {
@@ -57,9 +63,9 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
         if (wasClick) {
             setDetailOpen(true);
         } else {
-            onPositionChange(pos.left, pos.top);
+            onPositionChange(positionRef.current.left, positionRef.current.top);
         }
-    }, [onPositionChange, pos.left, pos.top]);
+    }, [onPositionChange]);
 
     React.useEffect(() => {
         if (!dragging) return;
@@ -80,6 +86,7 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
         <>
             {/* 贴纸本体：与 DraggableSticker 完全一致——可拖、尺寸 96、阴影 */}
             <div
+                ref={wrapperRef}
                 onMouseDown={handleMouseDown}
                 style={{
                     position: 'absolute',

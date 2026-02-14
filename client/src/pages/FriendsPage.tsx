@@ -8,8 +8,6 @@ import type { User } from '../types';
 import PageTransition from '../components/Effects/PageTransition';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '../components/Effects/PageTransition';
-import Snowfall from '../components/Effects/Snowfall';
-import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 import TipModal from '../components/TipModal';
 
 const FriendsPage: React.FC = () => {
@@ -72,11 +70,6 @@ const FriendsPage: React.FC = () => {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
             <Sidebar />
-            {theme === 'christmas' ? (
-                <Snowfall intensity="light" />
-            ) : (
-                <SpringFestivalEffects showSnow={true} intensity="light" />
-            )}
             <div style={{
                 flex: 1,
                 minWidth: 0,
@@ -89,7 +82,7 @@ const FriendsPage: React.FC = () => {
                 zIndex: 60,
             }}>
                 <PageTransition pageKey="friends">
-                <h1 style={{ margin: '0 0 28px', fontSize: '28px', fontWeight: 700 }}>{currentConfig.title}</h1>
+                                <h1 style={{ margin: '0 0 32px', fontSize: '26px', fontWeight: 600, letterSpacing: '-0.3px' }}>{currentConfig.title}</h1>
 
                 {loading ? (
                     <motion.div
@@ -106,9 +99,9 @@ const FriendsPage: React.FC = () => {
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                style={{ marginBottom: '40px' }}
+                                style={{ marginBottom: '36px' }}
                             >
-                                <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.95 }}>
                                     🔔 {currentConfig.requestsTitle}
                                 </h2>
                                 <motion.div
@@ -123,12 +116,14 @@ const FriendsPage: React.FC = () => {
                                             variants={staggerItem}
                                             style={styles.card}
                                         >
-                                            <div className="icon-lg" style={{ marginBottom: '10px', fontSize: '48px' }}>{req.requester?.avatar || '👤'}</div>
-                                            <div>
-                                                <strong style={{ fontSize: '16px' }}>{req.requester.nickname}</strong>
-                                                <div style={{ fontSize: '13px', opacity: 0.7, marginTop: '4px' }}>📍 {req.requester.region}</div>
+                                            <div className="icon-lg" style={{ marginBottom: '12px', fontSize: '48px', lineHeight: 1 }}>{req.requester?.avatar || '👤'}</div>
+                                            <div style={{ width: '100%' }}>
+                                                <div style={{ fontSize: '16px', fontWeight: 600, color: '#1d1d1f' }}>{req.requester?.nickname}</div>
+                                                {req.requester?.region && (
+                                                    <div style={{ fontSize: '13px', color: '#8e8e93', marginTop: '4px' }}>📍 {req.requester.region}</div>
+                                                )}
                                             </div>
-                                            <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
+                                            <div style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
                                                 <button
                                                     className="ios-btn tap-scale"
                                                     onClick={() => handleRespond(req._id, 'accept')}
@@ -155,8 +150,8 @@ const FriendsPage: React.FC = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
                         >
-                            <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px' }}>
-                                {currentConfig.title.replace('👥', '')} ({friends.length})
+                            <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '14px', opacity: 0.95 }}>
+                                {currentConfig.title.replace('👥', '').trim()} ({friends.length})
                             </h2>
                             {friends.length === 0 ? (
                                 <motion.div
@@ -192,18 +187,19 @@ const FriendsPage: React.FC = () => {
                                             variants={staggerItem}
                                             className="tap-scale"
                                             style={{ ...styles.card, cursor: 'pointer' }}
-                                            whileHover={{ scale: 1.02, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                            whileHover={{ scale: 1.02, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }}
                                             onClick={() => navigate(`/friend/${friend._id}/decor`)}
                                             title={theme === 'spring' ? '查看TA的春节页面' : 'View their Spring Festival page'}
                                         >
-                                            <div className="icon-lg" style={{ marginBottom: '10px', fontSize: '56px' }}>{friend.avatar || '👤'}</div>
-                                            <div>
-                                                <strong style={{ fontSize: '16px', color: '#333' }}>{friend.nickname}</strong>
-                                                <div style={{ fontSize: '13px', opacity: 0.7, marginTop: '4px' }}>📍 {friend.region}</div>
+                                            <div className="icon-lg" style={{ marginBottom: '12px', fontSize: '52px', lineHeight: 1 }}>{friend.avatar || '👤'}</div>
+                                            <div style={{ width: '100%' }}>
+                                                <div style={{ fontSize: '16px', fontWeight: 600, color: '#1d1d1f' }}>{friend.nickname}</div>
+                                                {friend.region && (
+                                                    <div style={{ fontSize: '13px', color: '#8e8e93', marginTop: '4px' }}>📍 {friend.region}</div>
+                                                )}
                                             </div>
-                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#007AFF', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                <span>{theme === 'spring' ? '查看春节页' : 'View Spring page'}</span>
-                                                <span>{theme === 'spring' ? '为好友布置' : 'Decorate for friend'}</span>
+                                            <div style={{ marginTop: '12px', fontSize: '14px', color: '#007AFF', fontWeight: 500 }}>
+                                                点击进入 <span className="bilingual-en">(Click to visit)</span>
                                             </div>
                                         </motion.div>
                                     ))}
@@ -220,10 +216,21 @@ const FriendsPage: React.FC = () => {
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
-    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' },
-    card: { background: 'rgba(255,255,255,0.95)', color: '#333', padding: '24px 20px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', transition: 'box-shadow 0.2s ease' },
-    acceptBtn: { background: '#34C759', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', fontWeight: 500, fontSize: '16px', transition: 'opacity 0.2s, transform 0.2s' },
-    rejectBtn: { background: '#FF3B30', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', fontWeight: 500, fontSize: '16px', transition: 'opacity 0.2s, transform 0.2s' }
+    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' },
+    card: {
+        background: 'rgba(255,255,255,0.96)',
+        color: '#333',
+        padding: '28px 24px',
+        borderRadius: '20px',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center',
+        transition: 'box-shadow 0.25s ease, transform 0.25s ease',
+    },
+    acceptBtn: { background: '#34C759', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', cursor: 'pointer', fontWeight: 500, fontSize: '15px', transition: 'opacity 0.2s, transform 0.2s' },
+    rejectBtn: { background: '#FF3B30', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', cursor: 'pointer', fontWeight: 500, fontSize: '15px', transition: 'opacity 0.2s, transform 0.2s' }
 };
 
 export default FriendsPage;

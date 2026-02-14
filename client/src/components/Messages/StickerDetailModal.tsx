@@ -7,6 +7,8 @@ import type { Message } from '../../types';
 
 type OpenPhase = 'shake' | 'reveal';
 
+const STORAGE_KEY_PREFIX_REVEAL_SEEN = 'festive_sticker_reveal_seen_';
+
 interface StickerDetailModalProps {
     message: Message;
     isUnlocked: boolean;
@@ -15,9 +17,11 @@ interface StickerDetailModalProps {
     showReportButton?: boolean;
     /** 提供则显示右上角红叉，点击后删除该贴纸并关闭弹窗 */
     onDelete?: (messageId: string) => void | Promise<void>;
+    /** 从通知打开：每张卡仅播放一次动效；从场景点击打开：每次都播放 */
+    openedFromNotification?: boolean;
 }
 
-const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlocked, onClose, showReportButton = true, onDelete }) => {
+const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlocked, onClose, showReportButton = true, onDelete, openedFromNotification = false }) => {
     const [reporting, setReporting] = useState(false);
     const [reported, setReported] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -26,25 +30,36 @@ const StickerDetailModal: React.FC<StickerDetailModalProps> = ({ message, isUnlo
     const [tip, setTip] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    // 打开贴纸：先抖两下，再进入内容并播放烟花
+    // 打开贴纸：从通知打开时每张卡仅播放一次动效；从场景点击打开时每次都播放
     useEffect(() => {
         if (!isUnlocked) {
             setOpenPhase('reveal');
             setShowFirework(false);
             return;
         }
+        if (openedFromNotification) {
+            const key = STORAGE_KEY_PREFIX_REVEAL_SEEN + message._id;
+            const alreadySeen = typeof localStorage !== 'undefined' && localStorage.getItem(key) === '1';
+            if (alreadySeen) {
+                setOpenPhase('reveal');
+                setShowFirework(false);
+                return;
+            }
+        }
         setOpenPhase('shake');
         setShowFirework(false);
+        const key = openedFromNotification ? STORAGE_KEY_PREFIX_REVEAL_SEEN + message._id : null;
         const t1 = setTimeout(() => {
             setOpenPhase('reveal');
             setShowFirework(true);
+            if (key) try { localStorage.setItem(key, '1'); } catch { /* ignore */ }
         }, 650);
         const t2 = setTimeout(() => setShowFirework(false), 1100);
         return () => {
             clearTimeout(t1);
             clearTimeout(t2);
         };
-    }, [message._id, isUnlocked]);
+    }, [message._id, isUnlocked, openedFromNotification]);
 
     const handleReport = async () => {
         if (reported || reporting) return;

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { ChristmasMessageProvider } from './context/ChristmasMessageContext';
+import { SidebarProvider } from './context/SidebarContext';
 import HomePage from './pages/HomePage';
 import AuthForm from './components/Auth/AuthForm';
 import SceneSelector from './pages/SceneSelectionPage';
@@ -14,6 +15,7 @@ import SettingsPage from './pages/SettingsPage';
 import FestiveDecorPage from './pages/FestiveDecorPage';
 import FriendDecorPage from './pages/FriendDecorPage';
 import ModeratorPage from './pages/ModeratorPage';
+import GlobalSnowOverlay from './components/Effects/GlobalSnowOverlay';
 import './index.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -64,6 +66,7 @@ const ChristmasBannerAndLayout: React.FC = () => {
   const isChristmas = theme === 'christmas';
   return (
     <>
+      <GlobalSnowOverlay />
       {isChristmas && (
         <div
           style={{
@@ -98,7 +101,9 @@ const App: React.FC = () => {
       <AuthProvider>
         <ThemeProvider>
           <ChristmasMessageProvider>
-            <ChristmasBannerAndLayout />
+            <SidebarProvider>
+              <ChristmasBannerAndLayout />
+            </SidebarProvider>
           </ChristmasMessageProvider>
         </ThemeProvider>
       </AuthProvider>

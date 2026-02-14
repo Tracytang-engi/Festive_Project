@@ -7,8 +7,6 @@ import { themeConfig } from '../constants/theme';
 import PageTransition from '../components/Effects/PageTransition';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '../components/Effects/PageTransition';
-import Snowfall from '../components/Effects/Snowfall';
-import SpringFestivalEffects from '../components/Effects/SpringFestivalEffects';
 
 const DiscoverPage: React.FC = () => {
     const { theme } = useTheme();
@@ -100,11 +98,6 @@ const DiscoverPage: React.FC = () => {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
             <Sidebar />
-            {theme === 'christmas' ? (
-                <Snowfall intensity="light" />
-            ) : (
-                <SpringFestivalEffects showSnow={true} intensity="light" />
-            )}
             <div className="page-main" style={{
                 flex: 1,
                 minWidth: 0,

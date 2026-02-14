@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { PenSquare, LogOut, UserPlus, Heart, Bell, Settings } from 'lucide-react';
+import { useSidebar } from '../../context/SidebarContext';
+import { PenSquare, LogOut, UserPlus, Heart, Bell, Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getNotifications } from '../../api/notifications';
 
 const Sidebar: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
     const { logout } = useAuth();
+    const { isMobile, sidebarCollapsed, setSidebarCollapsed } = useSidebar();
     const navigate = useNavigate();
     const location = useLocation();
     const path = location.pathname;
@@ -41,6 +43,38 @@ const Sidebar: React.FC = () => {
         return () => window.removeEventListener('notifications-updated', handler);
     }, [loadNotifications]);
 
+    // Mobile collapsed: only show expand button in same position (bottom-left)
+    if (isMobile && sidebarCollapsed) {
+        return (
+            <div style={{ width: 0, minWidth: 0, flexShrink: 0, overflow: 'visible' }}>
+                <button
+                    type="button"
+                    className="sidebar-nav-icon theme-tap icon-responsive"
+                    title="展开侧栏 Expand sidebar"
+                    onClick={() => setSidebarCollapsed(false)}
+                    style={{
+                        position: 'fixed',
+                        left: 20,
+                        bottom: 50,
+                        zIndex: 101,
+                        width: 48,
+                        height: 48,
+                        borderRadius: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'var(--ios-glass, rgba(255,255,255,0.72))',
+                        border: '1px solid rgba(0,0,0,0.2)',
+                        boxShadow: '1px 0 0 rgba(0,0,0,0.06)',
+                        cursor: 'pointer',
+                    }}
+                >
+                    <PanelLeft size={24} />
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="sidebar ios-glass" style={{
             width: '80px',
@@ -51,7 +85,8 @@ const Sidebar: React.FC = () => {
             padding: '20px 0',
             boxShadow: '1px 0 0 rgba(0,0,0,0.06)',
             zIndex: 100,
-            borderRight: '1px solid rgba(0,0,0,0.2)'
+            borderRight: '1px solid rgba(0,0,0,0.2)',
+            flexShrink: 0,
         }}>
             {/* Theme Switchers - iOS 风格 */}
             <div className="theme-switcher">
@@ -93,7 +128,7 @@ const Sidebar: React.FC = () => {
                 <div className="sidebar-nav-icon theme-tap icon-responsive" title="我的好友 My Friends" onClick={() => navigate('/friends')} style={{ opacity: isActive('/friends') ? 1 : 0.5, transform: isActive('/friends') ? 'scale(1.2)' : 'scale(1)' }}>
                     <Heart size={24} />
                 </div>
-                <div className="sidebar-nav-icon theme-tap icon-responsive" title="写贺卡 Write a Card" onClick={() => navigate('/messages')} style={{ opacity: isActive('/messages') ? 1 : 0.5, transform: isActive('/messages') ? 'scale(1.2)' : 'scale(1)' }}>
+                <div className="sidebar-nav-icon theme-tap icon-responsive" title="送贴纸 (Send stickers)" onClick={() => navigate('/messages')} style={{ opacity: isActive('/messages') ? 1 : 0.5, transform: isActive('/messages') ? 'scale(1.2)' : 'scale(1)' }}>
                     <PenSquare size={24} />
                 </div>
                 <div className="sidebar-nav-icon theme-tap icon-responsive" title="设置 Settings" onClick={() => navigate('/settings')} style={{ opacity: isActive('/settings') ? 1 : 0.5, transform: isActive('/settings') ? 'scale(1.2)' : 'scale(1)' }}>
@@ -101,8 +136,13 @@ const Sidebar: React.FC = () => {
                 </div>
             </div>
 
-            <div className="sidebar-nav-icon theme-tap icon-responsive" title="退出登录 Logout" onClick={logout} style={{ opacity: 0.5, transform: 'scale(1)', marginTop: 'auto', marginBottom: '50px' }}>
-                <LogOut size={24} />
+            <div
+                className="sidebar-nav-icon theme-tap icon-responsive"
+                title={isMobile ? '收起侧栏 (Fold sidebar)' : '退出登录 Logout'}
+                onClick={isMobile ? () => setSidebarCollapsed(true) : logout}
+                style={{ opacity: 0.5, transform: 'scale(1)', marginTop: 'auto', marginBottom: '50px' }}
+            >
+                {isMobile ? <PanelLeftClose size={24} /> : <LogOut size={24} />}
             </div>
         </div>
     );

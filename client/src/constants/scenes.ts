@@ -11,15 +11,15 @@ function publicBgPath(path: string): string {
     return `/background/${path}`;
 }
 
-/** Scene id → display name (Christmas and Spring). */
+/** Scene id → display name (Christmas and Spring). Spring names are 中英双语. */
 export const SCENE_NAMES: Record<string, string> = {
     xmas_1: 'Cozy Fireplace',
     xmas_2: 'Snowy Village',
     xmas_3: 'Santa Workshop',
-    spring_dinner: '年夜饭',
-    spring_temple_fair: '庙会',
-    spring_couplets: '贴对联',
-    spring_firecrackers: '放鞭炮',
+    spring_dinner: '年夜饭 (Eve Dinner)',
+    spring_temple_fair: '庙会 (Temple Fair)',
+    spring_couplets: '贴对联 (Couplets)',
+    spring_firecrackers: '放鞭炮 (Firecrackers)',
 };
 
 export function getSceneName(sceneId: string | undefined): string {
