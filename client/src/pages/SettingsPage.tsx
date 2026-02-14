@@ -574,6 +574,27 @@ const SettingsPage: React.FC = () => {
                         )}
                     </div>
                 </div>
+
+                <div style={{
+                    marginTop: '48px',
+                    paddingBottom: '24px',
+                    fontSize: '11px',
+                    color: 'rgba(255,255,255,0.5)',
+                    lineHeight: 1.5,
+                }}>
+                    联系创作者 <span className="bilingual-en">Contact Creators</span><br />
+                    Festickers——Created by{' '}
+                    <a
+                        href="https://www.linkedin.com/in/chuqing-tang-b47701395/?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3BLMOJR5%2BETGCqAJYhdBbeqg%3D%3D"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}
+                    >
+                        Chuqing Tang
+                    </a>
+                    {' '}/ Yifei Long / Fanlin Meng<br />
+                    邮箱 <span className="bilingual-en">Email</span>：<a href="mailto:contact.festickers@proton.me" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}>contact.festickers@proton.me</a>
+                </div>
             </div>
         </div>
     );
