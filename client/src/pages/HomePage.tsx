@@ -61,7 +61,7 @@ const HomePage: React.FC = () => {
                 backgroundRepeat: 'no-repeat',
                 overflow: 'hidden'
             }}>
-                {theme === 'spring' && user && <ShareCardButton user={user} />}
+                {theme === 'spring' && user?.nickname && <ShareCardButton user={user} />}
                 <PageTransition pageKey={`home-${theme}`}>
                 <motion.div
                     initial={{ opacity: 0 }}

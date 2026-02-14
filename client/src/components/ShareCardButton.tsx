@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { Share2 } from 'lucide-react';
 import { APP_ORIGIN } from '../constants/config';
 import TipModal from './TipModal';
-import type { User } from '../types';
 
 interface ShareCardButtonProps {
-    user: Pick<User, '_id' | 'nickname' | 'avatar'>;
+    user: { _id: string; nickname?: string; avatar?: string };
 }
 
 const ShareCardButton: React.FC<ShareCardButtonProps> = ({ user }) => {
@@ -16,9 +15,10 @@ const ShareCardButton: React.FC<ShareCardButtonProps> = ({ user }) => {
     });
 
     const handleShare = async () => {
-        const shareUrl = `${APP_ORIGIN.replace(/\/+$/, '')}/friend/${user._id}/decor?from=share&nickname=${encodeURIComponent(user.nickname)}`;
-        const shareTitle = `${user.nickname} 的春节祝福名片`;
-        const shareText = `我是${user.nickname}。请来www.festickers.com找我玩，并且给我留下祝福的贴纸吧！`;
+        const nickname = user.nickname ?? '';
+        const shareUrl = `${APP_ORIGIN.replace(/\/+$/, '')}/friend/${user._id}/decor?from=share&nickname=${encodeURIComponent(nickname)}`;
+        const shareTitle = `${nickname} 的春节祝福名片`;
+        const shareText = `我是${nickname}。请来www.festickers.com找我玩，并且给我留下祝福的贴纸吧！`;
 
         try {
             if (typeof navigator !== 'undefined' && navigator.share) {
