@@ -140,7 +140,7 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
                             background: 'white',
                             padding: '24px',
                             borderRadius: '16px',
-                            maxWidth: '400px',
+                            maxWidth: 'min(360px, calc(100vw - 192px))',
                             width: '90%',
                             color: '#333',
                             boxShadow: '0 8px 32px rgba(0,0,0,0.15)',

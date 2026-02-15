@@ -101,7 +101,7 @@ const DiscoverPage: React.FC = () => {
     const currentConfig = emptyStateConfig[theme];
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
+        <div className="layout-with-sidebar" style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: 0, overflowY: 'auto' }}>
             <Sidebar />
             <div className="page-main" style={{
                 flex: 1,
@@ -119,7 +119,7 @@ const DiscoverPage: React.FC = () => {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    marginBottom: '28px'
+                    marginBottom: '20px'
                 }}>
                     <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>
                         👋 {currentConfig.title}
@@ -133,7 +133,7 @@ const DiscoverPage: React.FC = () => {
                     style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '24px' }}
                 >
                     <div
-                        style={{ display: 'inline-flex', gap: '12px', alignItems: 'center' }}
+                        style={{ display: 'inline-flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}
                         data-onboarding-target="discover-search-row"
                     >
                         <input

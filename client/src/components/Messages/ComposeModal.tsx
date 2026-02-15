@@ -338,12 +338,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     overlay: {
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        padding: '12px', boxSizing: 'border-box' as const,
     },
     modal: {
-        backgroundColor: 'white', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '540px',
+        backgroundColor: 'white', padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '540px', maxHeight: '85vh',
         display: 'flex', flexDirection: 'column', gap: '16px', color: '#333',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+        overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box' as const,
     },
     headerRow: {
         display: 'flex',
@@ -377,8 +379,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     stickersWrap: { maxHeight: '200px', overflowY: 'auto', padding: '4px 0' },
     stickers: { display: 'flex', flexWrap: 'wrap', gap: '12px', padding: '8px 0' },
     sticker: { cursor: 'pointer', padding: '8px', borderRadius: '12px', transition: 'background 0.2s', flexShrink: 0 },
-    textarea: { padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(60,60,67,0.12)', minHeight: '100px', fontSize: '16px', fontFamily: 'inherit' },
-    actions: { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' },
+    textarea: { padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(60,60,67,0.12)', minHeight: '100px', fontSize: '16px', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const },
+    actions: { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px', flexWrap: 'wrap' as const },
     cancelBtn: { padding: '10px 18px', background: '#f2f2f7', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '15px', fontWeight: 500 },
     sendBtn: { padding: '10px 18px', background: '#FF3B30', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '15px', fontWeight: 500, transition: 'opacity 0.2s' }
 };

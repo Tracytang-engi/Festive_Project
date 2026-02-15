@@ -47,10 +47,11 @@ const HomePage: React.FC = () => {
     };
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto', overflowX: 'hidden' }}>
+        <div className="layout-with-sidebar" style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: 0, overflowY: 'auto' }}>
             <Sidebar />
             <div className="page-bg-area" style={{
                 flex: 1,
+                minWidth: 0,
                 minHeight: '100vh',
                 position: 'relative',
                 zIndex: 60,

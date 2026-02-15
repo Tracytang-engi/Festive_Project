@@ -84,7 +84,7 @@ const NotificationsPage: React.FC = () => {
     };
 
     const styles: { [key: string]: React.CSSProperties } = {
-        container: { display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' },
+        container: { display: 'flex', minHeight: '100vh', width: '100%', minWidth: 0, maxWidth: '100vw', overflowY: 'auto', overflowX: 'hidden' as const },
         main: {
             flex: 1, minWidth: 0, padding: 'var(--page-padding-y) var(--page-padding-x)', color: 'white', overflowY: 'auto',
             background: themeConfig[theme].mainBg,
@@ -103,7 +103,7 @@ const NotificationsPage: React.FC = () => {
     };
 
     return (
-        <div style={styles.container}>
+        <div className="layout-with-sidebar" style={styles.container}>
             <Sidebar />
             <div style={styles.main}>
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>

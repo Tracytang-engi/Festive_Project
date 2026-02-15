@@ -25,7 +25,7 @@ const MessagesPage: React.FC = () => {
     };
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
+        <div className="layout-with-sidebar" style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: 0, overflowY: 'auto' }}>
             <Sidebar />
             <div style={{ flex: 1, minWidth: 0, padding: 'var(--page-padding-y) var(--page-padding-x)', overflowY: 'auto', background: mainBg, color: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', position: 'relative' }}>
             <PageTransition pageKey={`messages-${season}`}>

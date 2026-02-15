@@ -3,6 +3,7 @@ import { sendMessage } from '../../api/messages';
 import StickerIcon from '../StickerIcon';
 import { getStickersForScene, getStickersByCategory } from '../../constants/stickers';
 import { useOnboarding } from '../../context/OnboardingContext';
+import { useSidebar } from '../../context/SidebarContext';
 
 interface ComposeSidebarProps {
     isOpen: boolean;
@@ -34,6 +35,7 @@ const ComposeSidebar: React.FC<ComposeSidebarProps> = ({
     initialSeason = 'spring',
 }) => {
     const onboarding = useOnboarding();
+    const { isMobile } = useSidebar();
     const [sticker, setSticker] = useState<string>(() => {
         const list = initialSeason === 'spring'
             ? getStickersByCategory(SPRING_SCENE_TO_CATEGORY[initialSceneId] ?? 'eve_dinner')
@@ -95,7 +97,10 @@ const ComposeSidebar: React.FC<ComposeSidebarProps> = ({
                 style={styles.backdrop}
                 aria-label="关闭"
             />
-            <div style={styles.sidebar}>
+            <div style={{
+                ...styles.sidebar,
+                ...(isMobile ? { width: '100%', maxWidth: '100%', minWidth: 0, left: 0, right: 0 } : {}),
+            }}>
                 <div style={styles.header}>
                     <h3 style={styles.title}>
                         {initialSeason === 'spring' ? '发送节日祝福' : 'Send a Festive Greeting'}
