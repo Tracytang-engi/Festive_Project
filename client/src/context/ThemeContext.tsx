@@ -15,14 +15,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [theme, setTheme] = useState<Theme>('spring');
     const hasInitialized = React.useRef(false);
 
-    // 根据用户已保存的主题偏好同步（春节/圣诞），仅首次加载用户时应用一次
+    // 根据用户已保存的主题偏好同步；未设置或为 spring 时均显示春节，仅明确为 christmas 时显示圣诞（避免后端默认 christmas 导致先显示圣诞）
     useEffect(() => {
         if (!user) {
             hasInitialized.current = false;
             return;
         }
-        if (!hasInitialized.current && (user.themePreference === 'spring' || user.themePreference === 'christmas')) {
-            setTheme(user.themePreference);
+        if (!hasInitialized.current) {
+            setTheme(user.themePreference === 'christmas' ? 'christmas' : 'spring');
             hasInitialized.current = true;
         }
     }, [user]);
