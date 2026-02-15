@@ -30,6 +30,7 @@ const FriendDecorPage: React.FC = () => {
     const [decor, setDecor] = useState<FriendDecor | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [errorCode, setErrorCode] = useState<string | null>(null);
     /** 春节分类 id → 场景 id（与 ComposeModal 一致），用于 URL ?scene= 解析 */
     const categoryToSceneId: Record<string, string> = {
         eve_dinner: 'spring_dinner',
@@ -79,14 +80,17 @@ const FriendDecorPage: React.FC = () => {
                 if (!cancelled) {
                     setDecor(data);
                     setError(null);
+                    setErrorCode(null);
                 }
             } catch (err: any) {
                 if (!cancelled) {
                     const status = err?.response?.status;
                     const data = err?.response?.data;
-                    const msg = data?.error === 'NOT_FRIENDS'
+                    const code = data?.error ?? null;
+                    setErrorCode(code);
+                    const msg = code === 'NOT_FRIENDS'
                         ? '仅可查看好友的装饰'
-                        : data?.error === 'USER_NOT_FOUND'
+                        : code === 'USER_NOT_FOUND'
                         ? '该用户不存在'
                         : status === 404
                         ? '接口暂时不可用(404)，请稍后或检查网络'
@@ -259,14 +263,23 @@ const FriendDecorPage: React.FC = () => {
     }
 
     if (error || !decor) {
+        const nicknameFromShare = searchParams.get('nickname')?.trim();
+        const isViewingOwnPage = !!(currentUser?._id && userId && currentUser._id === userId);
+        const isNotFriendsWithNickname = errorCode === 'NOT_FRIENDS' && !!nicknameFromShare && !isViewingOwnPage;
         return (
             <div className="layout-with-sidebar" style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
                 <Sidebar />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f2f2f7', padding: '24px' }}>
-                    <p style={{ fontSize: '16px', color: '#c41e3a', marginBottom: '16px' }}>{error || <>加载失败 <span className="bilingual-en">Load failed</span></>}</p>
+                    <p style={{ fontSize: '16px', color: '#c41e3a', marginBottom: '16px', textAlign: 'center' }}>
+                        {isViewingOwnPage
+                            ? '这是你自己的春节主页，请返回首页查看'
+                            : isNotFriendsWithNickname
+                            ? '对方还不是你的好友，请添加好友后再查看对方页面'
+                            : (error || <>加载失败 <span className="bilingual-en">Load failed</span></>)}
+                    </p>
                     <button
                         type="button"
-                        onClick={() => navigate('/friends')}
+                        onClick={() => navigate(isViewingOwnPage ? '/' : isNotFriendsWithNickname ? `/discover?q=${encodeURIComponent(nicknameFromShare)}` : '/friends')}
                         style={{
                             padding: '10px 20px',
                             background: '#007AFF',
@@ -277,7 +290,7 @@ const FriendDecorPage: React.FC = () => {
                             fontSize: '15px',
                         }}
                     >
-                        返回好友 <span className="bilingual-en">Back to friends</span>
+                        {isViewingOwnPage ? '返回首页' : isNotFriendsWithNickname ? '加好友' : <>返回好友 <span className="bilingual-en">Back to friends</span></>}
                     </button>
                 </div>
             </div>

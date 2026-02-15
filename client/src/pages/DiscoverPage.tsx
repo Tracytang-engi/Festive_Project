@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api/client';
 import { getFriends, getSentFriendRequestIds } from '../api/friends';
 import Sidebar from '../components/Layout/Sidebar';
@@ -10,7 +11,9 @@ import { staggerContainer, staggerItem } from '../components/Effects/PageTransit
 
 const DiscoverPage: React.FC = () => {
     const { theme } = useTheme();
+    const [searchParams] = useSearchParams();
     const [query, setQuery] = useState('');
+    const hasAppliedQueryParam = useRef(false);
 
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -30,6 +33,16 @@ const DiscoverPage: React.FC = () => {
     useEffect(() => {
         loadFriendAndSentIds();
     }, []);
+
+    useEffect(() => {
+        if (hasAppliedQueryParam.current) return;
+        const q = searchParams.get('q')?.trim();
+        if (q) {
+            hasAppliedQueryParam.current = true;
+            setQuery(q);
+            handleSearch(q);
+        }
+    }, [searchParams]);
 
     const handleSearch = async (searchQuery?: string) => {
         const q = searchQuery !== undefined ? searchQuery : query;

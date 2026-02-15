@@ -10,6 +10,7 @@ import { SERVER_ORIGIN } from '../api/client';
 import SantaSticker from '../components/SantaSticker';
 import ChineseHorseSticker from '../components/ChineseHorseSticker';
 import CompassSticker from '../components/CompassSticker';
+import ShareCardButton from '../components/ShareCardButton';
 import StickerDetailModal from '../components/Messages/StickerDetailModal';
 import PageTransition from '../components/Effects/PageTransition';
 import { motion } from 'framer-motion';
@@ -19,7 +20,7 @@ const HomePage: React.FC = () => {
     const { user } = useAuth();
     const pageSceneId = user?.selectedScene ?? (theme === 'spring' ? DEFAULT_SPRING_SCENE : 'xmas_1');
     const defaultBg = theme === 'christmas' ? getChristmasSceneBackgroundImage(pageSceneId) : getSpringMainPageBackgroundImage();
-    const customBgPath = user?.customBackgrounds?.[pageSceneId];
+    const customBgPath = theme === 'christmas' ? user?.customBackgrounds?.[pageSceneId] : undefined;
     const backgroundImage = customBgPath ? `${SERVER_ORIGIN}${customBgPath}` : defaultBg;
     const [, setMessages] = useState<Message[]>([]);
     const [isUnlocked, setIsUnlocked] = useState(false);
@@ -61,6 +62,7 @@ const HomePage: React.FC = () => {
                 backgroundRepeat: 'no-repeat',
                 overflow: 'hidden'
             }}>
+                {theme === 'spring' && user?.nickname && <ShareCardButton user={user} />}
                 <PageTransition pageKey={`home-${theme}`}>
                 <motion.div
                     initial={{ opacity: 0 }}

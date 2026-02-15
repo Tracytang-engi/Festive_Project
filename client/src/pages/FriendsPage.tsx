@@ -51,13 +51,15 @@ const FriendsPage: React.FC = () => {
     const emptyStateConfig = {
         christmas: {
             title: 'My Inner Circle 👥',
+            sectionTitle: 'My Inner Circle',
             noFriendsTitle: 'No Friends Yet',
             noFriendsDesc: 'Go to Discover to find friends and spread the holiday cheer!',
             noFriendsIcon: '🎄',
             requestsTitle: 'Friend Requests'
         },
         spring: {
-            title: '我的好友圈 👥',
+            title: <>我的好友圈 <span className="bilingual-en">My Inner Circle</span> 👥</>,
+            sectionTitle: <>我的好友圈 <span className="bilingual-en">My Inner Circle</span></>,
             noFriendsTitle: '还没有好友',
             noFriendsDesc: '去发现页面寻找好友，分享新春祝福吧！',
             noFriendsIcon: '🧧',
@@ -154,7 +156,7 @@ const FriendsPage: React.FC = () => {
                             transition={{ delay: 0.2 }}
                         >
                             <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '14px', opacity: 0.95 }}>
-                                {currentConfig.title.replace('👥', '').trim()} ({friends.length})
+                                <>{currentConfig.sectionTitle} ({friends.length})</>
                             </h2>
                             {friends.length === 0 ? (
                                 <motion.div
