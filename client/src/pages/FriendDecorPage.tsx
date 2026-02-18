@@ -738,6 +738,7 @@ const FriendDecorPage: React.FC = () => {
                             className="sticker-hover"
                             role="button"
                             tabIndex={0}
+                            onTouchStart={canDrag ? (e) => e.preventDefault() : undefined}
                             onClick={(e) => {
                                 if (justDraggedRef.current) {
                                     e.preventDefault();

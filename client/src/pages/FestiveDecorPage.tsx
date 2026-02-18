@@ -3,6 +3,7 @@ import Sidebar from '../components/Layout/Sidebar';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { getMessages, deleteMessage } from '../api/messages';
+import { saveSceneLayout } from '../api/scene';
 import { getSceneName, getSpringSceneBackgroundImage, getChristmasSceneBackgroundImage, DEFAULT_SPRING_SCENE } from '../constants/scenes';
 import { getStickerCategory, hasStickerImage, isChristmasSticker } from '../constants/stickers';
 import { SERVER_ORIGIN } from '../api/client';
@@ -27,7 +28,7 @@ const getRandomPosition = (seed: number) => {
 
 const FestiveDecorPage: React.FC = () => {
     const { theme } = useTheme();
-    const { user } = useAuth();
+    const { user, checkAuth } = useAuth();
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(true);
     const [introVisible, setIntroVisible] = useState(true);
@@ -36,6 +37,8 @@ const FestiveDecorPage: React.FC = () => {
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [stickerPositions, setStickerPositions] = useState<Record<string, { left: number; top: number }>>({});
     const [welcomeStickerHidden, setWelcomeStickerHidden] = useState(false);
+    /** 用户拖动导致的待保存布局，避免在 setState 的 updater 内执行 API 副作用 */
+    const pendingLayoutSaveRef = React.useRef<{ theme: string; positions: Record<string, { left: number; top: number }> } | null>(null);
     const defaultSceneId = theme === 'spring' ? DEFAULT_SPRING_SCENE : 'xmas_1';
     const pageScene = user?.selectedScene ?? defaultSceneId;
     const defaultSpringBg = getSpringSceneBackgroundImage(user?.selectedScene || DEFAULT_SPRING_SCENE);
@@ -118,8 +121,20 @@ const FestiveDecorPage: React.FC = () => {
     }, [backgroundImage]);
 
     const handlePositionChange = useCallback((messageId: string, left: number, top: number) => {
-        setStickerPositions(prev => ({ ...prev, [messageId]: { left, top } }));
-    }, []);
+        setStickerPositions(prev => {
+            const next = { ...prev, [messageId]: { left, top } };
+            pendingLayoutSaveRef.current = { theme, positions: next };
+            return next;
+        });
+    }, [theme]);
+
+    // 用户拖动后异步保存布局，避免在 setState updater 内执行副作用（Strict Mode 下会重复调用）
+    useEffect(() => {
+        const pending = pendingLayoutSaveRef.current;
+        if (!pending || pending.theme !== theme) return;
+        pendingLayoutSaveRef.current = null;
+        saveSceneLayout(theme as 'christmas' | 'spring', pending.positions).then(() => checkAuth()).catch(() => {});
+    }, [theme, stickerPositions, checkAuth]);
 
     const handleDeleteSticker = useCallback(async (messageId: string) => {
         try {
