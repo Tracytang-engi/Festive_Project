@@ -157,6 +157,23 @@
   transform: translate(-50%, -50%) scale(1.08) !important;
 }
 
+/* 禁用 iPhone 长按贴纸时的系统「放大/保存图像」行为，使长按可用于拖动 */
+.sticker-hover,
+.sticker-hover img {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.sticker-hover img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+.sticker-hover {
+  pointer-events: auto;
+  touch-action: none;
+}
+
 /* 通知图标右上角小红点 */
 .notification-badge {
   position: absolute;

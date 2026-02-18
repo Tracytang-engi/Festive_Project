@@ -735,6 +735,7 @@ const FriendDecorPage: React.FC = () => {
                     return (
                         <div
                             key={message._id}
+                            className="sticker-hover"
                             role="button"
                             tabIndex={0}
                             onClick={(e) => {

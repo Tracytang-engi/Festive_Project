@@ -1,10 +1,10 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { ChristmasMessageProvider } from './context/ChristmasMessageContext';
-import { SidebarProvider } from './context/SidebarContext';
-import { OnboardingProvider } from './context/OnboardingContext';
+import { SidebarProvider, useSidebar } from './context/SidebarContext';
+import { OnboardingProvider, useOnboarding } from './context/OnboardingContext';
 import OnboardingOverlay from './components/Onboarding/OnboardingOverlay';
 import HomePage from './pages/HomePage';
 import AuthForm from './components/Auth/AuthForm';
@@ -60,6 +60,25 @@ const AppRoutes = () => {
   );
 };
 
+/** 手机端：新手教程进行中保持侧栏展开，完成后才在进入新页面时折叠 */
+const SidebarCollapseSync: React.FC = () => {
+  const location = useLocation();
+  const { isMobile, setSidebarCollapsed } = useSidebar();
+  const onboarding = useOnboarding();
+  const isOnboardingActive = onboarding?.isActive ?? false;
+
+  useEffect(() => {
+    if (!isMobile) return;
+    if (isOnboardingActive) {
+      setSidebarCollapsed(false);
+    } else {
+      setSidebarCollapsed(true);
+    }
+  }, [isMobile, isOnboardingActive, location.pathname, setSidebarCollapsed]);
+
+  return null;
+};
+
 const BANNER_HEIGHT = 48;
 
 /** Christmas 主题时在页面顶部显示「暂未开放，敬请期待」横幅，并为内容留出间距 */
@@ -105,6 +124,7 @@ const App: React.FC = () => {
           <ChristmasMessageProvider>
             <SidebarProvider>
               <OnboardingProvider>
+                <SidebarCollapseSync />
                 <ChristmasBannerAndLayout />
                 <OnboardingOverlay />
               </OnboardingProvider>

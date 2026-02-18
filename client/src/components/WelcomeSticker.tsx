@@ -106,6 +106,7 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
                 <img
                     src={WELCOME_IMAGE}
                     alt=""
+                    draggable={false}
                     style={{
                         width: 192,
                         height: 192,
