@@ -100,18 +100,19 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
         if (!dragging) return;
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
-        const onTouchMove = (e: TouchEvent) => handleTouchMove(e);
-        const onTouchEnd = (e: TouchEvent) => handleTouchEnd(e);
-        const onTouchCancel = (e: TouchEvent) => handleTouchEnd(e);
-        window.addEventListener('touchmove', onTouchMove, { passive: false });
-        window.addEventListener('touchend', onTouchEnd, { passive: false });
-        window.addEventListener('touchcancel', onTouchCancel, { passive: false });
+        const touchOpts: AddEventListenerOptions = { passive: false };
+        const onTouchMove = (e: Event) => handleTouchMove(e as TouchEvent);
+        const onTouchEnd = (e: Event) => handleTouchEnd(e as TouchEvent);
+        const onTouchCancel = (e: Event) => handleTouchEnd(e as TouchEvent);
+        window.addEventListener('touchmove', onTouchMove, touchOpts);
+        window.addEventListener('touchend', onTouchEnd, touchOpts);
+        window.addEventListener('touchcancel', onTouchCancel, touchOpts);
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
-            window.removeEventListener('touchmove', onTouchMove, { passive: false });
-            window.removeEventListener('touchend', onTouchEnd, { passive: false });
-            window.removeEventListener('touchcancel', onTouchCancel, { passive: false });
+            window.removeEventListener('touchmove', onTouchMove, touchOpts);
+            window.removeEventListener('touchend', onTouchEnd, touchOpts);
+            window.removeEventListener('touchcancel', onTouchCancel, touchOpts);
         };
     }, [dragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
