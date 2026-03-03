@@ -6,6 +6,8 @@ import { ChristmasMessageProvider } from './context/ChristmasMessageContext';
 import { SidebarProvider } from './context/SidebarContext';
 import { OnboardingProvider } from './context/OnboardingContext';
 import OnboardingOverlay from './components/Onboarding/OnboardingOverlay';
+import MaintenancePage from './components/MaintenancePage';
+import { IS_MAINTENANCE } from './constants/config';
 import HomePage from './pages/HomePage';
 import AuthForm from './components/Auth/AuthForm';
 import SceneSelector from './pages/SceneSelectionPage';
@@ -98,6 +100,10 @@ const ChristmasBannerAndLayout: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  if (IS_MAINTENANCE) {
+    return <MaintenancePage />;
+  }
+
   return (
     <Router>
       <AuthProvider>
