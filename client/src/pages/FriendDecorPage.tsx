@@ -253,7 +253,7 @@ const FriendDecorPage: React.FC = () => {
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
+            <div className="layout-with-sidebar" style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
                 <Sidebar />
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f2f2f7' }}>
                     <p style={{ fontSize: '16px', color: '#666' }}>加载中... <span className="bilingual-en">Loading...</span></p>
@@ -267,7 +267,7 @@ const FriendDecorPage: React.FC = () => {
         const isViewingOwnPage = !!(currentUser?._id && userId && currentUser._id === userId);
         const isNotFriendsWithNickname = errorCode === 'NOT_FRIENDS' && !!nicknameFromShare && !isViewingOwnPage;
         return (
-            <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
+            <div className="layout-with-sidebar" style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: 0, overflowX: 'hidden' }}>
                 <Sidebar />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f2f2f7', padding: '24px' }}>
                     <p style={{ fontSize: '16px', color: '#c41e3a', marginBottom: '16px', textAlign: 'center' }}>
@@ -302,10 +302,11 @@ const FriendDecorPage: React.FC = () => {
         const springScenes = SPRING_SCENE_IDS.map(id => ({ id, name: getSceneName(id), icon: SCENE_ICONS[id] ?? '📁' }));
         return (
             <>
-            <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
+            <div className="layout-with-sidebar" style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: 0, maxWidth: '100vw', overflowY: 'auto' }}>
                 <Sidebar />
                 <div style={{
                     flex: 1,
+                    minWidth: 0,
                     padding: '24px 20px 48px',
                     background: themeConfig.spring.mainBg,
                     color: 'white',
@@ -575,9 +576,9 @@ const FriendDecorPage: React.FC = () => {
         );
     }
 
-    // 步骤二：查看该场景和对方的布置
+    // 步骤二：查看该场景和对方的布置；尽量一屏完整显示，内容多时仍可上下滚动
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflow: 'hidden' }}>
+        <div className="layout-with-sidebar" style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: 0, maxWidth: '100vw', overflowY: 'auto' }}>
             <Sidebar />
             <div
                 ref={sceneContainerRef}
@@ -585,6 +586,7 @@ const FriendDecorPage: React.FC = () => {
                 data-onboarding-target="sticker-area"
                 style={{
                     flex: 1,
+                    minWidth: 0,
                     minHeight: '100vh',
                     position: 'relative',
                     backgroundImage: `url(${backgroundImage})`,
@@ -733,8 +735,10 @@ const FriendDecorPage: React.FC = () => {
                     return (
                         <div
                             key={message._id}
+                            className="sticker-hover"
                             role="button"
                             tabIndex={0}
+                            onTouchStart={canDrag ? (e) => e.preventDefault() : undefined}
                             onClick={(e) => {
                                 if (justDraggedRef.current) {
                                     e.preventDefault();

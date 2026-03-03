@@ -44,20 +44,49 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
         dragRef.current = { moved: false };
     }, []);
 
-    const handleMouseMove = useCallback((e: MouseEvent) => {
-        if (!dragging) return;
-        dragRef.current.moved = true;
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(true);
+        dragRef.current = { moved: false };
+    }, []);
+
+    const updatePos = useCallback((clientX: number, clientY: number) => {
         const container = wrapperRef.current?.parentElement;
         const rect = container?.getBoundingClientRect();
         if (rect && rect.width > 0 && rect.height > 0) {
-            const left = Math.min(95, Math.max(5, ((e.clientX - rect.left) / rect.width) * 100));
-            const top = Math.min(95, Math.max(5, ((e.clientY - rect.top) / rect.height) * 100));
+            const left = Math.min(95, Math.max(5, ((clientX - rect.left) / rect.width) * 100));
+            const top = Math.min(95, Math.max(5, ((clientY - rect.top) / rect.height) * 100));
             positionRef.current = { left, top };
             setPos({ left, top });
         }
-    }, [dragging]);
+    }, []);
+
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+        if (!dragging) return;
+        dragRef.current.moved = true;
+        updatePos(e.clientX, e.clientY);
+    }, [dragging, updatePos]);
+
+    const handleTouchMove = useCallback((e: TouchEvent) => {
+        if (!dragging || !e.touches.length) return;
+        e.preventDefault();
+        dragRef.current.moved = true;
+        updatePos(e.touches[0].clientX, e.touches[0].clientY);
+    }, [dragging, updatePos]);
 
     const handleMouseUp = useCallback(() => {
+        const wasClick = !dragRef.current.moved;
+        setDragging(false);
+        if (wasClick) {
+            setDetailOpen(true);
+        } else {
+            onPositionChange(positionRef.current.left, positionRef.current.top);
+        }
+    }, [onPositionChange]);
+
+    const handleTouchEnd = useCallback((e?: TouchEvent) => {
+        if (e) e.preventDefault();
         const wasClick = !dragRef.current.moved;
         setDragging(false);
         if (wasClick) {
@@ -71,11 +100,21 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
         if (!dragging) return;
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
+        const touchOpts: AddEventListenerOptions = { passive: false };
+        const onTouchMove = (e: Event) => handleTouchMove(e as TouchEvent);
+        const onTouchEnd = (e: Event) => handleTouchEnd(e as TouchEvent);
+        const onTouchCancel = (e: Event) => handleTouchEnd(e as TouchEvent);
+        window.addEventListener('touchmove', onTouchMove, touchOpts);
+        window.addEventListener('touchend', onTouchEnd, touchOpts);
+        window.addEventListener('touchcancel', onTouchCancel, touchOpts);
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('touchmove', onTouchMove, touchOpts);
+            window.removeEventListener('touchend', onTouchEnd, touchOpts);
+            window.removeEventListener('touchcancel', onTouchCancel, touchOpts);
         };
-    }, [dragging, handleMouseMove, handleMouseUp]);
+    }, [dragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
     const handleDelete = () => {
         onDelete();
@@ -88,6 +127,7 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
             <div
                 ref={wrapperRef}
                 onMouseDown={handleMouseDown}
+                onTouchStart={handleTouchStart}
                 style={{
                     position: 'absolute',
                     left: `${pos.left}%`,
@@ -106,6 +146,7 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
                 <img
                     src={WELCOME_IMAGE}
                     alt=""
+                    draggable={false}
                     style={{
                         width: 192,
                         height: 192,
@@ -140,7 +181,7 @@ const WelcomeSticker: React.FC<WelcomeStickerProps> = ({
                             background: 'white',
                             padding: '24px',
                             borderRadius: '16px',
-                            maxWidth: '400px',
+                            maxWidth: 'min(360px, calc(100vw - 192px))',
                             width: '90%',
                             color: '#333',
                             boxShadow: '0 8px 32px rgba(0,0,0,0.15)',

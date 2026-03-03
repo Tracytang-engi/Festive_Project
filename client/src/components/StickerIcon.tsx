@@ -16,6 +16,7 @@ const StickerIcon: React.FC<StickerIconProps> = ({ stickerType, size = 64, style
             <img
                 src={url}
                 alt=""
+                draggable={false}
                 className={className}
                 style={{
                     width: size,

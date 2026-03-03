@@ -14,7 +14,9 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [isMobile, setIsMobile] = useState(() =>
         typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
     );
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+        typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
+    );
 
     useEffect(() => {
         const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);

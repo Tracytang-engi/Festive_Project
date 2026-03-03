@@ -4,8 +4,8 @@ import type { User } from '../types';
 // Get list of friends (the server returns { _id, friend: User }[])
 export const getFriends = async (): Promise<User[]> => {
     const response = await api.get('/friends');
-    // Map to just the User object
-    return response.data.map((item: { friend: User }) => item.friend);
+    const list = Array.isArray(response.data) ? response.data : [];
+    return list.map((item: { friend?: User }) => item.friend).filter((u): u is User => u != null);
 };
 
 // Start a friend request

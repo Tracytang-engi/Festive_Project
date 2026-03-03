@@ -176,7 +176,7 @@ const SettingsPage: React.FC = () => {
     const mainBg = themeConfig[theme].mainBg;
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
+        <div className="layout-with-sidebar" style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: 0, overflowY: 'auto' }}>
             <Sidebar />
             <div style={{
                 flex: 1,
@@ -218,6 +218,21 @@ const SettingsPage: React.FC = () => {
                     <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 600 }}>
                         个人主页 <span className="bilingual-en">Profile</span>
                     </h2>
+
+                    {/* 我的 ID */}
+                    {user && (
+                        <div style={{ marginBottom: '24px' }}>
+                            <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, marginBottom: '8px' }}>
+                                我的 ID <span className="bilingual-en">My ID</span>
+                            </label>
+                            <p style={{ margin: 0, fontSize: '15px', color: '#333', userSelect: 'all' }}>
+                                <strong>{user.userId || user._id}</strong>
+                            </p>
+                            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#666' }}>
+                                {theme === 'spring' ? '好友可通过此 ID 搜索并添加你。' : 'Friends can search and add you by this ID.'}
+                            </p>
+                        </div>
+                    )}
 
                     {/* 头像 */}
                     <div style={{ marginBottom: '24px' }}>

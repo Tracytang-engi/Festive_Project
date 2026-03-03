@@ -58,7 +58,7 @@ const HistoryPage: React.FC = () => {
     const mainBg = themeConfig[theme].mainBg;
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: '320px', overflowY: 'auto' }}>
+        <div className="layout-with-sidebar" style={{ display: 'flex', minHeight: '100vh', width: '100%', minWidth: 0, overflowY: 'auto' }}>
             <Sidebar />
             <div style={{
                 flex: 1,
